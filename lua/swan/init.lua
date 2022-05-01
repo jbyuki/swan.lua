@@ -22,7 +22,9 @@ function Exp.new(kind, opts)
           terms_str[str] = terms_str[str] + 1
         end
 
-        terms_str_list = vim.tbl_keys(terms_str)
+        for key, _ in pairs(terms_str) do
+          table.insert(terms_str_list, tostring(key))
+        end
         table.sort(terms_str_list)
 
         local str_list = {}
@@ -39,6 +41,7 @@ function Exp.new(kind, opts)
           end
         end
         return table.concat(str_list, " + ")
+
       elseif self.kind == "sub" then
         return ("(%s - %s)"):format(tostring(self.o.lhs), tostring(self.o.rhs))
       elseif self.kind == "mul" then
@@ -73,7 +76,15 @@ function Exp.new(kind, opts)
       elseif self.kind == "pow" then
         return ("(%s ^ %s)"):format(tostring(self.o.lhs), tostring(self.o.rhs))
       elseif self.kind == "constant" then
-        return self.o.constant
+        return tostring(self.o.constant)
+
+      elseif self.kind == "cos" then
+        return ("cos(%s)"):format(tostring(self.o.arg))
+      elseif self.kind == "sin" then
+        return ("sin(%s)"):format(tostring(self.o.arg))
+
+      elseif self.kind == "inf" then
+        return "inf"
 
       else
         return "[UNKNOWN]"
@@ -189,6 +200,12 @@ function Exp:clone()
     -- value at one location.
     return self
 
+  elseif self.kind == "cos" then
+    return Exp.new(self.kind, { arg = self.o.arg:clone() })
+  elseif self.kind == "sin" then
+    return Exp.new(self.kind, { arg = self.o.arg:clone() })
+  elseif self.kind == "inf" then
+    return Exp.new(self.kind, {})
   else
     print(("Error! Cannot clone kind = %s."):format(self.kind))
   end
@@ -224,8 +241,16 @@ function Exp:collectFactors()
   return { self:clone() }
 end
 
-function M.version()
-  return "0.0.1"
+function M.cos(x)
+  return Exp.new("cos", { arg = x })
+end
+
+function M.sin(x)
+  return Exp.new("sin", { arg = x })
+end
+
+function M.inf()
+  return Exp.new("inf", {})
 end
 
 function M.sym(name)
@@ -239,6 +264,9 @@ function convert_constant(x)
   return x
 end
 
+function M.version()
+  return "0.0.1"
+end
 
 return M
 
