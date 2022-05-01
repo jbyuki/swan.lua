@@ -187,7 +187,11 @@ function Exp.new(kind, opts)
         end
 
       elseif self.kind == "pow" then
-        return ("(%s)^%s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+        if self.o.lhs:is_atomic() then
+          return ("%s^%s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+        else
+          return ("(%s)^%s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+        end
       elseif self.kind == "constant" then
         return tostring(self.o.constant)
 
@@ -234,10 +238,10 @@ function Exp.new(kind, opts)
   })
 end
 
-function Exp:simplify()
+function Exp:expand()
   if self.kind == "pow" then
-    local lhs = self.o.lhs:simplify()
-    local rhs = self.o.rhs:simplify()
+    local lhs = self.o.lhs:expand()
+    local rhs = self.o.rhs:expand()
 
     -- Just compute if both are constants
     if rhs.kind == "constant" and lhs.kind == "constant" then
@@ -249,6 +253,7 @@ function Exp:simplify()
       local sup = rhs.o.constant
 
       -- Check if it is an integer
+
       if sup == math.floor(sup) and sup >= 0 then
 
         -- Transform to a series of multiplication
@@ -265,7 +270,7 @@ function Exp:simplify()
           end
         end
 
-        res = res:simplify()
+        res = res:expand()
 
         return res
       end
@@ -274,8 +279,8 @@ function Exp:simplify()
     return Exp.new("pow", { lhs = lhs, rhs = rhs })
 
   elseif self.kind == "mul" then
-    local lhs = self.o.lhs:simplify()
-    local rhs = self.o.rhs:simplify()
+    local lhs = self.o.lhs:expand()
+    local rhs = self.o.rhs:expand()
 
     local rhs_term = rhs:collectTerm()
 
@@ -296,12 +301,6 @@ function Exp:simplify()
       end
 
       return res
-    end
-
-  elseif self.kind == "add" then
-    local factors = self:collectFactors()
-    for i = 1,#factors do
-      factors[i] = factors[i]:simplify()
     end
 
   else

@@ -63,22 +63,26 @@ elseif self.kind == "sub" then
 elseif self.kind == "mul" then
   @display_mul_string
 elseif self.kind == "pow" then
-  return ("(%s)^%s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+  if self.o.lhs:is_atomic() then
+    return ("%s^%s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+  else
+    return ("(%s)^%s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+  end
 elseif self.kind == "constant" then
   return tostring(self.o.constant)
 
 @methods+=
-function Exp:simplify()
-  @simplify_exp
+function Exp:expand()
+  @expand_exp
   else
     return self:clone()
   end
 end
 
-@simplify_exp+=
+@expand_exp+=
 if self.kind == "pow" then
-  local lhs = self.o.lhs:simplify()
-  local rhs = self.o.rhs:simplify()
+  local lhs = self.o.lhs:expand()
+  local rhs = self.o.rhs:expand()
 
   -- Just compute if both are constants
   if rhs.kind == "constant" and lhs.kind == "constant" then
@@ -90,11 +94,12 @@ if self.kind == "pow" then
     local sup = rhs.o.constant
 
     -- Check if it is an integer
+
     if sup == math.floor(sup) and sup >= 0 then
 
       -- Transform to a series of multiplication
       @transform_pow_to_multiplication
-      @simplify_multiplications
+      @expand_multiplications
       return res
     end
   end
@@ -139,13 +144,13 @@ elseif self.kind == "sym" then
   -- value at one location.
   return self
 
-@simplify_multiplications+=
-res = res:simplify()
+@expand_multiplications+=
+res = res:expand()
 
-@simplify_exp+=
+@expand_exp+=
 elseif self.kind == "mul" then
-  local lhs = self.o.lhs:simplify()
-  local rhs = self.o.rhs:simplify()
+  local lhs = self.o.lhs:expand()
+  local rhs = self.o.rhs:expand()
 
   @collect_rhs_term_in_list
   @collect_lhs_term_in_list
@@ -333,13 +338,6 @@ elseif self.kind == "sin" then
   return Exp.new(self.kind, { arg = self.o.arg:clone() })
 elseif self.kind == "inf" then
   return Exp.new(self.kind, {})
-
-@simplify_exp+=
-elseif self.kind == "add" then
-  local factors = self:collectFactors()
-  for i = 1,#factors do
-    factors[i] = factors[i]:simplify()
-  end
 
 @metamethods+=
 __mul = function(lhs, rhs)
