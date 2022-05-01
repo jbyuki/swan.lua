@@ -63,7 +63,7 @@ elseif self.kind == "sub" then
 elseif self.kind == "mul" then
   @display_mul_string
 elseif self.kind == "pow" then
-  return ("(%s ^ %s)"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+  return ("(%s)^%s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
 elseif self.kind == "constant" then
   return tostring(self.o.constant)
 
@@ -210,19 +210,24 @@ end
 local factors = self:collectFactors()
 local factors_str = {}
 local factors_str_list = {}
+local factors_str_ref = {}
 
 for i=1,#factors do
   local str = tostring(factors[i])
   factors_str[str] = factors_str[str] or 0
   factors_str[str] = factors_str[str] + 1
+  factors_str_ref[str] = factors[i]
 end
 
 factors_str_list = vim.tbl_keys(factors_str)
 table.sort(factors_str_list)
 
+@remove_and_collect_any_number_factor
+
 local str = ""
 for i, fac in ipairs(factors_str_list) do
   sup = factors_str[fac]
+  @modify_add_paren
   if sup == 1 then
     str = str .. fac
   -- elseif sup == 2 then
@@ -233,7 +238,38 @@ for i, fac in ipairs(factors_str_list) do
     str = str .. fac .. "^" .. sup
   end
 end
-return str
+
+if num_factor ~= 1 then
+  return num_factor .. str
+else
+  return str
+end
+
+@modify_add_paren+=
+if #factors_str_list > 1 then
+  if not factors_str_ref[fac]:is_atomic() and factors_str_ref[fac].kind ~= "pow" then
+    fac = "(" .. fac .. ")"
+  end
+end
+
+@remove_and_collect_any_number_factor+=
+local num_factor = 1
+
+i = 1
+while i <= #factors_str_list do
+  fac = factors_str_list[i]
+  if factors_str_ref[fac].kind == "constant" then
+    num_factor = num_factor * factors_str_ref[fac].o.constant
+    table.remove(factors_str_list, i)
+  else
+    i = i + 1
+  end
+end
+
+@methods+=
+function Exp:is_atomic()
+  return self.kind == "sym" or self.kind == "constant" or self.kind == "inf"
+end
 
 @display_add_string+=
 local terms = self:collectTerm()
@@ -297,3 +333,16 @@ elseif self.kind == "sin" then
   return Exp.new(self.kind, { arg = self.o.arg:clone() })
 elseif self.kind == "inf" then
   return Exp.new(self.kind, {})
+
+@simplify_exp+=
+elseif self.kind == "add" then
+  local factors = self:collectFactors()
+  for i = 1,#factors do
+    factors[i] = factors[i]:simplify()
+  end
+
+@metamethods+=
+__mul = function(lhs, rhs)
+  @convert_lhs_or_rhs_to_constant
+  return Exp.new("mul", { lhs = lhs, rhs = rhs })
+end,

@@ -1,7 +1,6 @@
--- Generated using ntangle.nvim
 local swan = require"swan"
 x = swan.sym "x"
-exp2 = swan.inf() + 2
-print(exp2)
--- print(exp:simplify())
--- print(exp2)
+y = swan.sym "y"
+exp = x*y + x
+exp = exp:derivate(x)
+print(exp)

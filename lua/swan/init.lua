@@ -5,6 +5,92 @@ local convert_constant
 
 local Exp = {}
 
+function Exp:derivate(dx)
+  if self.kind == "constant" then
+    return Exp.new("constant", { constant = 0 })
+  elseif self.kind == "sym" then
+    if self == dx then
+      return Exp.new("constant", { constant = 1 })
+    else
+      return Exp.new("constant", { constant = 0 })
+    end
+  elseif self.kind == "add" then
+    local rhs = self.o.rhs:derivate(dx)
+    local lhs = self.o.lhs:derivate(dx)
+    if rhs:is_zero() then
+      return lhs
+    elseif lhs:is_zero() then
+      return rhs
+    end
+    return Exp.new("add", { lhs = lhs, rhs = rhs })
+
+  elseif self.kind == "sub" then
+    local rhs = self.o.rhs:derivate(dx)
+    local lhs = self.o.lhs:derivate(dx)
+    return Exp.new("sub", { lhs = lhs, rhs = rhs })
+
+  elseif self.kind == "pow" then
+    if self.o.rhs.kind == "constant" then
+      local der_lhs = self.o.lhs:derivate(dx)
+      local coeff1 = Exp.new("constant", { constant = self.o.rhs.o.constant })
+      local coeff2 = Exp.new("constant", { constant = self.o.rhs.o.constant-1 })
+
+      if not coeff2:is_one() then
+        res = Exp.new("pow", { lhs = self.o.lhs, rhs = coeff2 })
+      else
+        res = self.o.lhs
+      end
+
+      res = Exp.new("mul", { lhs = res, rhs = coeff1 })
+      if not der_lhs:is_one() then
+        res = Exp.new("mul", { lhs = res, rhs = der_lhs })
+      end
+      return res
+    end
+
+    print("ERROR: Unsupported algebraic pow derivation")
+
+  elseif self.kind == "mul" then
+    local rhs_der = self.o.rhs:derivate(dx)
+    local lhs_der = self.o.lhs:derivate(dx)
+
+    local lhs_add = nil
+    if not lhs_der:is_zero() then
+      lhs_add = Exp.new("mul", { lhs = lhs_der, rhs = self.o.rhs })
+    end
+
+    local rhs_add = nil
+    if not rhs_der:is_zero() then
+      rhs_add = Exp.new("mul", { lhs = self.o.lhs, rhs = rhs_der })
+    end
+
+    if not lhs_add and not rhs_add then
+      return Exp.new("constant", { constant = 0 })
+    elseif not lhs_add then
+      return rhs_add
+    elseif not rhs_add then
+      return lhs_add
+    end
+
+    return Exp.new("add", {lhs = lhs_add, rhs = rhs_add})
+  else
+    print("ERROR! Cannot derivate of " .. self.kind)
+  end
+  return exp
+end
+
+function Exp:is_one()
+  return self.kind == "constant" and self.o.constant == 1
+end
+
+function Exp:is_zero()
+  return self.kind == "constant" and self.o.constant == 0
+end
+
+function Exp:is_constant()
+  return self.kind == "constant"
+end
+
 function Exp.new(kind, opts)
   local o = { kind = kind, o = opts }
   return setmetatable(o, { __index = Exp,
@@ -48,19 +134,41 @@ function Exp.new(kind, opts)
         local factors = self:collectFactors()
         local factors_str = {}
         local factors_str_list = {}
+        local factors_str_ref = {}
 
         for i=1,#factors do
           local str = tostring(factors[i])
           factors_str[str] = factors_str[str] or 0
           factors_str[str] = factors_str[str] + 1
+          factors_str_ref[str] = factors[i]
         end
 
         factors_str_list = vim.tbl_keys(factors_str)
         table.sort(factors_str_list)
 
+        local num_factor = 1
+
+        i = 1
+        while i <= #factors_str_list do
+          fac = factors_str_list[i]
+          if factors_str_ref[fac].kind == "constant" then
+            num_factor = num_factor * factors_str_ref[fac].o.constant
+            table.remove(factors_str_list, i)
+          else
+            i = i + 1
+          end
+        end
+
+
         local str = ""
         for i, fac in ipairs(factors_str_list) do
           sup = factors_str[fac]
+          if #factors_str_list > 1 then
+            if not factors_str_ref[fac]:is_atomic() and factors_str_ref[fac].kind ~= "pow" then
+              fac = "(" .. fac .. ")"
+            end
+          end
+
           if sup == 1 then
             str = str .. fac
           -- elseif sup == 2 then
@@ -71,10 +179,15 @@ function Exp.new(kind, opts)
             str = str .. fac .. "^" .. sup
           end
         end
-        return str
+
+        if num_factor ~= 1 then
+          return num_factor .. str
+        else
+          return str
+        end
 
       elseif self.kind == "pow" then
-        return ("(%s ^ %s)"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+        return ("(%s)^%s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
       elseif self.kind == "constant" then
         return tostring(self.o.constant)
 
@@ -112,6 +225,12 @@ function Exp.new(kind, opts)
       return Exp.new("pow", { lhs = lhs, rhs = rhs })
     end,
 
+    __mul = function(lhs, rhs)
+      lhs = convert_constant(lhs)
+      rhs = convert_constant(rhs)
+
+      return Exp.new("mul", { lhs = lhs, rhs = rhs })
+    end,
   })
 end
 
@@ -179,6 +298,12 @@ function Exp:simplify()
       return res
     end
 
+  elseif self.kind == "add" then
+    local factors = self:collectFactors()
+    for i = 1,#factors do
+      factors[i] = factors[i]:simplify()
+    end
+
   else
     return self:clone()
   end
@@ -206,6 +331,7 @@ function Exp:clone()
     return Exp.new(self.kind, { arg = self.o.arg:clone() })
   elseif self.kind == "inf" then
     return Exp.new(self.kind, {})
+
   else
     print(("Error! Cannot clone kind = %s."):format(self.kind))
   end
@@ -239,6 +365,10 @@ function Exp:collectFactors()
   end
 
   return { self:clone() }
+end
+
+function Exp:is_atomic()
+  return self.kind == "sym" or self.kind == "constant" or self.kind == "inf"
 end
 
 function M.cos(x)
