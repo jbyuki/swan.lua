@@ -203,6 +203,17 @@ function Exp.new(kind, opts)
       elseif self.kind == "inf" then
         return "inf"
 
+      elseif self.kind == "matrix" then
+        local rows = {}
+        for i=1,#self.o.rows do
+          local row = {}
+          for j=1,#self.o.rows[i] do
+            table.insert(row, tostring(self.o.rows[i][j]))
+          end
+          table.insert(rows, "  " .. table.concat(row, ", "))
+        end
+        return "[\n" .. table.concat(rows, "\n") .. "\n]"
+
       else
         return "[UNKNOWN]"
       end
@@ -331,6 +342,17 @@ function Exp:clone()
   elseif self.kind == "inf" then
     return Exp.new(self.kind, {})
 
+  elseif self.kind == "matrix" then
+    local rows = {}
+    for i=1,#self.o.rows do
+      local row = {}
+      for j=1,#self.o.rows[i] do
+        table.insert(row, self.o.rows[i][j]:clone())
+      end
+      table.insert(rows, row)
+    end
+
+    return Exp.new("matrix", { rows = rows })
   else
     print(("Error! Cannot clone kind = %s."):format(self.kind))
   end
@@ -382,6 +404,9 @@ function M.inf()
   return Exp.new("inf", {})
 end
 
+function Exp:integrate()
+  print("ERROR: Unsupported!")
+end
 function M.sym(name)
   return Exp.new("sym", { name = name })
 end
@@ -396,6 +421,24 @@ end
 function M.version()
   return "0.0.1"
 end
+function M.mat(array)
+  assert(type(array) == "table", "Argument array must be table")
+
+  for i=1,#array do
+    assert(type(array[i]) == "table", "Argument array elements must be table")
+    for j=1,#array[i] do
+      local el = array[i][j]
+      if type(el) == "number" then
+        array[i][j] = Exp.new("constant", { constant = el })
+      end
+    end
+  end
+
+  local exp = Exp.new("matrix", { rows = array })
+
+  return exp
+end
+
 
 return M
 

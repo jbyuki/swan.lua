@@ -1,6 +1,7 @@
 local swan = require"swan"
-x = swan.sym "x"
-y = swan.sym "y"
-exp = (x+y)^2
-exp = exp:expand()
-print(exp)
+x = swan.mat {{1, 0}, {0, 1}}
+x = x + 2
+print(x)
+print(x)
+print(x)
+print(x)
