@@ -20,3 +20,47 @@ elseif self.kind == "div" then
   end
 
   return lhs .. "/" .. rhs
+
+@methods+=
+function Exp:is_integer()
+  return self.kind == "constant" and math.floor(self.o.constant) == self.o.constant
+end
+
+@declare+=
+local gcd
+
+@define+=
+-- The oldest algorithm, as far as I know
+function gcd(a, b)
+  if a == b then
+    return a
+  end
+  if a < b then
+    a,b = b,a
+  end
+  return gcd(a-b, b)
+end
+
+@simplify_exp+=
+elseif self.kind == "div" then
+  local lhs = self.o.lhs:simplify()
+  local rhs = self.o.rhs:simplify()
+
+  if lhs:is_integer() and rhs:is_integer() then
+    local num = lhs.o.constant
+    local den = rhs.o.constant
+
+    local div = gcd(num, den)
+
+    -- not really sure if all of this is necessary,
+    -- floating numbers is always a grey zone for me
+    num = math.floor(num / div + 0.5)
+    den = math.floor(den / div + 0.5)
+
+    return Exp.new("div", { 
+      lhs = M.constant(num), 
+      rhs = M.constant(den)
+    })
+  end
+
+  return Exp.new("div", { lhs = lhs, rhs = rhs })
