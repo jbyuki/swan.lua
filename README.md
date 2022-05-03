@@ -17,8 +17,14 @@ print(exp:expand()) -- => x^2 + 2xy + y^2
 exp = x*y + x
 print(exp:derivate(x)) -- => 1 + y
 
-A = swan.mat {{x, 2}, {3, 4}}
-B = swan.mat {{2, 5}, {3, x}}
+A = swan.mat {
+  {x, 2}, 
+  {3, 4}
+}
+B = swan.mat {
+  {2, 5}, 
+  {3, x}
+}
 C = A*B
 print(C:simplify()) -- => [
                     --      2x + 6, 2x + 5x

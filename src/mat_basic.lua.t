@@ -79,6 +79,7 @@ elseif self.kind == "mul" then
     return M.constant(lhs.o.constant * rhs.o.constant)
   end
 
+
   if lhs:is_matrix() and rhs:is_matrix() then
     assert(lhs:cols() == rhs:rows(), "Matrix multiplication dimensions mismatch")
 
@@ -99,8 +100,11 @@ elseif self.kind == "mul" then
     return Exp.new("matrix", { rows = rows })
   end
 
+  @handle_rhs_coeff_mul_matrix
+  @handle_lhs_coeff_mul_matrix
+
 @compute_mul_cell_matrix+=
-local mul_exp = Exp.new("mul", { lhs = lhs.o.rows[i][k], rhs = rhs.o.rows[k][j] })
+local mul_exp = Exp.new("mul", { lhs = lhs.o.rows[i][k]:clone(), rhs = rhs.o.rows[k][j]:clone() })
 
 if not cell then
   cell = mul_exp
@@ -116,3 +120,33 @@ elseif self.kind == "add" then
   if lhs:is_constant() and rhs:is_constant() then
     return M.constant(lhs.o.constant + rhs.o.constant)
   end
+
+@handle_rhs_coeff_mul_matrix+=
+if rhs:is_matrix() then
+  local rows = {}
+  for i=1,rhs:rows() do
+    local row = {}
+    for j=1,rhs:cols() do
+      local mul_exp = Exp.new("mul", { lhs = lhs:clone(), rhs = rhs.o.rows[i][j]:clone() })
+      table.insert(row, mul_exp:simplify())
+    end
+    table.insert(rows, row)
+  end
+
+  return Exp.new("matrix", { rows = rows })
+end
+
+@handle_lhs_coeff_mul_matrix+=
+if lhs:is_matrix() then
+  local rows = {}
+  for i=1,lhs:rows() do
+    local row = {}
+    for j=1,lhs:cols() do
+      local mul_exp = Exp.new("mul", { rhs = rhs:clone(), lhs = lhs.o.rows[i][j]:clone() })
+      table.insert(row, mul_exp:simplify())
+    end
+    table.insert(rows, row)
+  end
+
+  return Exp.new("matrix", { rows = rows })
+end

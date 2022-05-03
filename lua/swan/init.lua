@@ -420,6 +420,7 @@ function Exp:simplify()
       return M.constant(lhs.o.constant * rhs.o.constant)
     end
 
+
     if lhs:is_matrix() and rhs:is_matrix() then
       assert(lhs:cols() == rhs:rows(), "Matrix multiplication dimensions mismatch")
 
@@ -430,7 +431,7 @@ function Exp:simplify()
         for j=1,rhs:cols() do
           local cell
           for k=1,rhs:rows() do
-            local mul_exp = Exp.new("mul", { lhs = lhs.o.rows[i][k], rhs = rhs.o.rows[k][j] })
+            local mul_exp = Exp.new("mul", { lhs = lhs.o.rows[i][k]:clone(), rhs = rhs.o.rows[k][j]:clone() })
 
             if not cell then
               cell = mul_exp
@@ -447,6 +448,34 @@ function Exp:simplify()
       return Exp.new("matrix", { rows = rows })
     end
 
+    if rhs:is_matrix() then
+      local rows = {}
+      for i=1,rhs:rows() do
+        local row = {}
+        for j=1,rhs:cols() do
+          local mul_exp = Exp.new("mul", { lhs = lhs:clone(), rhs = rhs.o.rows[i][j]:clone() })
+          table.insert(row, mul_exp:simplify())
+        end
+        table.insert(rows, row)
+      end
+
+      return Exp.new("matrix", { rows = rows })
+    end
+
+    if lhs:is_matrix() then
+      local rows = {}
+      for i=1,lhs:rows() do
+        local row = {}
+        for j=1,lhs:cols() do
+          local mul_exp = Exp.new("mul", { rhs = rhs:clone(), lhs = lhs.o.rows[i][j]:clone() })
+          table.insert(row, mul_exp:simplify())
+        end
+        table.insert(rows, row)
+      end
+
+      return Exp.new("matrix", { rows = rows })
+    end
+
   elseif self.kind == "add" then
     local lhs = self.o.lhs:simplify()
     local rhs = self.o.rhs:simplify()
@@ -454,6 +483,7 @@ function Exp:simplify()
     if lhs:is_constant() and rhs:is_constant() then
       return M.constant(lhs.o.constant + rhs.o.constant)
     end
+
   end
   return self:clone()
 end
