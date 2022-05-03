@@ -476,6 +476,7 @@ function Exp:simplify()
       return Exp.new("matrix", { rows = rows })
     end
 
+
   elseif self.kind == "add" then
     local lhs = self.o.lhs:simplify()
     local rhs = self.o.rhs:simplify()
@@ -502,6 +503,19 @@ function Exp:cols()
   return #self.o.rows[1]
 end
 
+function Exp:T()
+  assert(self:is_matrix(), "T() argument must be a matrix.")
+
+  local rows = {}
+  for i = 1,#self.o.rows[1] do
+    local row = {}
+    for j = 1,#self.o.rows do
+      table.insert(row, self.o.rows[j][i]:clone())
+    end
+    table.insert(rows, row)
+  end
+  return Exp.new("matrix", { rows = rows })
+end
 function M.sym(name)
   return Exp.new("sym", { name = name })
 end

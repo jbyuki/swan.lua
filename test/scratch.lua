@@ -7,8 +7,8 @@ A = swan.mat {
   {3, 4}
 }
 B = swan.mat {
-  {2, 5}, 
-  {3, x}
+  {2}, 
+  {3}
 }
-C = A*2
-print(C:simplify())
+C = A*B
+print(C:simplify():T())

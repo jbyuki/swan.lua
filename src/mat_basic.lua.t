@@ -150,3 +150,18 @@ if lhs:is_matrix() then
 
   return Exp.new("matrix", { rows = rows })
 end
+
+@methods+=
+function Exp:T()
+  assert(self:is_matrix(), "T() argument must be a matrix.")
+
+  local rows = {}
+  for i = 1,#self.o.rows[1] do
+    local row = {}
+    for j = 1,#self.o.rows do
+      table.insert(row, self.o.rows[j][i]:clone())
+    end
+    table.insert(rows, row)
+  end
+  return Exp.new("matrix", { rows = rows })
+end
