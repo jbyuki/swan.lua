@@ -344,3 +344,9 @@ __mul = function(lhs, rhs)
   @convert_lhs_or_rhs_to_constant
   return Exp.new("mul", { lhs = lhs, rhs = rhs })
 end,
+
+
+@define+=
+function M.constant(num)
+  return Exp.new("constant", { constant = num })
+end

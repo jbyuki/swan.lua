@@ -246,6 +246,8 @@ function Exp.new(kind, opts)
 
       return Exp.new("mul", { lhs = lhs, rhs = rhs })
     end,
+
+
   })
 end
 
@@ -353,6 +355,7 @@ function Exp:clone()
     end
 
     return Exp.new("matrix", { rows = rows })
+
   else
     print(("Error! Cannot clone kind = %s."):format(self.kind))
   end
@@ -407,6 +410,68 @@ end
 function Exp:integrate()
   print("ERROR: Unsupported!")
 end
+function Exp:simplify()
+  if false then
+  elseif self.kind == "mul" then
+    local lhs = self.o.lhs:simplify()
+    local rhs = self.o.rhs:simplify()
+
+    if lhs:is_constant() and rhs:is_constant() then
+      return M.constant(lhs.o.constant * rhs.o.constant)
+    end
+
+    if lhs:is_matrix() and rhs:is_matrix() then
+      assert(lhs:cols() == rhs:rows(), "Matrix multiplication dimensions mismatch")
+
+      local rows = {}
+      -- lhs:rows is only called once btw
+      for i=1,lhs:rows() do
+        local row = {}
+        for j=1,rhs:cols() do
+          local cell
+          for k=1,rhs:rows() do
+            local mul_exp = Exp.new("mul", { lhs = lhs.o.rows[i][k], rhs = rhs.o.rows[k][j] })
+
+            if not cell then
+              cell = mul_exp
+            else
+              cell = Exp.new("add", { lhs = cell, rhs = mul_exp })
+            end
+
+          end
+          table.insert(row, cell:simplify())
+        end
+        table.insert(rows, row)
+      end
+
+      return Exp.new("matrix", { rows = rows })
+    end
+
+  elseif self.kind == "add" then
+    local lhs = self.o.lhs:simplify()
+    local rhs = self.o.rhs:simplify()
+
+    if lhs:is_constant() and rhs:is_constant() then
+      return M.constant(lhs.o.constant + rhs.o.constant)
+    end
+  end
+  return self:clone()
+end
+
+function Exp:is_matrix()
+  return self.kind == "matrix"
+end
+
+function Exp:rows()
+  assert(self.kind == "matrix", "rows must be called on a matrix")
+  return #self.o.rows
+end
+
+function Exp:cols()
+  assert(self.kind == "matrix", "cols must be called on a matrix")
+  return #self.o.rows[1]
+end
+
 function M.sym(name)
   return Exp.new("sym", { name = name })
 end
@@ -418,6 +483,9 @@ function convert_constant(x)
   return x
 end
 
+function M.constant(num)
+  return Exp.new("constant", { constant = num })
+end
 function M.version()
   return "0.0.1"
 end

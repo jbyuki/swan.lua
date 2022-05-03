@@ -13,8 +13,18 @@ x = swan.sym "x"
 y = swan.sym "y"
 exp = (x+y)^2
 print(exp:expand()) -- => x^2 + 2xy + y^2
+
 exp = x*y + x
 print(exp:derivate(x)) -- => 1 + y
+
+A = swan.mat {{x, 2}, {3, 4}}
+B = swan.mat {{2, 5}, {3, x}}
+C = A*B
+print(C:simplify()) -- => [
+                    --      2x + 6, 2x + 5x
+                    --      18, 15 + 4x
+                    --    ]
+
 ```
 
 More to come...
