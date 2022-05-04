@@ -59,7 +59,7 @@ if self.kind == "sym" then
 elseif self.kind == "add" then
   @display_add_string
 elseif self.kind == "sub" then
-  return ("(%s - %s)"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+  return ("%s - %s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
 elseif self.kind == "mul" then
   @display_mul_string
 elseif self.kind == "pow" then
@@ -251,10 +251,8 @@ else
 end
 
 @modify_add_paren+=
-if #factors_str_list > 1 then
-  if not factors_str_ref[fac]:is_atomic() and factors_str_ref[fac].kind ~= "pow" then
-    fac = "(" .. fac .. ")"
-  end
+if not factors_str_ref[fac]:is_atomic() and factors_str_ref[fac].kind ~= "pow" then
+  fac = "(" .. fac .. ")"
 end
 
 @remove_and_collect_any_number_factor+=

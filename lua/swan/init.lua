@@ -131,7 +131,7 @@ function Exp.new(kind, opts)
         return table.concat(str_list, " + ")
 
       elseif self.kind == "sub" then
-        return ("(%s - %s)"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+        return ("%s - %s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
       elseif self.kind == "mul" then
         local factors = self:collectFactors()
         local factors_str = {}
@@ -165,10 +165,8 @@ function Exp.new(kind, opts)
         local str = ""
         for i, fac in ipairs(factors_str_list) do
           sup = factors_str[fac]
-          if #factors_str_list > 1 then
-            if not factors_str_ref[fac]:is_atomic() and factors_str_ref[fac].kind ~= "pow" then
-              fac = "(" .. fac .. ")"
-            end
+          if not factors_str_ref[fac]:is_atomic() and factors_str_ref[fac].kind ~= "pow" then
+            fac = "(" .. fac .. ")"
           end
 
           if sup == 1 then
@@ -372,6 +370,8 @@ function Exp:clone()
 
     return Exp.new("matrix", { rows = rows })
 
+  elseif self.kind == "div" then
+    return Exp.new(self.kind, { lhs = self.o.lhs:clone(), rhs = self.o.rhs:clone() })
   else
     print(("Error! Cannot clone kind = %s."):format(self.kind))
   end
@@ -516,6 +516,10 @@ function Exp:simplify()
       num = math.floor(num / div + 0.5)
       den = math.floor(den / div + 0.5)
 
+      if den == 1 then
+        return M.constant(num)
+      end
+
       return Exp.new("div", { 
         lhs = M.constant(num), 
         rhs = M.constant(den)
@@ -523,6 +527,7 @@ function Exp:simplify()
     end
 
     return Exp.new("div", { lhs = lhs, rhs = rhs })
+
   end
   return self:clone()
 end

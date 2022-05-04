@@ -57,6 +57,10 @@ elseif self.kind == "div" then
     num = math.floor(num / div + 0.5)
     den = math.floor(den / div + 0.5)
 
+    if den == 1 then
+      return M.constant(num)
+    end
+
     return Exp.new("div", { 
       lhs = M.constant(num), 
       rhs = M.constant(den)
@@ -64,3 +68,7 @@ elseif self.kind == "div" then
   end
 
   return Exp.new("div", { lhs = lhs, rhs = rhs })
+
+@clone_exp+=
+elseif self.kind == "div" then
+  return Exp.new(self.kind, { lhs = self.o.lhs:clone(), rhs = self.o.rhs:clone() })
