@@ -423,11 +423,143 @@ function M.inf()
   return Exp.new("inf", {})
 end
 
-function Exp:integrate()
-  print("ERROR: Unsupported!")
+function Exp:integrate(dx)
+  if false then
+  elseif self.kind == "add" then
+    local rhs = self.o.rhs:integrate(dx)
+    local lhs = self.o.lhs:integrate(dx)
+
+    return Exp.new("add", { rhs = rhs, lhs = lhs })
+
+  elseif self.kind == "sym" then
+    if self == dx then
+      pow_exp = Exp.new("pow", { lhs = dx, rhs = M.constant(2) })
+      coeff = Exp.new("div", { lhs = M.constant(1), rhs = M.constant(2) })
+      return Exp.new("mul", { lhs = coeff, rhs = pow_exp })
+    else
+      return Exp.new("mul", { lhs = self, rhs = dx })
+    end
+  elseif self.kind == "mul" then
+    local lhs = self.o.lhs:simplify()
+    local rhs = self.o.rhs:simplify()
+
+    if lhs:is_constant() and rhs:is_constant() then
+      return M.constant(lhs.o.constant * rhs.o.constant)
+    end
+
+
+    if lhs:is_matrix() and rhs:is_matrix() then
+      assert(lhs:cols() == rhs:rows(), "Matrix multiplication dimensions mismatch")
+
+      local rows = {}
+      -- lhs:rows is only called once btw
+      for i=1,lhs:rows() do
+        local row = {}
+        for j=1,rhs:cols() do
+          local cell
+          for k=1,rhs:rows() do
+            local mul_exp = Exp.new("mul", { lhs = lhs.o.rows[i][k]:clone(), rhs = rhs.o.rows[k][j]:clone() })
+
+            if not cell then
+              cell = mul_exp
+            else
+              cell = Exp.new("add", { lhs = cell, rhs = mul_exp })
+            end
+
+          end
+          table.insert(row, cell:simplify())
+        end
+        table.insert(rows, row)
+      end
+
+      return Exp.new("matrix", { rows = rows })
+    end
+
+    if rhs:is_matrix() then
+      local rows = {}
+      for i=1,rhs:rows() do
+        local row = {}
+        for j=1,rhs:cols() do
+          local mul_exp = Exp.new("mul", { lhs = lhs:clone(), rhs = rhs.o.rows[i][j]:clone() })
+          table.insert(row, mul_exp:simplify())
+        end
+        table.insert(rows, row)
+      end
+
+      return Exp.new("matrix", { rows = rows })
+    end
+
+    if lhs:is_matrix() then
+      local rows = {}
+      for i=1,lhs:rows() do
+        local row = {}
+        for j=1,lhs:cols() do
+          local mul_exp = Exp.new("mul", { rhs = rhs:clone(), lhs = lhs.o.rows[i][j]:clone() })
+          table.insert(row, mul_exp:simplify())
+        end
+        table.insert(rows, row)
+      end
+
+      return Exp.new("matrix", { rows = rows })
+    end
+
+
+  elseif self.kind == "add" then
+    local lhs = self.o.lhs:simplify()
+    local rhs = self.o.rhs:simplify()
+
+    if lhs:is_constant() and rhs:is_constant() then
+      return M.constant(lhs.o.constant + rhs.o.constant)
+    end
+
+  elseif self.kind == "div" then
+    local lhs = self.o.lhs:simplify()
+    local rhs = self.o.rhs:simplify()
+
+    if lhs:is_integer() and rhs:is_integer() then
+      local num = lhs.o.constant
+      local den = rhs.o.constant
+
+      local div = gcd(num, den)
+
+      -- not really sure if all of this is necessary,
+      -- floating numbers is always a grey zone for me
+      num = math.floor(num / div + 0.5)
+      den = math.floor(den / div + 0.5)
+
+      if den == 1 then
+        return M.constant(num)
+      end
+
+      return Exp.new("div", { 
+        lhs = M.constant(num), 
+        rhs = M.constant(den)
+      })
+    end
+
+    return Exp.new("div", { lhs = lhs, rhs = rhs })
+
+  else
+    print("Unsupported!")
+  end
 end
+
 function Exp:simplify()
   if false then
+  elseif self.kind == "add" then
+    local rhs = self.o.rhs:integrate(dx)
+    local lhs = self.o.lhs:integrate(dx)
+
+    return Exp.new("add", { rhs = rhs, lhs = lhs })
+
+  elseif self.kind == "sym" then
+    if self == dx then
+      pow_exp = Exp.new("pow", { lhs = dx, rhs = M.constant(2) })
+      coeff = Exp.new("div", { lhs = M.constant(1), rhs = M.constant(2) })
+      return Exp.new("mul", { lhs = coeff, rhs = pow_exp })
+    else
+      return Exp.new("mul", { lhs = self, rhs = dx })
+    end
   elseif self.kind == "mul" then
     local lhs = self.o.lhs:simplify()
     local rhs = self.o.rhs:simplify()

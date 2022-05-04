@@ -31,6 +31,7 @@ print(C:simplify()) -- => [
                     --      18, 15 + 4x
                     --    ]
 
+print(x:integrate(x)) -- => (1/2)x^2
 ```
 
 More to come...
