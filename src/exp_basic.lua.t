@@ -164,6 +164,9 @@ elseif self.kind == "mul" then
 function Exp:collectTerm()
   local terms = {}
   if self.kind == "add" then
+    if not self.o.lhs then
+      print(vim.inspect(vim.tbl_keys(self.o)))
+    end
     local lhs_term = self.o.lhs:collectTerm()
     local rhs_term = self.o.rhs:collectTerm()
 

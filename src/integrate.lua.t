@@ -2,20 +2,20 @@
 @methods+=
 function Exp:integrate(dx)
   if false then
-  @simplify_exp
+  @integrate_exp
   else
     print("Unsupported!")
   end
 end
 
-@simplify_exp+=
+@integrate_exp+=
 elseif self.kind == "add" then
   local rhs = self.o.rhs:integrate(dx)
   local lhs = self.o.lhs:integrate(dx)
 
   return Exp.new("add", { rhs = rhs, lhs = lhs })
 
-@simplify_exp+=
+@integrate_exp+=
 elseif self.kind == "sym" then
   if self == dx then
     pow_exp = Exp.new("pow", { lhs = dx, rhs = M.constant(2) })

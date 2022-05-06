@@ -79,6 +79,9 @@ elseif self.kind == "mul" then
     return M.constant(lhs.o.constant * rhs.o.constant)
   end
 
+  if lhs:is_zero() or rhs:is_zero()  then
+    return M.constant(0)
+  end
 
   if lhs:is_matrix() and rhs:is_matrix() then
     assert(lhs:cols() == rhs:rows(), "Matrix multiplication dimensions mismatch")
@@ -120,6 +123,16 @@ elseif self.kind == "add" then
   if lhs:is_constant() and rhs:is_constant() then
     return M.constant(lhs.o.constant + rhs.o.constant)
   end
+
+  if lhs:is_zero() then
+    return rhs
+  end
+
+  if rhs:is_zero() then
+    return lhs
+  end
+
+  return Exp.new("add", { lhs = lhs, rhs = rhs })
 
 @handle_rhs_coeff_mul_matrix+=
 if rhs:is_matrix() then
