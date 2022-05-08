@@ -262,6 +262,12 @@ function Exp.new(kind, opts)
     end,
 
 
+    __div = function(lhs, rhs)
+      lhs = convert_constant(lhs)
+      rhs = convert_constant(rhs)
+
+      return Exp.new("div", { lhs = lhs, rhs = rhs })
+    end,
   })
 end
 
@@ -372,6 +378,8 @@ function Exp:clone()
 
   elseif self.kind == "div" then
     return Exp.new(self.kind, { lhs = self.o.lhs:clone(), rhs = self.o.rhs:clone() })
+
+
   else
     print(("Error! Cannot clone kind = %s."):format(self.kind))
   end
@@ -533,6 +541,24 @@ function Exp:simplify()
       return lhs
     end
 
+    if lhs:is_matrix() and rhs:is_matrix() then
+      assert(lhs:cols() == rhs:cols(), "Matrix addition dimensions mismatch")
+      assert(lhs:rows() == rhs:rows(), "Matrix addition dimensions mismatch")
+
+      local rows = {}
+      for i = 1,rhs:rows() do
+        local row = {}
+        for j = 1,lhs:cols() do
+          local cell = Exp.new("add", {
+            lhs = lhs.o.rows[i][j]:clone(), 
+            rhs = rhs.o.rows[i][j]:clone() })
+          table.insert(row, cell:simplify())
+        end
+        table.insert(rows, row)
+      end
+      return Exp.new("matrix", { rows = rows })
+    end
+
     return Exp.new("add", { lhs = lhs, rhs = rhs })
 
   elseif self.kind == "div" then
@@ -593,6 +619,7 @@ function Exp:T()
   end
   return Exp.new("matrix", { rows = rows })
 end
+
 function Exp:is_integer()
   return self.kind == "constant" and math.floor(self.o.constant) == self.o.constant
 end

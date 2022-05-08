@@ -132,6 +132,12 @@ elseif self.kind == "add" then
     return lhs
   end
 
+  if lhs:is_matrix() and rhs:is_matrix() then
+    @check_that_both_matrices_are_same_dimensions
+    @add_matrix_elementwise
+    return Exp.new("matrix", { rows = rows })
+  end
+
   return Exp.new("add", { lhs = lhs, rhs = rhs })
 
 @handle_rhs_coeff_mul_matrix+=
@@ -177,4 +183,21 @@ function Exp:T()
     table.insert(rows, row)
   end
   return Exp.new("matrix", { rows = rows })
+end
+
+@check_that_both_matrices_are_same_dimensions+=
+assert(lhs:cols() == rhs:cols(), "Matrix addition dimensions mismatch")
+assert(lhs:rows() == rhs:rows(), "Matrix addition dimensions mismatch")
+
+@add_matrix_elementwise+=
+local rows = {}
+for i = 1,rhs:rows() do
+  local row = {}
+  for j = 1,lhs:cols() do
+    local cell = Exp.new("add", {
+      lhs = lhs.o.rows[i][j]:clone(), 
+      rhs = rhs.o.rows[i][j]:clone() })
+    table.insert(row, cell:simplify())
+  end
+  table.insert(rows, row)
 end

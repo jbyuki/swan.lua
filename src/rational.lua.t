@@ -72,3 +72,12 @@ elseif self.kind == "div" then
 @clone_exp+=
 elseif self.kind == "div" then
   return Exp.new(self.kind, { lhs = self.o.lhs:clone(), rhs = self.o.rhs:clone() })
+
+
+@metamethods+=
+__div = function(lhs, rhs)
+  lhs = convert_constant(lhs)
+  rhs = convert_constant(rhs)
+
+  return Exp.new("div", { lhs = lhs, rhs = rhs })
+end,
