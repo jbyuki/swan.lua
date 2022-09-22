@@ -260,7 +260,7 @@ else
 end
 
 @modify_add_paren+=
-if not factors_str_ref[fac]:is_atomic() and factors_str_ref[fac].kind ~= "pow" then
+if not factors_str_ref[fac]:is_atomic() then
   fac = "(" .. fac .. ")"
 end
 
@@ -380,3 +380,34 @@ elseif self.kind == "named_constant" then
 @clone_exp+=
 elseif self.kind == "named_constant" then
   return self
+
+@metamethods+=
+__unm = function(lhs)
+  return Exp.new("unm", { lhs = lhs })
+end,
+
+@print_exp+=
+elseif self.kind == "unm" then
+  if self.o.lhs:is_atomic() then
+    return ("-%s"):format(tostring(self.o.lhs))
+  else
+    return ("-(%s)"):format(tostring(self.o.lhs))
+  end
+
+@clone_exp+=
+elseif self.kind == "unm" then
+  return Exp.new("unm", { lhs = self.o.lhs:clone() })
+
+@simplify_exp+=
+elseif self.kind == "unm" then
+  local lhs = self.o.lhs
+  if lhs.kind == "constant" then
+    return M.constant(-lhs.o.constant)
+  end
+  return self
+
+
+@handle_mul_simplify+=
+if lhs.kind == "unm" and rhs.kind == "unm" then
+  return Exp.new("mul", { lhs = lhs.o.lhs:clone(), rhs = rhs.o.lhs:clone() })
+end
