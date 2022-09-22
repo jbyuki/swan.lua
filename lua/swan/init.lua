@@ -206,6 +206,9 @@ function Exp.new(kind, opts)
       elseif self.kind == "named_constant" then
         return self.o.name
 
+      elseif self.kind == "i" then
+        return "i"
+
       elseif self.kind == "matrix" then
         local rows = {}
         for i=1,#self.o.rows do
@@ -369,6 +372,8 @@ function Exp:clone()
 
   elseif self.kind == "named_constant" then
     return self
+  elseif self.kind == "i" then
+    return self
   elseif self.kind == "matrix" then
     local rows = {}
     for i=1,#self.o.rows do
@@ -522,6 +527,9 @@ function Exp:simplify()
       end
     end
 
+    if lhs.kind == "i" and rhs.kind == "i" then
+      return M.constant(-1)
+    end
 
     if rhs:is_matrix() then
       local rows = {}
@@ -672,6 +680,8 @@ end
 
 M.e = M.named_constant("e")
 M.pi = M.named_constant("pi")
+
+M.i = Exp.new("i", {})
 
 
 function M.version()

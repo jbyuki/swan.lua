@@ -104,6 +104,7 @@ elseif self.kind == "mul" then
   end
 
   @handle_if_both_pow_same
+  @handle_mul_simplify
 
   @handle_rhs_coeff_mul_matrix
   @handle_lhs_coeff_mul_matrix
