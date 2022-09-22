@@ -274,7 +274,7 @@ end
 
 @methods+=
 function Exp:is_atomic()
-  return self.kind == "sym" or self.kind == "constant" or self.kind == "inf"
+  return self.kind == "sym" or self.kind == "constant" or self.kind == "inf" or self.kind == "named_constant"
 end
 
 @display_add_string+=
@@ -351,3 +351,22 @@ end,
 function M.constant(num)
   return Exp.new("constant", { constant = num })
 end
+
+@define+=
+function M.named_constant(name)
+  return Exp.new("named_constant", { name = name })
+end
+
+@define_named_constants
+
+@define_named_constants+=
+M.e = M.named_constant("e")
+M.pi = M.named_constant("pi")
+
+@print_exp+=
+elseif self.kind == "named_constant" then
+  return self.o.name
+
+@clone_exp+=
+elseif self.kind == "named_constant" then
+  return self

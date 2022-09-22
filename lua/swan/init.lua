@@ -203,6 +203,9 @@ function Exp.new(kind, opts)
       elseif self.kind == "inf" then
         return "inf"
 
+      elseif self.kind == "named_constant" then
+        return self.o.name
+
       elseif self.kind == "matrix" then
         local rows = {}
         for i=1,#self.o.rows do
@@ -364,6 +367,8 @@ function Exp:clone()
   elseif self.kind == "inf" then
     return Exp.new(self.kind, {})
 
+  elseif self.kind == "named_constant" then
+    return self
   elseif self.kind == "matrix" then
     local rows = {}
     for i=1,#self.o.rows do
@@ -419,7 +424,7 @@ function Exp:collectFactors()
 end
 
 function Exp:is_atomic()
-  return self.kind == "sym" or self.kind == "constant" or self.kind == "inf"
+  return self.kind == "sym" or self.kind == "constant" or self.kind == "inf" or self.kind == "named_constant"
 end
 
 function M.cos(x)
@@ -638,6 +643,15 @@ end
 function M.constant(num)
   return Exp.new("constant", { constant = num })
 end
+
+function M.named_constant(name)
+  return Exp.new("named_constant", { name = name })
+end
+
+M.e = M.named_constant("e")
+M.pi = M.named_constant("pi")
+
+
 function M.version()
   return "0.0.1"
 end
