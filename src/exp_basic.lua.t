@@ -63,11 +63,17 @@ elseif self.kind == "sub" then
 elseif self.kind == "mul" then
   @display_mul_string
 elseif self.kind == "pow" then
-  if self.o.lhs:is_atomic() then
-    return ("%s^%s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
-  else
-    return ("(%s)^%s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+  local lhs_pow = tostring(self.o.lhs)
+  local rhs_pow = tostring(self.o.rhs)
+
+  if not self.o.lhs:is_atomic() then
+    lhs_pow = ("(%s)"):format(lhs_pow)
   end
+
+  if not self.o.rhs:is_atomic() then
+    rhs_pow = ("(%s)"):format(rhs_pow)
+  end
+  return ("%s^%s"):format(lhs_pow, rhs_pow)
 elseif self.kind == "constant" then
   return tostring(self.o.constant)
 
@@ -274,7 +280,11 @@ end
 
 @methods+=
 function Exp:is_atomic()
-  return self.kind == "sym" or self.kind == "constant" or self.kind == "inf" or self.kind == "named_constant"
+  return self.kind == "sym" or 
+    self.kind == "constant" or 
+    self.kind == "inf" or 
+    self.kind == "named_constant" or
+    self.kind == "i"
 end
 
 @display_add_string+=
