@@ -1,5 +1,3 @@
 local swan = require"swan"
-
-theta = swan.sym "theta"
-exp = theta/theta
-print(exp)
+exp = swan.e ^ 2 * swan.e ^ 3
+print(exp:simplify())
