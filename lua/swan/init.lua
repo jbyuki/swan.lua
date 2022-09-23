@@ -212,13 +212,6 @@ function Exp.new(kind, opts)
       elseif self.kind == "named_constant" then
         return self.o.name
 
-      elseif self.kind == "unm" then
-        if self.o.lhs:is_atomic() then
-          return ("-%s"):format(tostring(self.o.lhs))
-        else
-          return ("-(%s)"):format(tostring(self.o.lhs))
-        end
-
       elseif self.kind == "i" then
         return "i"
 
@@ -263,7 +256,8 @@ function Exp.new(kind, opts)
       lhs = convert_constant(lhs)
       rhs = convert_constant(rhs)
 
-      return Exp.new("sub", { lhs = lhs, rhs = rhs })
+      rhs = Exp.new("mul", { lhs = M.constant(-1), rhs = rhs })
+      return Exp.new("add", { lhs = lhs, rhs = rhs })
     end,
 
     __pow = function(lhs, rhs)
@@ -282,7 +276,10 @@ function Exp.new(kind, opts)
 
 
     __unm = function(lhs)
-      return Exp.new("unm", { lhs = lhs })
+      return Exp.new("mul", { 
+        lhs = M.constant(-1),
+        rhs = lhs
+      })
     end,
 
     __div = function(lhs, rhs)
@@ -348,6 +345,7 @@ function Exp:expand()
       for i=1,#lhs_term do
         for j=1,#rhs_term do
           local term = Exp.new("mul", { lhs = lhs_term[i], rhs = rhs_term[j] })
+          term = term:expand()
           if not res then
             res = term
           else
@@ -359,6 +357,19 @@ function Exp:expand()
       return res
     end
 
+    return self:clone()
+
+  elseif self.kind == "div" then
+    local lhs = self.o.lhs:expand()
+    local rhs = self.o.rhs:expand()
+
+    return Exp.new("div", { lhs = lhs, rhs = rhs })
+
+  elseif self.kind == "add" then
+    local lhs = self.o.lhs:expand()
+    local rhs = self.o.rhs:expand()
+
+    return Exp.new("add", { lhs = lhs, rhs = rhs })
   else
     return self:clone()
   end
@@ -390,9 +401,6 @@ function Exp:clone()
   elseif self.kind == "named_constant" then
     return self
 
-  elseif self.kind == "unm" then
-    return Exp.new("unm", { lhs = self.o.lhs:clone() })
-
   elseif self.kind == "i" then
     return self
   elseif self.kind == "matrix" then
@@ -419,9 +427,6 @@ end
 function Exp:collectTerm()
   local terms = {}
   if self.kind == "add" then
-    if not self.o.lhs then
-      print(vim.inspect(vim.tbl_keys(self.o)))
-    end
     local lhs_term = self.o.lhs:collectTerm()
     local rhs_term = self.o.rhs:collectTerm()
 
@@ -492,14 +497,6 @@ end
 
 function Exp:simplify()
   if false then
-  elseif self.kind == "unm" then
-    local lhs = self.o.lhs
-    if lhs.kind == "constant" then
-      return M.constant(-lhs.o.constant)
-    end
-    return self
-
-
   elseif self.kind == "mul" then
     local lhs = self.o.lhs:simplify()
     local rhs = self.o.rhs:simplify()
@@ -560,9 +557,6 @@ function Exp:simplify()
       end
     end
 
-    if lhs.kind == "unm" and rhs.kind == "unm" then
-      return Exp.new("mul", { lhs = lhs.o.lhs:clone(), rhs = rhs.o.lhs:clone() })
-    end
     if lhs.kind == "div" and rhs.kind == "div" then
       local num_lhs = lhs.o.lhs
       local den_lhs = lhs.o.rhs

@@ -30,7 +30,8 @@ end,
 
 __sub = function(lhs, rhs)
   @convert_lhs_or_rhs_to_constant
-  return Exp.new("sub", { lhs = lhs, rhs = rhs })
+  rhs = Exp.new("mul", { lhs = M.constant(-1), rhs = rhs })
+  return Exp.new("add", { lhs = lhs, rhs = rhs })
 end,
 
 __pow = function(lhs, rhs)
@@ -95,6 +96,7 @@ if self.kind == "pow" then
     return Exp.new("constant", { constant = lhs.o.constant ^ rhs.o.constant })
   end
 
+  @put_pow_inside_if_minus
 
   if rhs.kind == "constant" then
     local sup = rhs.o.constant
@@ -166,13 +168,12 @@ elseif self.kind == "mul" then
     return res
   end
 
+  return self:clone()
+
 @methods+=
 function Exp:collectTerm()
   local terms = {}
   if self.kind == "add" then
-    if not self.o.lhs then
-      print(vim.inspect(vim.tbl_keys(self.o)))
-    end
     local lhs_term = self.o.lhs:collectTerm()
     local rhs_term = self.o.rhs:collectTerm()
 
@@ -185,6 +186,11 @@ function Exp:collectTerm()
   return { self:clone() }
 end
 
+@collect_sub_term+=
+elseif self.kind == "sub" then
+  local lhs_term = self.o.lhs:collectTerm()
+  local rhs_term = self.o.rhs:collectTerm()
+
 @collect_rhs_term_in_list+=
 local rhs_term = rhs:collectTerm()
 
@@ -196,6 +202,7 @@ local res = nil
 for i=1,#lhs_term do
   for j=1,#rhs_term do
     local term = Exp.new("mul", { lhs = lhs_term[i], rhs = rhs_term[j] })
+    term = term:expand()
     if not res then
       res = term
     else
@@ -383,31 +390,22 @@ elseif self.kind == "named_constant" then
 
 @metamethods+=
 __unm = function(lhs)
-  return Exp.new("unm", { lhs = lhs })
+  return Exp.new("mul", { 
+    lhs = M.constant(-1),
+    rhs = lhs
+  })
 end,
 
-@print_exp+=
-elseif self.kind == "unm" then
-  if self.o.lhs:is_atomic() then
-    return ("-%s"):format(tostring(self.o.lhs))
-  else
-    return ("-(%s)"):format(tostring(self.o.lhs))
-  end
+@expand_exp+=
+elseif self.kind == "div" then
+  local lhs = self.o.lhs:expand()
+  local rhs = self.o.rhs:expand()
 
-@clone_exp+=
-elseif self.kind == "unm" then
-  return Exp.new("unm", { lhs = self.o.lhs:clone() })
+  return Exp.new("div", { lhs = lhs, rhs = rhs })
 
-@simplify_exp+=
-elseif self.kind == "unm" then
-  local lhs = self.o.lhs
-  if lhs.kind == "constant" then
-    return M.constant(-lhs.o.constant)
-  end
-  return self
+@expand_exp+=
+elseif self.kind == "add" then
+  local lhs = self.o.lhs:expand()
+  local rhs = self.o.rhs:expand()
 
-
-@handle_mul_simplify+=
-if lhs.kind == "unm" and rhs.kind == "unm" then
-  return Exp.new("mul", { lhs = lhs.o.lhs:clone(), rhs = rhs.o.lhs:clone() })
-end
+  return Exp.new("add", { lhs = lhs, rhs = rhs })
