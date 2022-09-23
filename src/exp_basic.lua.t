@@ -76,7 +76,11 @@ elseif self.kind == "pow" then
   end
   return ("%s^%s"):format(lhs_pow, rhs_pow)
 elseif self.kind == "constant" then
-  return tostring(self.o.constant)
+  if self.o.constant < 0 then
+    return "(" .. tostring(self.o.constant) .. ")"
+  else
+    return tostring(self.o.constant)
+  end
 
 @methods+=
 function Exp:expand()

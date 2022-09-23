@@ -103,7 +103,7 @@ elseif self.kind == "mul" then
     return Exp.new("matrix", { rows = rows })
   end
 
-  @handle_if_both_pow_same
+  @handle_if_one_is_pow
   @handle_mul_simplify
 
   @handle_rhs_coeff_mul_matrix

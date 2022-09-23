@@ -199,7 +199,11 @@ function Exp.new(kind, opts)
         end
         return ("%s^%s"):format(lhs_pow, rhs_pow)
       elseif self.kind == "constant" then
-        return tostring(self.o.constant)
+        if self.o.constant < 0 then
+          return "(" .. tostring(self.o.constant) .. ")"
+        else
+          return tostring(self.o.constant)
+        end
 
       elseif self.kind == "cos" then
         return ("cos(%s)"):format(tostring(self.o.arg))
@@ -536,25 +540,48 @@ function Exp:simplify()
       return Exp.new("matrix", { rows = rows })
     end
 
-    if lhs.kind == "pow" and rhs.kind == "pow" then
-      local base_lhs = lhs.o.lhs
-      local base_rhs = rhs.o.lhs
+    if lhs.kind == "pow" or rhs.kind == "pow" then
+      local factors = self:collectFactors()
+      local pow_base = {}
+      local list_fac = {}
 
-      local same_base = false
-      if base_lhs.kind == "constant" and base_rhs.kind == "constant" then
-        same_base = base_lhs.o.constant == base_rhs.o.constant
-      elseif base_lhs.kind == "named_constant" and base_rhs.kind == "named_constant" then
-        same_base = base_lhs.o.name == base_rhs.o.name
+      for _, fac in ipairs(factors) do
+        fac = fac:expand()
+        if fac.kind == "pow" and fac.o.lhs:is_atomic() then
+          local lhs = fac.o.lhs
+          if not pow_base[lhs.kind] then
+            pow_base[lhs.kind] = {}
+          end
+          local tpow_base = pow_base[lhs.kind]
+          if lhs.kind == "constant" then
+            c = lhs.o.constant
+            if tpow_base[c] then
+              tpow_base[c].o.rhs = Exp.new("add", {lhs=tpow_base[c].o.rhs, rhs=fac.o.rhs}):simplify()
 
+            else
+              tpow_base[c] = fac
+              table.insert(list_fac, fac)
+            end
+
+          elseif lhs.kind == "named_constant" then
+            n = lhs.o.name
+            if tpow_base[n] then
+              tpow_base[n].o.rhs = Exp.new("add", {lhs=tpow_base[n].o.rhs, rhs=fac.o.rhs}):simplify()
+
+            else
+              tpow_base[n] = fac
+              table.insert(list_fac, fac)
+            end
+
+          else
+            table.insert(list_fac, fac)
+          end
+        else
+          table.insert(list_fac, fac)
+        end
       end
 
-      if same_base then
-        local sup = Exp.new("add", { lhs = lhs.o.rhs:clone(), rhs = rhs.o.rhs:clone() })
-        sup = sup:simplify()
-
-        return Exp.new("pow", { lhs = base_lhs:clone(), rhs = sup })
-
-      end
+      return M.reduce_mul(list_fac)
     end
 
     if lhs.kind == "div" and rhs.kind == "div" then
@@ -702,6 +729,18 @@ end
 
 function Exp:is_integer()
   return self.kind == "constant" and math.floor(self.o.constant) == self.o.constant
+end
+
+function M.reduce_mul(exp_list)
+  local result = nil
+  for _, exp in ipairs(exp_list) do
+    if not result then
+      result = exp
+    else
+      result = Exp.new("mul", {lhs = result, rhs = exp})
+    end
+  end
+  return result
 end
 
 function M.sym(name)
