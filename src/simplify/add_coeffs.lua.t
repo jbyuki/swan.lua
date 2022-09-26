@@ -4,16 +4,12 @@ local terms = self:collect_terms()
 
 @combine_terms_for_simplify+=
 local atomics = {}
-local rest = {}
 for _, term in ipairs(terms) do
-  local fac_term = term:collect_factors()
-  if M.is_atomic_all(fac_term) then
-    local fac_term = M.reorder_factors(fac_term)
-    local coeff, facs = M.split_coeffs(fac_term)
-    @append_coeff_and_facs
-  else
-    table.insert(rest, term)
-  end
+  local coeff, facs = term:collect_factors()
+  table.sort(facs, function(a, b) 
+    return a[1] < b[1]
+  end)
+  @append_coeff_and_facs
 end
 
 @methods+=
@@ -27,11 +23,11 @@ function M.is_atomic_all(tbl)
 end
 
 @variables+=
-local kind_priority = {
-  @kind_priority
+local kind_order = {
+  @kind_order
 }
 
-@kind_priority-=
+@kind_order-=
 ["constant"] = 1,
 ["inf"] = 1.5,
 ["named_constant"] = 2,
@@ -46,30 +42,28 @@ local kind_priority = {
 ["sin"] = 10,
 ["matrix"] = 11,
 
-@methods+=
--- Mainly designed for atomic factors
-function M.reorder_factors(tbl) 
-  table.sort(tbl, function(a, b)
-    if a.kind ~= b.kind then
-      return kind_priority[a.kind] < kind_priority[b.kind]
-    else
-      @order_same_kind
-      end
-      return true
+@metamethods+=
+__lt = function(lhs, rhs)
+  if lhs.kind ~= rhs.kind then
+    return kind_order[lhs.kind] < kind_order[rhs.kind]
+  else
+    @order_same_kind
     end
-  end)
-  return tbl
-end
+  end
+  return tostring(lhs) < tostring(rhs)
+end,
 
 @order_same_kind-=
-if a.kind == "constant" then
-  return a.o.constant < b.o.constant
+if lhs.kind == "constant" then
+  return lhs.o.constant < rhs.o.constant
 
 @order_same_kind+=
-elseif a.kind == "sym" then
-  return a.o.name < b.o.name
-elseif a.kind == "named_constant" then
-  return a.o.name < b.o.name
+elseif lhs.kind == "sym" then
+  return lhs.o.name < rhs.o.name
+elseif lhs.kind == "named_constant" then
+  return lhs.o.name < rhs.o.name
+elseif lhs.kind == "pow" then
+  return lhs.o.lhs < rhs.o.lhs
 
 @methods+=
 function M.split_coeffs(tbl)
@@ -79,27 +73,22 @@ function M.split_coeffs(tbl)
   for _, term in ipairs(tbl) do
     if term.kind == "constant" then
       coeff = coeff * term.o.constant
-      idx = idx + 1
     else
-      break
+      table.insert(facs, term)
     end
-  end
-
-  for i=idx,#tbl do
-    table.insert(facs, tbl[i])
   end
   return coeff, facs
 end
 
-@methods+=
-function Exp:is_same(other) 
-  if self.kind == other.kind then
+@metamethods+=
+__eq = function(lhs, rhs) 
+  if lhs.kind == rhs.kind then
     @compare_exp
     end
+  else
     return false
   end
-  return false
-end
+end,
 
 @compare_exp-=
 if self.kind == "constant" then
@@ -112,19 +101,21 @@ elseif self.kind == "sym" then
   return self.o.name == other.o.name
 elseif self.kind == "i" then
   return true
+elseif self.kind == "pow" then
+  return self.o.lhs == other.o.lhs and self.o.rhs == other.o.rhs
 
 @append_coeff_and_facs+=
 local added = false
 for i, atomic in ipairs(atomics) do
   if M.is_same_all(atomic[2], facs) then
-    atomic[1] = atomic[1] + coeff
+    atomic[1] = atomic[1] + (coeff or 1)
     added = true
     break
   end
 end
 
 if not added then
-  table.insert(atomics, { coeff, facs })
+  table.insert(atomics, { (coeff or 1), facs })
 end
 
 @methods+=
@@ -134,7 +125,7 @@ function M.is_same_all(tbl_a, tbl_b)
   end
 
   for i=1,#tbl_a do
-    if not tbl_a[i]:is_same(tbl_b[i]) then
+    if tbl_a[i][1] ~= tbl_b[i][1] or tbl_a[i][2] ~= tbl_b[i][2] then
       return false
     end
   end
@@ -147,7 +138,11 @@ atomics = vim.tbl_filter(function(atomic)
 end, atomics)
 
 atomics = vim.tbl_map(function(atomic)
-  local rhs = M.reduce_all("mul", atomic[2])
+  local rhs = M.reduce_all("mul", vim.tbl_map(
+    function(a) 
+      if a[2] == 1 then return a[1] else return a[1]^M.constant(a[2]) end 
+    end, atomic[2]))
+
   if atomic[1] == 1 then
     return rhs
   else
@@ -156,7 +151,6 @@ atomics = vim.tbl_map(function(atomic)
 end, atomics)
 
 local result = M.reduce_all("add", atomics)
-result = M.reduce_all("add", rest, result)
 result = result or M.constant(0)
 
 return result

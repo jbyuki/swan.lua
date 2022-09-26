@@ -219,16 +219,19 @@ end
 function Exp:collect_factors()
   local factors = {}
   if self.kind == "mul" then
-    local lhs_factor = self.o.lhs:collect_factors()
-    local rhs_factor = self.o.rhs:collect_factors()
+    local lhs_coeff, lhs_factor = self.o.lhs:collect_factors()
+    local rhs_coeff, rhs_factor = self.o.rhs:collect_factors()
 
     for i=1,#lhs_factor do table.insert(factors, lhs_factor[i]) end
     for i=1,#rhs_factor do table.insert(factors, rhs_factor[i]) end
 
-    return factors
+    return lhs_coeff*rhs_coeff, factors
+  elseif self.kind == "pow" and self.o.rhs.kind == "constant" then
+    return 1, { { self.o.lhs:clone(), self.o.rhs.constant } }
+  elseif self.kind == "constant" then
+    return self.o.constant, {}
   end
-
-  return { self:clone() }
+  return 1, { { self:clone(), 1 } }
 end
 
 @display_mul_string+=
@@ -259,35 +262,10 @@ function Exp:is_atomic()
 end
 
 @display_add_string+=
-local terms = self:collect_terms()
-local terms_str = {}
-local terms_str_list = {}
+local lhs = tostring(self.o.lhs)
+local rhs = tostring(self.o.rhs)
 
-for i=1,#terms do
-  local str = tostring(terms[i])
-  terms_str[str] = terms_str[str] or 0
-  terms_str[str] = terms_str[str] + 1
-end
-
-for key, _ in pairs(terms_str) do
-  table.insert(terms_str_list, tostring(key))
-end
-table.sort(terms_str_list)
-
-local str_list = {}
-for i, term in ipairs(terms_str_list) do
-  coeff = terms_str[term]
-  if coeff == 1 then
-    table.insert(str_list, term)
-  -- elseif coeff == 2 then
-    -- str = str .. term .. "²"
-  -- elseif coeff == 3 then
-    -- str = str .. term .. "³"
-  else
-    table.insert(str_list, coeff .. term)
-  end
-end
-return table.concat(str_list, " + ")
+return lhs .. " + " .. rhs
 
 @methods+=
 function M.cos(x)

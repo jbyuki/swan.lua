@@ -7,7 +7,7 @@ local gcd
 
 local Exp = {}
 
-local kind_priority = {
+local kind_order = {
   ["constant"] = 1,
   ["inf"] = 1.5,
   ["named_constant"] = 2,
@@ -117,35 +117,10 @@ function Exp.new(kind, opts)
       if self.kind == "sym" then
         return self.o.name
       elseif self.kind == "add" then
-        local terms = self:collect_terms()
-        local terms_str = {}
-        local terms_str_list = {}
+        local lhs = tostring(self.o.lhs)
+        local rhs = tostring(self.o.rhs)
 
-        for i=1,#terms do
-          local str = tostring(terms[i])
-          terms_str[str] = terms_str[str] or 0
-          terms_str[str] = terms_str[str] + 1
-        end
-
-        for key, _ in pairs(terms_str) do
-          table.insert(terms_str_list, tostring(key))
-        end
-        table.sort(terms_str_list)
-
-        local str_list = {}
-        for i, term in ipairs(terms_str_list) do
-          coeff = terms_str[term]
-          if coeff == 1 then
-            table.insert(str_list, term)
-          -- elseif coeff == 2 then
-            -- str = str .. term .. "²"
-          -- elseif coeff == 3 then
-            -- str = str .. term .. "³"
-          else
-            table.insert(str_list, coeff .. term)
-          end
-        end
-        return table.concat(str_list, " + ")
+        return lhs .. " + " .. rhs
 
       elseif self.kind == "sub" then
         return ("%s - %s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
@@ -273,6 +248,45 @@ function Exp.new(kind, opts)
 
       return Exp.new("div", { lhs = lhs, rhs = rhs })
     end,
+    __lt = function(lhs, rhs)
+      if lhs.kind ~= rhs.kind then
+        return kind_order[lhs.kind] < kind_order[rhs.kind]
+      else
+        if lhs.kind == "constant" then
+          return lhs.o.constant < rhs.o.constant
+
+        elseif lhs.kind == "sym" then
+          return lhs.o.name < rhs.o.name
+        elseif lhs.kind == "named_constant" then
+          return lhs.o.name < rhs.o.name
+        elseif lhs.kind == "pow" then
+          return lhs.o.lhs < rhs.o.lhs
+
+        end
+      end
+      return tostring(lhs) < tostring(rhs)
+    end,
+
+    __eq = function(lhs, rhs) 
+      if lhs.kind == rhs.kind then
+        if self.kind == "constant" then
+          return self.o.constant == other.o.constant
+
+        elseif self.kind == "named_constant" then
+          return self.o.name == other.o.name
+        elseif self.kind == "sym" then
+          return self.o.name == other.o.name
+        elseif self.kind == "i" then
+          return true
+        elseif self.kind == "pow" then
+          return self.o.lhs == other.o.lhs and self.o.rhs == other.o.rhs
+
+        end
+      else
+        return false
+      end
+    end,
+
   })
 end
 
@@ -427,16 +441,19 @@ end
 function Exp:collect_factors()
   local factors = {}
   if self.kind == "mul" then
-    local lhs_factor = self.o.lhs:collect_factors()
-    local rhs_factor = self.o.rhs:collect_factors()
+    local lhs_coeff, lhs_factor = self.o.lhs:collect_factors()
+    local rhs_coeff, rhs_factor = self.o.rhs:collect_factors()
 
     for i=1,#lhs_factor do table.insert(factors, lhs_factor[i]) end
     for i=1,#rhs_factor do table.insert(factors, rhs_factor[i]) end
 
-    return factors
+    return lhs_coeff*rhs_coeff, factors
+  elseif self.kind == "pow" and self.o.rhs.kind == "constant" then
+    return 1, { { self.o.lhs:clone(), self.o.rhs.constant } }
+  elseif self.kind == "constant" then
+    return self.o.constant, {}
   end
-
-  return { self:clone() }
+  return 1, { { self:clone(), 1 } }
 end
 
 function Exp:is_atomic()
@@ -638,28 +655,24 @@ function Exp:simplify()
       local terms = self:collect_terms()
 
       local atomics = {}
-      local rest = {}
       for _, term in ipairs(terms) do
-        local fac_term = term:collect_factors()
-        if M.is_atomic_all(fac_term) then
-          local fac_term = M.reorder_factors(fac_term)
-          local coeff, facs = M.split_coeffs(fac_term)
-          local added = false
-          for i, atomic in ipairs(atomics) do
-            if M.is_same_all(atomic[2], facs) then
-              atomic[1] = atomic[1] + coeff
-              added = true
-              break
-            end
+        local coeff, facs = term:collect_factors()
+        table.sort(facs, function(a, b) 
+          return a[1] < b[1]
+        end)
+        local added = false
+        for i, atomic in ipairs(atomics) do
+          if M.is_same_all(atomic[2], facs) then
+            atomic[1] = atomic[1] + (coeff or 1)
+            added = true
+            break
           end
-
-          if not added then
-            table.insert(atomics, { coeff, facs })
-          end
-
-        else
-          table.insert(rest, term)
         end
+
+        if not added then
+          table.insert(atomics, { (coeff or 1), facs })
+        end
+
       end
 
       atomics = vim.tbl_filter(function(atomic)
@@ -667,7 +680,11 @@ function Exp:simplify()
       end, atomics)
 
       atomics = vim.tbl_map(function(atomic)
-        local rhs = M.reduce_all("mul", atomic[2])
+        local rhs = M.reduce_all("mul", vim.tbl_map(
+          function(a) 
+            if a[2] == 1 then return a[1] else return a[1]^M.constant(a[2]) end 
+          end, atomic[2]))
+
         if atomic[1] == 1 then
           return rhs
         else
@@ -676,7 +693,6 @@ function Exp:simplify()
       end, atomics)
 
       local result = M.reduce_all("add", atomics)
-      result = M.reduce_all("add", rest, result)
       result = result or M.constant(0)
 
       return result
@@ -774,27 +790,6 @@ function M.is_atomic_all(tbl)
   return true
 end
 
--- Mainly designed for atomic factors
-function M.reorder_factors(tbl) 
-  table.sort(tbl, function(a, b)
-    if a.kind ~= b.kind then
-      return kind_priority[a.kind] < kind_priority[b.kind]
-    else
-      if a.kind == "constant" then
-        return a.o.constant < b.o.constant
-
-      elseif a.kind == "sym" then
-        return a.o.name < b.o.name
-      elseif a.kind == "named_constant" then
-        return a.o.name < b.o.name
-
-      end
-      return true
-    end
-  end)
-  return tbl
-end
-
 function M.split_coeffs(tbl)
   local coeff = 1
   local facs = {}
@@ -802,34 +797,11 @@ function M.split_coeffs(tbl)
   for _, term in ipairs(tbl) do
     if term.kind == "constant" then
       coeff = coeff * term.o.constant
-      idx = idx + 1
     else
-      break
+      table.insert(facs, term)
     end
-  end
-
-  for i=idx,#tbl do
-    table.insert(facs, tbl[i])
   end
   return coeff, facs
-end
-
-function Exp:is_same(other) 
-  if self.kind == other.kind then
-    if self.kind == "constant" then
-      return self.o.constant == other.o.constant
-
-    elseif self.kind == "named_constant" then
-      return self.o.name == other.o.name
-    elseif self.kind == "sym" then
-      return self.o.name == other.o.name
-    elseif self.kind == "i" then
-      return true
-
-    end
-    return false
-  end
-  return false
 end
 
 function M.is_same_all(tbl_a, tbl_b)
@@ -838,7 +810,7 @@ function M.is_same_all(tbl_a, tbl_b)
   end
 
   for i=1,#tbl_a do
-    if not tbl_a[i]:is_same(tbl_b[i]) then
+    if tbl_a[i][1] ~= tbl_b[i][1] or tbl_a[i][2] ~= tbl_b[i][2] then
       return false
     end
   end
@@ -908,7 +880,7 @@ M.i = Exp.new("i", {})
 
 
 function M.version()
-  return "0.0.6"
+  return "0.0.7"
 end
 
 function M.description()

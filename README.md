@@ -2,8 +2,8 @@
 
 A _work-in-progress_ symbolic math toolbox written in Lua.
 
-This is written as a Neovim plugin but this should be usable as a standalone
-Lua library.
+This is written as a Neovim plugin ~~but this should be usable as a standalone
+Lua library~~.
 
 ### Quickstart
 
