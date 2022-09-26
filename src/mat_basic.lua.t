@@ -49,7 +49,6 @@ elseif self.kind == "matrix" then
 
 @methods+=
 function Exp:simplify()
-  if false then
   @simplify_exp
   end
   return self:clone()
@@ -70,8 +69,8 @@ function Exp:cols()
   return #self.o.rows[1]
 end
 
-@simplify_exp+=
-elseif self.kind == "mul" then
+@simplify_exp-=
+if self.kind == "mul" then
   local lhs = self.o.lhs
   local rhs = self.o.rhs
 

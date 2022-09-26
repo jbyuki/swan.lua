@@ -18,16 +18,21 @@ function M.split_i(facs)
     end
   end
 
-  local fac_i = nil
+  local fac_i = M.pow_i(num_i)
+  return fac_i, rest
+end
 
-  if num_i % 4 == 1 then
+@methods+=
+function M.pow_i(num)
+  local fac_i = nil
+  if num % 4 == 1 then
     fac_i = M.i
-  elseif num_i % 4 == 2 then
+  elseif num % 4 == 2 then
     fac_i = M.constant(-1)
-  elseif num_i % 4 == 3 then
+  elseif num % 4 == 3 then
     fac_i = M.constant(-1) * M.i
   end
-  return fac_i, rest
+  return fac_i
 end
 
 @combine_factors_for_simplify+=

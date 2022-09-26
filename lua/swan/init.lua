@@ -517,8 +517,7 @@ function Exp:integrate(dx)
 end
 
 function Exp:simplify()
-  if false then
-  elseif self.kind == "mul" then
+  if self.kind == "mul" then
     local lhs = self.o.lhs
     local rhs = self.o.rhs
 
@@ -749,6 +748,23 @@ function Exp:simplify()
 
     return Exp.new("div", { lhs = lhs, rhs = rhs })
 
+  elseif self.kind == "pow" then
+    local lhs = self.o.lhs:simplify()
+    local rhs = self.o.rhs:simplify()
+
+    if lhs.kind == "constant" and rhs.kind == "constant" then
+      return M.constant(lhs.o.constant ^ rhs.o.constant)
+    elseif lhs.kind == "i" and rhs.kind == "constant" and rhs:is_integer() then
+      return M.pow_i(rhs.o.constant) or M.constant(1)
+    elseif rhs.kind == "constant" and rhs:is_integer() then
+      if rhs.o.constant == 0 then
+        return M.constant(1)
+      elseif rhs.o.constant == 1 then
+        return lhs
+      end
+    end
+
+    return lhs ^ rhs
   end
   return self:clone()
 end
@@ -886,16 +902,20 @@ function M.split_i(facs)
     end
   end
 
-  local fac_i = nil
+  local fac_i = M.pow_i(num_i)
+  return fac_i, rest
+end
 
-  if num_i % 4 == 1 then
+function M.pow_i(num)
+  local fac_i = nil
+  if num % 4 == 1 then
     fac_i = M.i
-  elseif num_i % 4 == 2 then
+  elseif num % 4 == 2 then
     fac_i = M.constant(-1)
-  elseif num_i % 4 == 3 then
+  elseif num % 4 == 3 then
     fac_i = M.constant(-1) * M.i
   end
-  return fac_i, rest
+  return fac_i
 end
 
 function M.sym(name)
@@ -924,7 +944,7 @@ M.i = Exp.new("i", {})
 
 
 function M.version()
-  return "0.0.5"
+  return "0.0.6"
 end
 
 function M.description()
