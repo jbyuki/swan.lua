@@ -232,62 +232,22 @@ function Exp:collect_factors()
 end
 
 @display_mul_string+=
-local factors = self:collect_factors()
-local factors_str = {}
-local factors_str_list = {}
-local factors_str_ref = {}
-
-for i=1,#factors do
-  local str = tostring(factors[i])
-  factors_str[str] = factors_str[str] or 0
-  factors_str[str] = factors_str[str] + 1
-  factors_str_ref[str] = factors[i]
-end
-
-factors_str_list = vim.tbl_keys(factors_str)
-table.sort(factors_str_list)
-
-@remove_and_collect_any_number_factor
-
-local str = ""
-for i, fac in ipairs(factors_str_list) do
-  sup = factors_str[fac]
-  @modify_add_paren
-  if sup == 1 then
-    str = str .. fac
-  -- elseif sup == 2 then
-    -- str = str .. fac .. "²"
-  -- elseif sup == 3 then
-    -- str = str .. fac .. "³"
-  else
-    str = str .. fac .. "^" .. sup
-  end
-end
-
-if num_factor ~= 1 then
-  return num_factor .. str
+local lhs = nil
+local rhs = nil
+if self.o.lhs.kind == "add" then
+  lhs = "(" .. tostring(self.o.lhs) .. ")"
 else
-  return str
+  lhs = tostring(self.o.lhs)
 end
 
-@modify_add_paren+=
-if not factors_str_ref[fac]:is_atomic() then
-  fac = "(" .. fac .. ")"
+if self.o.lhs.kind == "add" then
+  rhs = "(" .. tostring(self.o.rhs) .. ")"
+else
+  rhs = tostring(self.o.rhs)
 end
 
-@remove_and_collect_any_number_factor+=
-local num_factor = 1
+return lhs .. rhs
 
-i = 1
-while i <= #factors_str_list do
-  fac = factors_str_list[i]
-  if factors_str_ref[fac].kind == "constant" then
-    num_factor = num_factor * factors_str_ref[fac].o.constant
-    table.remove(factors_str_list, i)
-  else
-    i = i + 1
-  end
-end
 
 @methods+=
 function Exp:is_atomic()
