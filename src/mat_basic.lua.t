@@ -120,25 +120,19 @@ end
 
 @simplify_exp+=
 elseif self.kind == "add" then
-  local lhs = self.o.lhs:simplify()
-  local rhs = self.o.rhs:simplify()
-
-  if lhs:is_constant() and rhs:is_constant() then
-    return M.constant(lhs.o.constant + rhs.o.constant)
-  end
-
-  if lhs:is_zero() then
-    return rhs
-  end
-
-  if rhs:is_zero() then
-    return lhs
-  end
+  local lhs = self.o.lhs
+  local rhs = self.o.rhs
 
   if lhs:is_matrix() and rhs:is_matrix() then
+    lhs = lhs:simplify()
+    rhs = rhs:simplify()
     @check_that_both_matrices_are_same_dimensions
     @add_matrix_elementwise
     return Exp.new("matrix", { rows = rows })
+  else
+    @collect_terms_for_simplify
+    @combine_terms_for_simplify
+    @construct_resulting_addition
   end
 
   return Exp.new("add", { lhs = lhs, rhs = rhs })

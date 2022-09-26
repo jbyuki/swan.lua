@@ -7,6 +7,23 @@ local gcd
 
 local Exp = {}
 
+local kind_priority = {
+  ["constant"] = 1,
+  ["inf"] = 1.5,
+  ["named_constant"] = 2,
+  ["i"] = 3,
+  ["sym"] = 4,
+  ["add"] = 5,
+  ["sub"] = 5,
+  ["mul"] = 6,
+  ["div"] = 7,
+  ["pow"] = 8,
+  ["cos"] = 9,
+  ["sin"] = 10,
+  ["matrix"] = 11,
+
+}
+
 function Exp:derivate(dx)
   if self.kind == "constant" then
     return Exp.new("constant", { constant = 0 })
@@ -633,22 +650,12 @@ function Exp:simplify()
 
 
   elseif self.kind == "add" then
-    local lhs = self.o.lhs:simplify()
-    local rhs = self.o.rhs:simplify()
-
-    if lhs:is_constant() and rhs:is_constant() then
-      return M.constant(lhs.o.constant + rhs.o.constant)
-    end
-
-    if lhs:is_zero() then
-      return rhs
-    end
-
-    if rhs:is_zero() then
-      return lhs
-    end
+    local lhs = self.o.lhs
+    local rhs = self.o.rhs
 
     if lhs:is_matrix() and rhs:is_matrix() then
+      lhs = lhs:simplify()
+      rhs = rhs:simplify()
       assert(lhs:cols() == rhs:cols(), "Matrix addition dimensions mismatch")
       assert(lhs:rows() == rhs:rows(), "Matrix addition dimensions mismatch")
 
@@ -664,6 +671,53 @@ function Exp:simplify()
         table.insert(rows, row)
       end
       return Exp.new("matrix", { rows = rows })
+    else
+      local terms = self:collectTerm()
+
+      local atomics = {}
+      local rest = {}
+      for _, term in ipairs(terms) do
+        local fac_term = term:collectFactors()
+        if M.is_atomic_all(fac_term) then
+          local fac_term = M.reorderFactors(fac_term)
+          local coeff, facs = M.splitCoeff(fac_term)
+          local added = false
+          for i, atomic in ipairs(atomics) do
+            if M.is_same_all(atomic[2], facs) then
+              atomic[1] = atomic[1] + coeff
+              added = true
+              break
+            end
+          end
+
+          if not added then
+            table.insert(atomics, { coeff, facs })
+          end
+
+        else
+          table.insert(rest, term)
+        end
+      end
+
+      atomics = vim.tbl_filter(function(atomic)
+        return atomic[1] ~= 0
+      end, atomics)
+
+      atomics = vim.tbl_map(function(atomic)
+        local rhs = M.reduce_all("mul", atomic[2])
+        if atomic[1] == 1 then
+          return rhs
+        else
+          return Exp.new("mul", { lhs = M.constant(atomic[1]), rhs = rhs })
+        end
+      end, atomics)
+
+      local result = M.reduce_all("add", atomics)
+      result = M.reduce_all("add", rest, result)
+      result = result or M.constant(0)
+
+      return result
+
     end
 
     return Exp.new("add", { lhs = lhs, rhs = rhs })
@@ -731,6 +785,96 @@ function Exp:is_integer()
   return self.kind == "constant" and math.floor(self.o.constant) == self.o.constant
 end
 
+function M.is_atomic_all(tbl)
+  for _, el in ipairs(tbl) do
+    if not el:is_atomic() then
+      return false
+    end
+  end
+  return true
+end
+
+-- Mainly designed for atomic factors
+function M.reorderFactors(tbl) 
+  table.sort(tbl, function(a, b)
+    if a.kind ~= b.kind then
+      return kind_priority[a.kind] < kind_priority[b.kind]
+    else
+      if a.kind == "constant" then
+        return a.o.constant < b.o.constant
+
+      elseif a.kind == "sym" then
+        return a.o.name < b.o.name
+      elseif a.kind == "named_constant" then
+        return a.o.name < b.o.name
+
+      end
+      return true
+    end
+  end)
+  return tbl
+end
+
+function M.splitCoeff(tbl)
+  local coeff = 1
+  local facs = {}
+  local idx = 1
+  for _, term in ipairs(tbl) do
+    if term.kind == "constant" then
+      coeff = coeff * term.o.constant
+      idx = idx + 1
+    else
+      break
+    end
+  end
+
+  for i=idx,#tbl do
+    table.insert(facs, tbl[i])
+  end
+  return coeff, facs
+end
+
+function Exp:is_same(other) 
+  if self.kind == other.kind then
+    if self.kind == "constant" then
+      return self.o.constant == other.o.constant
+
+    elseif self.kind == "named_constant" then
+      return self.o.name == other.o.name
+    elseif self.kind == "sym" then
+      return self.o.name == other.o.name
+    elseif self.kind == "i" then
+      return true
+
+    end
+    return false
+  end
+  return false
+end
+
+function M.is_same_all(tbl_a, tbl_b)
+  if #tbl_a ~= #tbl_b then
+    return false
+  end
+
+  for i=1,#tbl_a do
+    if not tbl_a[i]:is_same(tbl_b[i]) then
+      return false
+    end
+  end
+  return true
+end
+
+function M.reduce_all(kind, tbl, prev)
+  for _, elem in ipairs(tbl) do
+    if not prev then
+      prev = elem
+    else
+      prev = Exp.new(kind, { lhs = prev, rhs = elem})
+    end
+  end
+  return prev
+end
 function M.reduce_mul(exp_list)
   local result = nil
   for _, exp in ipairs(exp_list) do
@@ -769,7 +913,11 @@ M.i = Exp.new("i", {})
 
 
 function M.version()
-  return "0.0.1"
+  return "0.0.5"
+end
+
+function M.description()
+  return "swan.lua is a symbolic math toolbox written in lua"
 end
 function M.mat(array)
   assert(type(array) == "table", "Argument array must be table")

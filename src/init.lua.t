@@ -11,5 +11,10 @@ return M
 
 @define+=
 function M.version()
-  return "0.0.1"
+  return "0.0.5"
+end
+
+@define+=
+function M.description()
+  return "swan.lua is a symbolic math toolbox written in lua"
 end
