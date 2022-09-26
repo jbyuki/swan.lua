@@ -1,15 +1,15 @@
 ##../swan
 @collect_terms_for_simplify+=
-local terms = self:collectTerm()
+local terms = self:collect_terms()
 
 @combine_terms_for_simplify+=
 local atomics = {}
 local rest = {}
 for _, term in ipairs(terms) do
-  local fac_term = term:collectFactors()
+  local fac_term = term:collect_factors()
   if M.is_atomic_all(fac_term) then
-    local fac_term = M.reorderFactors(fac_term)
-    local coeff, facs = M.splitCoeff(fac_term)
+    local fac_term = M.reorder_factors(fac_term)
+    local coeff, facs = M.split_coeffs(fac_term)
     @append_coeff_and_facs
   else
     table.insert(rest, term)
@@ -48,7 +48,7 @@ local kind_priority = {
 
 @methods+=
 -- Mainly designed for atomic factors
-function M.reorderFactors(tbl) 
+function M.reorder_factors(tbl) 
   table.sort(tbl, function(a, b)
     if a.kind ~= b.kind then
       return kind_priority[a.kind] < kind_priority[b.kind]
@@ -72,7 +72,7 @@ elseif a.kind == "named_constant" then
   return a.o.name < b.o.name
 
 @methods+=
-function M.splitCoeff(tbl)
+function M.split_coeffs(tbl)
   local coeff = 1
   local facs = {}
   local idx = 1

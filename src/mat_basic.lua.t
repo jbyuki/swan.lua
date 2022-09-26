@@ -72,18 +72,13 @@ end
 
 @simplify_exp+=
 elseif self.kind == "mul" then
-  local lhs = self.o.lhs:simplify()
-  local rhs = self.o.rhs:simplify()
-
-  if lhs:is_constant() and rhs:is_constant() then
-    return M.constant(lhs.o.constant * rhs.o.constant)
-  end
-
-  if lhs:is_zero() or rhs:is_zero()  then
-    return M.constant(0)
-  end
+  local lhs = self.o.lhs
+  local rhs = self.o.rhs
 
   if lhs:is_matrix() and rhs:is_matrix() then
+    lhs = self.o.lhs:simplify()
+    rhs = self.o.rhs:simplify()
+
     assert(lhs:cols() == rhs:rows(), "Matrix multiplication dimensions mismatch")
 
     local rows = {}
@@ -103,11 +98,15 @@ elseif self.kind == "mul" then
     return Exp.new("matrix", { rows = rows })
   end
 
-  @handle_if_one_is_pow
-  @handle_mul_simplify
-
   @handle_rhs_coeff_mul_matrix
   @handle_lhs_coeff_mul_matrix
+
+  -- @handle_if_one_is_pow
+  -- @handle_mul_simplify
+
+  @collect_factors_for_simplify
+  @combine_factors_for_simplify
+  @reconstruct_factor_for_simplify
 
 @compute_mul_cell_matrix+=
 local mul_exp = Exp.new("mul", { lhs = lhs.o.rows[i][k]:clone(), rhs = rhs.o.rows[k][j]:clone() })

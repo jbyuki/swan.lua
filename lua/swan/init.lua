@@ -117,7 +117,7 @@ function Exp.new(kind, opts)
       if self.kind == "sym" then
         return self.o.name
       elseif self.kind == "add" then
-        local terms = self:collectTerm()
+        local terms = self:collect_terms()
         local terms_str = {}
         local terms_str_list = {}
 
@@ -150,7 +150,7 @@ function Exp.new(kind, opts)
       elseif self.kind == "sub" then
         return ("%s - %s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
       elseif self.kind == "mul" then
-        local factors = self:collectFactors()
+        local factors = self:collect_factors()
         local factors_str = {}
         local factors_str_list = {}
         local factors_str_ref = {}
@@ -356,9 +356,9 @@ function Exp:expand()
     local lhs = self.o.lhs:expand()
     local rhs = self.o.rhs:expand()
 
-    local rhs_term = rhs:collectTerm()
+    local rhs_term = rhs:collect_terms()
 
-    local lhs_term = lhs:collectTerm()
+    local lhs_term = lhs:collect_terms()
 
 
     if #lhs_term > 1 or #rhs_term > 1 then
@@ -445,11 +445,11 @@ function Exp:clone()
   end
 end
 
-function Exp:collectTerm()
+function Exp:collect_terms()
   local terms = {}
   if self.kind == "add" then
-    local lhs_term = self.o.lhs:collectTerm()
-    local rhs_term = self.o.rhs:collectTerm()
+    local lhs_term = self.o.lhs:collect_terms()
+    local rhs_term = self.o.rhs:collect_terms()
 
     for i=1,#lhs_term do table.insert(terms, lhs_term[i]) end
     for i=1,#rhs_term do table.insert(terms, rhs_term[i]) end
@@ -460,11 +460,11 @@ function Exp:collectTerm()
   return { self:clone() }
 end
 
-function Exp:collectFactors()
+function Exp:collect_factors()
   local factors = {}
   if self.kind == "mul" then
-    local lhs_factor = self.o.lhs:collectFactors()
-    local rhs_factor = self.o.rhs:collectFactors()
+    local lhs_factor = self.o.lhs:collect_factors()
+    local rhs_factor = self.o.rhs:collect_factors()
 
     for i=1,#lhs_factor do table.insert(factors, lhs_factor[i]) end
     for i=1,#rhs_factor do table.insert(factors, rhs_factor[i]) end
@@ -519,18 +519,13 @@ end
 function Exp:simplify()
   if false then
   elseif self.kind == "mul" then
-    local lhs = self.o.lhs:simplify()
-    local rhs = self.o.rhs:simplify()
-
-    if lhs:is_constant() and rhs:is_constant() then
-      return M.constant(lhs.o.constant * rhs.o.constant)
-    end
-
-    if lhs:is_zero() or rhs:is_zero()  then
-      return M.constant(0)
-    end
+    local lhs = self.o.lhs
+    local rhs = self.o.rhs
 
     if lhs:is_matrix() and rhs:is_matrix() then
+      lhs = self.o.lhs:simplify()
+      rhs = self.o.rhs:simplify()
+
       assert(lhs:cols() == rhs:rows(), "Matrix multiplication dimensions mismatch")
 
       local rows = {}
@@ -555,69 +550,6 @@ function Exp:simplify()
       end
 
       return Exp.new("matrix", { rows = rows })
-    end
-
-    if lhs.kind == "pow" or rhs.kind == "pow" then
-      local factors = self:collectFactors()
-      local pow_base = {}
-      local list_fac = {}
-
-      for _, fac in ipairs(factors) do
-        fac = fac:expand()
-        if fac.kind == "pow" and fac.o.lhs:is_atomic() then
-          local lhs = fac.o.lhs
-          if not pow_base[lhs.kind] then
-            pow_base[lhs.kind] = {}
-          end
-          local tpow_base = pow_base[lhs.kind]
-          if lhs.kind == "constant" then
-            c = lhs.o.constant
-            if tpow_base[c] then
-              tpow_base[c].o.rhs = Exp.new("add", {lhs=tpow_base[c].o.rhs, rhs=fac.o.rhs}):simplify()
-
-            else
-              tpow_base[c] = fac
-              table.insert(list_fac, fac)
-            end
-
-          elseif lhs.kind == "named_constant" then
-            n = lhs.o.name
-            if tpow_base[n] then
-              tpow_base[n].o.rhs = Exp.new("add", {lhs=tpow_base[n].o.rhs, rhs=fac.o.rhs}):simplify()
-
-            else
-              tpow_base[n] = fac
-              table.insert(list_fac, fac)
-            end
-
-          else
-            table.insert(list_fac, fac)
-          end
-        else
-          table.insert(list_fac, fac)
-        end
-      end
-
-      return M.reduce_mul(list_fac)
-    end
-
-    if lhs.kind == "div" and rhs.kind == "div" then
-      local num_lhs = lhs.o.lhs
-      local den_lhs = lhs.o.rhs
-
-      local num_rhs = rhs.o.lhs
-      local den_rhs = rhs.o.rhs
-
-      local num = Exp.new("mul", { lhs = num_lhs, rhs = num_rhs })
-      local den = Exp.new("mul", { lhs = den_lhs, rhs = den_rhs })
-
-      num = num:simplify()
-      den = den:simplify()
-
-      return Exp.new("div", { lhs = num, rhs = den })
-    end
-    if lhs.kind == "i" and rhs.kind == "i" then
-      return M.constant(-1)
     end
 
     if rhs:is_matrix() then
@@ -649,6 +581,74 @@ function Exp:simplify()
     end
 
 
+    -- @handle_if_one_is_pow
+    -- @handle_mul_simplify
+
+    local factors = self:collect_factors()
+
+    for i=1,#factors do
+      factors[i] = factors[i]:simplify()
+    end
+
+    local coeff, factors = M.split_coeffs(factors)
+    local coeff_i, factors = M.split_i(factors)
+    if coeff_i then
+      coeff, coeff_i = M.split_coeffs({M.constant(coeff), coeff_i})
+      coeff_i = coeff_i[1]
+    end
+
+    local pow_base = {}
+    local list_fac = {}
+
+    for _, fac in ipairs(factors) do
+      fac = fac:expand()
+      if fac.kind == "pow" and fac.o.lhs:is_atomic() then
+        local lhs = fac.o.lhs
+        if not pow_base[lhs.kind] then
+          pow_base[lhs.kind] = {}
+        end
+        local tpow_base = pow_base[lhs.kind]
+        if lhs.kind == "constant" then
+          c = lhs.o.constant
+          if tpow_base[c] then
+            tpow_base[c].o.rhs = Exp.new("add", {lhs=tpow_base[c].o.rhs, rhs=fac.o.rhs}):simplify()
+
+          else
+            tpow_base[c] = fac
+            table.insert(list_fac, fac)
+          end
+
+        elseif lhs.kind == "named_constant" then
+          n = lhs.o.name
+          if tpow_base[n] then
+            tpow_base[n].o.rhs = Exp.new("add", {lhs=tpow_base[n].o.rhs, rhs=fac.o.rhs}):simplify()
+          else
+            tpow_base[n] = fac
+            table.insert(list_fac, fac)
+          end
+
+        else
+          table.insert(list_fac, fac)
+        end
+      else
+        table.insert(list_fac, fac)
+      end
+    end
+
+
+    local result = nil
+    result = M.reduce_all("mul", list_fac)
+    if coeff_i then
+      result = M.reduce_all("mul", {coeff_i}, result)
+    end
+
+    if coeff ~= 1 then
+      result = M.reduce_all("mul", {M.constant(coeff)}, result)
+    end
+
+    result = result or M.constant(1)
+    return result
+
   elseif self.kind == "add" then
     local lhs = self.o.lhs
     local rhs = self.o.rhs
@@ -672,15 +672,15 @@ function Exp:simplify()
       end
       return Exp.new("matrix", { rows = rows })
     else
-      local terms = self:collectTerm()
+      local terms = self:collect_terms()
 
       local atomics = {}
       local rest = {}
       for _, term in ipairs(terms) do
-        local fac_term = term:collectFactors()
+        local fac_term = term:collect_factors()
         if M.is_atomic_all(fac_term) then
-          local fac_term = M.reorderFactors(fac_term)
-          local coeff, facs = M.splitCoeff(fac_term)
+          local fac_term = M.reorder_factors(fac_term)
+          local coeff, facs = M.split_coeffs(fac_term)
           local added = false
           for i, atomic in ipairs(atomics) do
             if M.is_same_all(atomic[2], facs) then
@@ -795,7 +795,7 @@ function M.is_atomic_all(tbl)
 end
 
 -- Mainly designed for atomic factors
-function M.reorderFactors(tbl) 
+function M.reorder_factors(tbl) 
   table.sort(tbl, function(a, b)
     if a.kind ~= b.kind then
       return kind_priority[a.kind] < kind_priority[b.kind]
@@ -815,7 +815,7 @@ function M.reorderFactors(tbl)
   return tbl
 end
 
-function M.splitCoeff(tbl)
+function M.split_coeffs(tbl)
   local coeff = 1
   local facs = {}
   local idx = 1
@@ -875,16 +875,27 @@ function M.reduce_all(kind, tbl, prev)
   end
   return prev
 end
-function M.reduce_mul(exp_list)
-  local result = nil
-  for _, exp in ipairs(exp_list) do
-    if not result then
-      result = exp
+function M.split_i(facs)
+  local rest = {}
+  local num_i = 0
+  for _, elem in ipairs(facs) do
+    if elem.kind == "i" then
+      num_i = num_i + 1
     else
-      result = Exp.new("mul", {lhs = result, rhs = exp})
+      table.insert(rest, elem)
     end
   end
-  return result
+
+  local fac_i = nil
+
+  if num_i % 4 == 1 then
+    fac_i = M.i
+  elseif num_i % 4 == 2 then
+    fac_i = M.constant(-1)
+  elseif num_i % 4 == 3 then
+    fac_i = M.constant(-1) * M.i
+  end
+  return fac_i, rest
 end
 
 function M.sym(name)

@@ -1,12 +1,5 @@
 ##../swan
-@handle_if_one_is_pow+=
-if lhs.kind == "pow" or rhs.kind == "pow" then
-  @collect_factors_and_classify_with_base
-  @output_result_simplify_same_base
-end
-
 @collect_factors_and_classify_with_base+=
-local factors = self:collectFactors()
 local pow_base = {}
 local list_fac = {}
 
@@ -52,19 +45,3 @@ elseif lhs.kind == "named_constant" then
 
 @add_to_already_existing_factor_named_constant+=
 tpow_base[n].o.rhs = Exp.new("add", {lhs=tpow_base[n].o.rhs, rhs=fac.o.rhs}):simplify()
-
-@methods+=
-function M.reduce_mul(exp_list)
-  local result = nil
-  for _, exp in ipairs(exp_list) do
-    if not result then
-      result = exp
-    else
-      result = Exp.new("mul", {lhs = result, rhs = exp})
-    end
-  end
-  return result
-end
-
-@output_result_simplify_same_base+=
-return M.reduce_mul(list_fac)

@@ -175,11 +175,11 @@ elseif self.kind == "mul" then
   return self:clone()
 
 @methods+=
-function Exp:collectTerm()
+function Exp:collect_terms()
   local terms = {}
   if self.kind == "add" then
-    local lhs_term = self.o.lhs:collectTerm()
-    local rhs_term = self.o.rhs:collectTerm()
+    local lhs_term = self.o.lhs:collect_terms()
+    local rhs_term = self.o.rhs:collect_terms()
 
     for i=1,#lhs_term do table.insert(terms, lhs_term[i]) end
     for i=1,#rhs_term do table.insert(terms, rhs_term[i]) end
@@ -192,14 +192,14 @@ end
 
 @collect_sub_term+=
 elseif self.kind == "sub" then
-  local lhs_term = self.o.lhs:collectTerm()
-  local rhs_term = self.o.rhs:collectTerm()
+  local lhs_term = self.o.lhs:collect_terms()
+  local rhs_term = self.o.rhs:collect_terms()
 
 @collect_rhs_term_in_list+=
-local rhs_term = rhs:collectTerm()
+local rhs_term = rhs:collect_terms()
 
 @collect_lhs_term_in_list+=
-local lhs_term = lhs:collectTerm()
+local lhs_term = lhs:collect_terms()
 
 @expand_mul+=
 local res = nil
@@ -216,11 +216,11 @@ for i=1,#lhs_term do
 end
 
 @methods+=
-function Exp:collectFactors()
+function Exp:collect_factors()
   local factors = {}
   if self.kind == "mul" then
-    local lhs_factor = self.o.lhs:collectFactors()
-    local rhs_factor = self.o.rhs:collectFactors()
+    local lhs_factor = self.o.lhs:collect_factors()
+    local rhs_factor = self.o.rhs:collect_factors()
 
     for i=1,#lhs_factor do table.insert(factors, lhs_factor[i]) end
     for i=1,#rhs_factor do table.insert(factors, rhs_factor[i]) end
@@ -232,7 +232,7 @@ function Exp:collectFactors()
 end
 
 @display_mul_string+=
-local factors = self:collectFactors()
+local factors = self:collect_factors()
 local factors_str = {}
 local factors_str_list = {}
 local factors_str_ref = {}
@@ -299,7 +299,7 @@ function Exp:is_atomic()
 end
 
 @display_add_string+=
-local terms = self:collectTerm()
+local terms = self:collect_terms()
 local terms_str = {}
 local terms_str_list = {}
 
