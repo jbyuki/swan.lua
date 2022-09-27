@@ -30,7 +30,7 @@ end
 local gcd
 
 @define+=
--- The oldest algorithm, as far as I know
+-- The oldest algorithm
 function gcd(a, b)
   if a == b then
     return a

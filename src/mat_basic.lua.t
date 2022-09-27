@@ -100,6 +100,8 @@ if self.kind == "mul" then
   @handle_rhs_coeff_mul_matrix
   @handle_lhs_coeff_mul_matrix
 
+  @handle_mul_both_div
+
   -- @handle_if_one_is_pow
   -- @handle_mul_simplify
 

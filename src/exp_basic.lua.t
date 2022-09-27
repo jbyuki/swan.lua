@@ -231,13 +231,13 @@ end
 @display_mul_string+=
 local lhs = nil
 local rhs = nil
-if self.o.lhs.kind == "add" then
+if self.o.lhs.kind == "add" or self.o.lhs.kind == "div" then
   lhs = "(" .. tostring(self.o.lhs) .. ")"
 else
   lhs = tostring(self.o.lhs)
 end
 
-if self.o.lhs.kind == "add" then
+if self.o.rhs.kind == "add"  or self.o.rhs.kind == "div" then
   rhs = "(" .. tostring(self.o.rhs) .. ")"
 else
   rhs = tostring(self.o.rhs)

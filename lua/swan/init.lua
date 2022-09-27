@@ -39,13 +39,13 @@ local mt = { __index = Exp,
     elseif self.kind == "mul" then
       local lhs = nil
       local rhs = nil
-      if self.o.lhs.kind == "add" then
+      if self.o.lhs.kind == "add" or self.o.lhs.kind == "div" then
         lhs = "(" .. tostring(self.o.lhs) .. ")"
       else
         lhs = tostring(self.o.lhs)
       end
 
-      if self.o.lhs.kind == "add" then
+      if self.o.rhs.kind == "add"  or self.o.rhs.kind == "div" then
         rhs = "(" .. tostring(self.o.rhs) .. ")"
       else
         rhs = tostring(self.o.rhs)
@@ -559,6 +559,10 @@ function Exp:simplify()
     end
 
 
+    if lhs.kind == "div" and rhs.kind == "div" then
+      return (lhs.o.lhs * rhs.o.lhs):simplify() / (lhs.o.rhs * rhs.o.rhs):simplify()
+    end
+
     -- @handle_if_one_is_pow
     -- @handle_mul_simplify
 
@@ -904,7 +908,7 @@ function M.frac(num, den)
   return Exp.new("div", { lhs = num, rhs = den })
 end
 
--- The oldest algorithm, as far as I know
+-- The oldest algorithm
 function gcd(a, b)
   if a == b then
     return a
