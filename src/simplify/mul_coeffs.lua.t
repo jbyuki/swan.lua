@@ -6,6 +6,8 @@ for i=1,#factors do
   factors[i] = factors[i]:simplify()
 end
 
+@handle_if_one_factor_is_div
+
 @methods+=
 function M.split_kind(kind, facs)
   local first = {}

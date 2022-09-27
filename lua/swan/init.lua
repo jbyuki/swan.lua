@@ -559,9 +559,6 @@ function Exp:simplify()
     end
 
 
-    if lhs.kind == "div" and rhs.kind == "div" then
-      return (lhs.o.lhs * rhs.o.lhs):simplify() / (lhs.o.rhs * rhs.o.rhs):simplify()
-    end
 
     -- @handle_if_one_is_pow
     -- @handle_mul_simplify
@@ -571,6 +568,35 @@ function Exp:simplify()
     for i=1,#factors do
       factors[i] = factors[i]:simplify()
     end
+
+    local has_div = false
+    for _, factor in ipairs(factors) do
+      if factor.kind == "div" then
+        has_div = true
+        break
+      end
+    end
+
+    if has_div then
+      local num = {}
+      local den = {}
+
+      for _, factor in ipairs(factors) do
+        if factor.kind == "div" then
+          table.insert(num, factor.o.lhs)
+          table.insert(den, factor.o.rhs)
+        else
+          table.insert(num, factor)
+        end
+      end
+
+      num = M.reduce_all("mul", num)
+      den = M.reduce_all("mul", den)
+
+
+      return num:simplify() / den:simplify()
+    end
+
 
     local elem_i, factors = M.split_kind("i", factors)
     local i_const, i_fac = M.pow_i(#elem_i)
