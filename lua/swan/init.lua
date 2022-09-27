@@ -654,10 +654,10 @@ function Exp:simplify()
 
       local atomics = {}
       for _, term in ipairs(terms) do
-        local coeff, facs = term:collect_factors()
-        table.sort(facs, function(a, b) 
-          return a[1] < b[1]
-        end)
+        local facs = term:collect_factors()
+        local const, facs = M.split_kind("constant", facs)
+        local coeff = M.reduce_const(const)
+        table.sort(facs) 
         local added = false
         for i, atomic in ipairs(atomics) do
           if M.is_same_all(atomic[2], facs) then
@@ -678,15 +678,16 @@ function Exp:simplify()
       end, atomics)
 
       atomics = vim.tbl_map(function(atomic)
-        local rhs = M.reduce_all("mul", vim.tbl_map(
-          function(a) 
-            if a[2] == 1 then return a[1] else return a[1]^M.constant(a[2]) end 
-          end, atomic[2]))
+        local rhs = M.reduce_all("mul", atomic[2])
+        
+        if not rhs then
+          return M.constant(atomic[1])
+        end
 
         if atomic[1] == 1 then
           return rhs
         else
-          return Exp.new("mul", { lhs = M.constant(atomic[1]), rhs = rhs })
+          return M.constant(atomic[1]) *  rhs
         end
       end, atomics)
 
@@ -794,7 +795,7 @@ function M.is_same_all(tbl_a, tbl_b)
   end
 
   for i=1,#tbl_a do
-    if tbl_a[i][1] ~= tbl_b[i][1] or tbl_a[i][2] ~= tbl_b[i][2] then
+    if tbl_a[i] ~= tbl_b[i] then
       return false
     end
   end
