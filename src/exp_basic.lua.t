@@ -6,6 +6,8 @@ end
 
 @variables+=
 local Exp = {}
+
+@metatables+=
 local mt = { __index = Exp,
   @metamethods
 }

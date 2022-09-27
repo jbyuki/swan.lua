@@ -45,7 +45,9 @@ for _, elem in ipairs(pow_base) do
   result = (result and (result * new_elem)) or new_elem
 end
 
-result = result and i_fac and i_fac * result or i_fac
+if i_fac then
+  result = result and i_fac * result or i_fac
+end
 if coeff ~= 1 then
   result = result and M.constant(coeff) * result or M.constant(coeff)
 end

@@ -4,6 +4,7 @@ local M = {}
 
 @declare
 @variables
+@metatables
 @methods
 @define
 

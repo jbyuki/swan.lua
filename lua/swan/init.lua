@@ -6,6 +6,24 @@ local convert_constant
 local gcd
 
 local Exp = {}
+
+local kind_order = {
+  ["constant"] = 1,
+  ["inf"] = 1.5,
+  ["named_constant"] = 2,
+  ["i"] = 3,
+  ["sym"] = 4,
+  ["add"] = 5,
+  ["sub"] = 5,
+  ["mul"] = 6,
+  ["div"] = 7,
+  ["pow"] = 8,
+  ["cos"] = 9,
+  ["sin"] = 10,
+  ["matrix"] = 11,
+
+}
+
 local mt = { __index = Exp,
   __tostring = function(self)
     if self.kind == "sym" then
@@ -180,23 +198,6 @@ local mt = { __index = Exp,
       return false
     end
   end,
-
-}
-
-local kind_order = {
-  ["constant"] = 1,
-  ["inf"] = 1.5,
-  ["named_constant"] = 2,
-  ["i"] = 3,
-  ["sym"] = 4,
-  ["add"] = 5,
-  ["sub"] = 5,
-  ["mul"] = 6,
-  ["div"] = 7,
-  ["pow"] = 8,
-  ["cos"] = 9,
-  ["sin"] = 10,
-  ["matrix"] = 11,
 
 }
 
@@ -617,7 +618,9 @@ function Exp:simplify()
       result = (result and (result * new_elem)) or new_elem
     end
 
-    result = result and i_fac and i_fac * result or i_fac
+    if i_fac then
+      result = result and i_fac * result or i_fac
+    end
     if coeff ~= 1 then
       result = result and M.constant(coeff) * result or M.constant(coeff)
     end
