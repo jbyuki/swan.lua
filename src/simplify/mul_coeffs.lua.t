@@ -7,53 +7,50 @@ for i=1,#factors do
 end
 
 @methods+=
-function M.split_i(facs)
-  local rest = {}
-  local num_i = 0
+function M.split_kind(kind, facs)
+  local first = {}
+  local second = {}
   for _, elem in ipairs(facs) do
-    if elem.kind == "i" then
-      num_i = num_i + 1
+    if elem.kind == kind then
+      table.insert(first, elem)
     else
-      table.insert(rest, elem)
+      table.insert(second, elem)
     end
   end
-
-  local fac_i = M.pow_i(num_i)
-  return fac_i, rest
+  return first, second
 end
 
 @methods+=
 function M.pow_i(num)
-  local fac_i = nil
-  if num % 4 == 1 then
-    fac_i = M.i
+  if num % 4 == 0 then
+    return 1, nil
+  elseif num % 4 == 1 then
+    return 1, M.i
   elseif num % 4 == 2 then
-    fac_i = M.constant(-1)
+    return -1, nil
   elseif num % 4 == 3 then
-    fac_i = M.constant(-1) * M.i
+    return -1, M.i
   end
-  return fac_i
+end
+
+function M.reduce_const(facs) 
+  local coeff = 1
+  for _, fac in ipairs(facs) do
+    coeff = coeff * fac.o.constant
+  end
+  return coeff
 end
 
 @combine_factors_for_simplify+=
-local coeff, factors = M.split_coeffs(factors)
-local coeff_i, factors = M.split_i(factors)
-if coeff_i then
-  coeff, coeff_i = M.split_coeffs({M.constant(coeff), coeff_i})
-  coeff_i = coeff_i[1]
+local elem_i, factors = M.split_kind("i", factors)
+local i_const, i_fac = M.pow_i(#elem_i)
+local elem_consts, factors = M.split_kind("constant", factors)
+table.insert(elem_consts, M.constant(i_const))
+local coeff = M.reduce_const(elem_consts)
+
+if coeff == 0 then
+  return M.constant(0)
 end
 
 @collect_factors_and_classify_with_base
-
-local result = nil
-result = M.reduce_all("mul", list_fac)
-if coeff_i then
-  result = M.reduce_all("mul", {coeff_i}, result)
-end
-
-if coeff ~= 1 then
-  result = M.reduce_all("mul", {M.constant(coeff)}, result)
-end
-
-result = result or M.constant(1)
-return result
+@reconstructor_from_list_of_pow_base

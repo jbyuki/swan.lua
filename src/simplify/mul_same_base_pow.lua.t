@@ -4,44 +4,50 @@ local pow_base = {}
 local list_fac = {}
 
 for _, fac in ipairs(factors) do
-  fac = fac:expand()
-  if fac.kind == "pow" and fac.o.lhs:is_atomic() then
-    local lhs = fac.o.lhs
-    if not pow_base[lhs.kind] then
-      pow_base[lhs.kind] = {}
-    end
-    local tpow_base = pow_base[lhs.kind]
-    @append_to_same_base
-    else
-      table.insert(list_fac, fac)
-    end
+  local lhs, rhs
+  if fac.kind == "pow" then
+    lhs = fac.o.lhs
+    rhs = fac.o.rhs
   else
-    table.insert(list_fac, fac)
+    lhs = fac
+    rhs = nil
+  end
+
+  @append_to_same_base
+  @if_same_base_not_found_just_append
+end
+
+@append_to_same_base+=
+local found = false
+for _, elem in ipairs(pow_base) do
+  if elem[1] == lhs then
+    elem[2] = elem[2] or M.constant(1)
+    elem[2] = (elem[2] or M.constant(1)) + (rhs or M.constant(1))
+    found = true
+    break
   end
 end
 
-@append_to_same_base-=
-if lhs.kind == "constant" then
-  c = lhs.o.constant
-  if tpow_base[c] then
-    @add_to_already_existing_factor_constant
+@if_same_base_not_found_just_append+=
+if not found then
+  table.insert(pow_base, { lhs, rhs })
+end
+
+@reconstructor_from_list_of_pow_base+=
+local result = nil
+for _, elem in ipairs(pow_base) do
+  local new_elem
+  if not elem[2] then
+    new_elem = elem[1]
   else
-    tpow_base[c] = fac
-    table.insert(list_fac, fac)
+    new_elem = elem[1] ^ (elem[2]:simplify())
   end
+  result = (result and (result * new_elem)) or new_elem
+end
 
-@add_to_already_existing_factor_constant+=
-tpow_base[c].o.rhs = Exp.new("add", {lhs=tpow_base[c].o.rhs, rhs=fac.o.rhs}):simplify()
-
-@append_to_same_base+=
-elseif lhs.kind == "named_constant" then
-  n = lhs.o.name
-  if tpow_base[n] then
-    @add_to_already_existing_factor_named_constant
-  else
-    tpow_base[n] = fac
-    table.insert(list_fac, fac)
-  end
-
-@add_to_already_existing_factor_named_constant+=
-tpow_base[n].o.rhs = Exp.new("add", {lhs=tpow_base[n].o.rhs, rhs=fac.o.rhs}):simplify()
+result = result and i_fac and i_fac * result or i_fac
+if coeff ~= 1 then
+  result = result and M.constant(coeff) * result or M.constant(coeff)
+end
+result = result or M.constant(1)
+return result

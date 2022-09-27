@@ -6,13 +6,14 @@ end
 
 @variables+=
 local Exp = {}
+local mt = { __index = Exp,
+  @metamethods
+}
 
 @methods+=
 function Exp.new(kind, opts)
   local o = { kind = kind, o = opts }
-  return setmetatable(o, { __index = Exp,
-    @metamethods
-  })
+  return setmetatable(o, mt)
 end
 
 @metamethods+=
@@ -190,11 +191,6 @@ function Exp:collect_terms()
   return { self:clone() }
 end
 
-@collect_sub_term+=
-elseif self.kind == "sub" then
-  local lhs_term = self.o.lhs:collect_terms()
-  local rhs_term = self.o.rhs:collect_terms()
-
 @collect_rhs_term_in_list+=
 local rhs_term = rhs:collect_terms()
 
@@ -219,19 +215,15 @@ end
 function Exp:collect_factors()
   local factors = {}
   if self.kind == "mul" then
-    local lhs_coeff, lhs_factor = self.o.lhs:collect_factors()
-    local rhs_coeff, rhs_factor = self.o.rhs:collect_factors()
+    local lhs_factor = self.o.lhs:collect_factors()
+    local rhs_factor = self.o.rhs:collect_factors()
 
     for i=1,#lhs_factor do table.insert(factors, lhs_factor[i]) end
     for i=1,#rhs_factor do table.insert(factors, rhs_factor[i]) end
 
-    return lhs_coeff*rhs_coeff, factors
-  elseif self.kind == "pow" and self.o.rhs.kind == "constant" then
-    return 1, { { self.o.lhs:clone(), self.o.rhs.constant } }
-  elseif self.kind == "constant" then
-    return self.o.constant, {}
+    return factors
   end
-  return 1, { { self:clone(), 1 } }
+  return { self:clone() }
 end
 
 @display_mul_string+=

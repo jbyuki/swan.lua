@@ -6,6 +6,182 @@ local convert_constant
 local gcd
 
 local Exp = {}
+local mt = { __index = Exp,
+  __tostring = function(self)
+    if self.kind == "sym" then
+      return self.o.name
+    elseif self.kind == "add" then
+      local lhs = tostring(self.o.lhs)
+      local rhs = tostring(self.o.rhs)
+
+      return lhs .. " + " .. rhs
+
+    elseif self.kind == "sub" then
+      return ("%s - %s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
+    elseif self.kind == "mul" then
+      local lhs = nil
+      local rhs = nil
+      if self.o.lhs.kind == "add" then
+        lhs = "(" .. tostring(self.o.lhs) .. ")"
+      else
+        lhs = tostring(self.o.lhs)
+      end
+
+      if self.o.lhs.kind == "add" then
+        rhs = "(" .. tostring(self.o.rhs) .. ")"
+      else
+        rhs = tostring(self.o.rhs)
+      end
+
+      return lhs .. rhs
+
+
+    elseif self.kind == "pow" then
+      local lhs_pow = tostring(self.o.lhs)
+      local rhs_pow = tostring(self.o.rhs)
+
+      if not self.o.lhs:is_atomic() then
+        lhs_pow = ("(%s)"):format(lhs_pow)
+      end
+
+      if not self.o.rhs:is_atomic() then
+        rhs_pow = ("(%s)"):format(rhs_pow)
+      end
+      return ("%s^%s"):format(lhs_pow, rhs_pow)
+    elseif self.kind == "constant" then
+      if self.o.constant < 0 then
+        return "(" .. tostring(self.o.constant) .. ")"
+      else
+        return tostring(self.o.constant)
+      end
+
+    elseif self.kind == "cos" then
+      return ("cos(%s)"):format(tostring(self.o.arg))
+    elseif self.kind == "sin" then
+      return ("sin(%s)"):format(tostring(self.o.arg))
+
+    elseif self.kind == "inf" then
+      return "inf"
+
+    elseif self.kind == "named_constant" then
+      return self.o.name
+
+    elseif self.kind == "i" then
+      return "i"
+
+    elseif self.kind == "matrix" then
+      local rows = {}
+      for i=1,#self.o.rows do
+        local row = {}
+        for j=1,#self.o.rows[i] do
+          table.insert(row, tostring(self.o.rows[i][j]))
+        end
+        table.insert(rows, "  " .. table.concat(row, ", "))
+      end
+      return "[\n" .. table.concat(rows, "\n") .. "\n]"
+
+    elseif self.kind == "div" then
+      local lhs = tostring(self.o.lhs)
+      local rhs = tostring(self.o.rhs)
+
+      if not self.o.lhs:is_atomic() then
+        lhs = "(" .. lhs .. ")"
+      end
+
+      if not self.o.rhs:is_atomic() then
+        rhs = "(" .. rhs .. ")"
+      end
+
+      return lhs .. "/" .. rhs
+
+    else
+      return "[UNKNOWN]"
+    end
+  end,
+
+  __add = function(lhs, rhs)
+    lhs = convert_constant(lhs)
+    rhs = convert_constant(rhs)
+
+    return Exp.new("add", { lhs = lhs, rhs = rhs })
+  end,
+
+  __sub = function(lhs, rhs)
+    lhs = convert_constant(lhs)
+    rhs = convert_constant(rhs)
+
+    rhs = Exp.new("mul", { lhs = M.constant(-1), rhs = rhs })
+    return Exp.new("add", { lhs = lhs, rhs = rhs })
+  end,
+
+  __pow = function(lhs, rhs)
+    lhs = convert_constant(lhs)
+    rhs = convert_constant(rhs)
+
+    return Exp.new("pow", { lhs = lhs, rhs = rhs })
+  end,
+
+  __mul = function(lhs, rhs)
+    lhs = convert_constant(lhs)
+    rhs = convert_constant(rhs)
+
+    return Exp.new("mul", { lhs = lhs, rhs = rhs })
+  end,
+
+
+  __unm = function(lhs)
+    return Exp.new("mul", { 
+      lhs = M.constant(-1),
+      rhs = lhs
+    })
+  end,
+
+  __div = function(lhs, rhs)
+    lhs = convert_constant(lhs)
+    rhs = convert_constant(rhs)
+
+    return Exp.new("div", { lhs = lhs, rhs = rhs })
+  end,
+  __lt = function(lhs, rhs)
+    if lhs.kind ~= rhs.kind then
+      return kind_order[lhs.kind] < kind_order[rhs.kind]
+    else
+      if lhs.kind == "constant" then
+        return lhs.o.constant < rhs.o.constant
+
+      elseif lhs.kind == "sym" then
+        return lhs.o.name < rhs.o.name
+      elseif lhs.kind == "named_constant" then
+        return lhs.o.name < rhs.o.name
+      elseif lhs.kind == "pow" then
+        return lhs.o.lhs < rhs.o.lhs
+
+      end
+    end
+    return tostring(lhs) < tostring(rhs)
+  end,
+
+  __eq = function(lhs, rhs) 
+    if lhs.kind == rhs.kind then
+      if lhs.kind == "constant" then
+        return lhs.o.constant == rhs.o.constant
+
+      elseif lhs.kind == "named_constant" then
+        return lhs.o.name == rhs.o.name
+      elseif lhs.kind == "sym" then
+        return lhs.o.name == rhs.o.name
+      elseif lhs.kind == "i" then
+        return true
+      elseif lhs.kind == "pow" then
+        return lhs.o.lhs == rhs.o.lhs and lhs.o.rhs == rhs.o.rhs
+
+      end
+    else
+      return false
+    end
+  end,
+
+}
 
 local kind_order = {
   ["constant"] = 1,
@@ -112,182 +288,7 @@ end
 
 function Exp.new(kind, opts)
   local o = { kind = kind, o = opts }
-  return setmetatable(o, { __index = Exp,
-    __tostring = function(self)
-      if self.kind == "sym" then
-        return self.o.name
-      elseif self.kind == "add" then
-        local lhs = tostring(self.o.lhs)
-        local rhs = tostring(self.o.rhs)
-
-        return lhs .. " + " .. rhs
-
-      elseif self.kind == "sub" then
-        return ("%s - %s"):format(tostring(self.o.lhs), tostring(self.o.rhs))
-      elseif self.kind == "mul" then
-        local lhs = nil
-        local rhs = nil
-        if self.o.lhs.kind == "add" then
-          lhs = "(" .. tostring(self.o.lhs) .. ")"
-        else
-          lhs = tostring(self.o.lhs)
-        end
-
-        if self.o.lhs.kind == "add" then
-          rhs = "(" .. tostring(self.o.rhs) .. ")"
-        else
-          rhs = tostring(self.o.rhs)
-        end
-
-        return lhs .. rhs
-
-
-      elseif self.kind == "pow" then
-        local lhs_pow = tostring(self.o.lhs)
-        local rhs_pow = tostring(self.o.rhs)
-
-        if not self.o.lhs:is_atomic() then
-          lhs_pow = ("(%s)"):format(lhs_pow)
-        end
-
-        if not self.o.rhs:is_atomic() then
-          rhs_pow = ("(%s)"):format(rhs_pow)
-        end
-        return ("%s^%s"):format(lhs_pow, rhs_pow)
-      elseif self.kind == "constant" then
-        if self.o.constant < 0 then
-          return "(" .. tostring(self.o.constant) .. ")"
-        else
-          return tostring(self.o.constant)
-        end
-
-      elseif self.kind == "cos" then
-        return ("cos(%s)"):format(tostring(self.o.arg))
-      elseif self.kind == "sin" then
-        return ("sin(%s)"):format(tostring(self.o.arg))
-
-      elseif self.kind == "inf" then
-        return "inf"
-
-      elseif self.kind == "named_constant" then
-        return self.o.name
-
-      elseif self.kind == "i" then
-        return "i"
-
-      elseif self.kind == "matrix" then
-        local rows = {}
-        for i=1,#self.o.rows do
-          local row = {}
-          for j=1,#self.o.rows[i] do
-            table.insert(row, tostring(self.o.rows[i][j]))
-          end
-          table.insert(rows, "  " .. table.concat(row, ", "))
-        end
-        return "[\n" .. table.concat(rows, "\n") .. "\n]"
-
-      elseif self.kind == "div" then
-        local lhs = tostring(self.o.lhs)
-        local rhs = tostring(self.o.rhs)
-
-        if not self.o.lhs:is_atomic() then
-          lhs = "(" .. lhs .. ")"
-        end
-
-        if not self.o.rhs:is_atomic() then
-          rhs = "(" .. rhs .. ")"
-        end
-
-        return lhs .. "/" .. rhs
-
-      else
-        return "[UNKNOWN]"
-      end
-    end,
-
-    __add = function(lhs, rhs)
-      lhs = convert_constant(lhs)
-      rhs = convert_constant(rhs)
-
-      return Exp.new("add", { lhs = lhs, rhs = rhs })
-    end,
-
-    __sub = function(lhs, rhs)
-      lhs = convert_constant(lhs)
-      rhs = convert_constant(rhs)
-
-      rhs = Exp.new("mul", { lhs = M.constant(-1), rhs = rhs })
-      return Exp.new("add", { lhs = lhs, rhs = rhs })
-    end,
-
-    __pow = function(lhs, rhs)
-      lhs = convert_constant(lhs)
-      rhs = convert_constant(rhs)
-
-      return Exp.new("pow", { lhs = lhs, rhs = rhs })
-    end,
-
-    __mul = function(lhs, rhs)
-      lhs = convert_constant(lhs)
-      rhs = convert_constant(rhs)
-
-      return Exp.new("mul", { lhs = lhs, rhs = rhs })
-    end,
-
-
-    __unm = function(lhs)
-      return Exp.new("mul", { 
-        lhs = M.constant(-1),
-        rhs = lhs
-      })
-    end,
-
-    __div = function(lhs, rhs)
-      lhs = convert_constant(lhs)
-      rhs = convert_constant(rhs)
-
-      return Exp.new("div", { lhs = lhs, rhs = rhs })
-    end,
-    __lt = function(lhs, rhs)
-      if lhs.kind ~= rhs.kind then
-        return kind_order[lhs.kind] < kind_order[rhs.kind]
-      else
-        if lhs.kind == "constant" then
-          return lhs.o.constant < rhs.o.constant
-
-        elseif lhs.kind == "sym" then
-          return lhs.o.name < rhs.o.name
-        elseif lhs.kind == "named_constant" then
-          return lhs.o.name < rhs.o.name
-        elseif lhs.kind == "pow" then
-          return lhs.o.lhs < rhs.o.lhs
-
-        end
-      end
-      return tostring(lhs) < tostring(rhs)
-    end,
-
-    __eq = function(lhs, rhs) 
-      if lhs.kind == rhs.kind then
-        if self.kind == "constant" then
-          return self.o.constant == other.o.constant
-
-        elseif self.kind == "named_constant" then
-          return self.o.name == other.o.name
-        elseif self.kind == "sym" then
-          return self.o.name == other.o.name
-        elseif self.kind == "i" then
-          return true
-        elseif self.kind == "pow" then
-          return self.o.lhs == other.o.lhs and self.o.rhs == other.o.rhs
-
-        end
-      else
-        return false
-      end
-    end,
-
-  })
+  return setmetatable(o, mt)
 end
 
 function Exp:expand()
@@ -441,19 +442,15 @@ end
 function Exp:collect_factors()
   local factors = {}
   if self.kind == "mul" then
-    local lhs_coeff, lhs_factor = self.o.lhs:collect_factors()
-    local rhs_coeff, rhs_factor = self.o.rhs:collect_factors()
+    local lhs_factor = self.o.lhs:collect_factors()
+    local rhs_factor = self.o.rhs:collect_factors()
 
     for i=1,#lhs_factor do table.insert(factors, lhs_factor[i]) end
     for i=1,#rhs_factor do table.insert(factors, rhs_factor[i]) end
 
-    return lhs_coeff*rhs_coeff, factors
-  elseif self.kind == "pow" and self.o.rhs.kind == "constant" then
-    return 1, { { self.o.lhs:clone(), self.o.rhs.constant } }
-  elseif self.kind == "constant" then
-    return self.o.constant, {}
+    return factors
   end
-  return 1, { { self:clone(), 1 } }
+  return { self:clone() }
 end
 
 function Exp:is_atomic()
@@ -570,62 +567,60 @@ function Exp:simplify()
       factors[i] = factors[i]:simplify()
     end
 
-    local coeff, factors = M.split_coeffs(factors)
-    local coeff_i, factors = M.split_i(factors)
-    if coeff_i then
-      coeff, coeff_i = M.split_coeffs({M.constant(coeff), coeff_i})
-      coeff_i = coeff_i[1]
+    local elem_i, factors = M.split_kind("i", factors)
+    local i_const, i_fac = M.pow_i(#elem_i)
+    local elem_consts, factors = M.split_kind("constant", factors)
+    table.insert(elem_consts, M.constant(i_const))
+    local coeff = M.reduce_const(elem_consts)
+
+    if coeff == 0 then
+      return M.constant(0)
     end
 
     local pow_base = {}
     local list_fac = {}
 
     for _, fac in ipairs(factors) do
-      fac = fac:expand()
-      if fac.kind == "pow" and fac.o.lhs:is_atomic() then
-        local lhs = fac.o.lhs
-        if not pow_base[lhs.kind] then
-          pow_base[lhs.kind] = {}
-        end
-        local tpow_base = pow_base[lhs.kind]
-        if lhs.kind == "constant" then
-          c = lhs.o.constant
-          if tpow_base[c] then
-            tpow_base[c].o.rhs = Exp.new("add", {lhs=tpow_base[c].o.rhs, rhs=fac.o.rhs}):simplify()
-
-          else
-            tpow_base[c] = fac
-            table.insert(list_fac, fac)
-          end
-
-        elseif lhs.kind == "named_constant" then
-          n = lhs.o.name
-          if tpow_base[n] then
-            tpow_base[n].o.rhs = Exp.new("add", {lhs=tpow_base[n].o.rhs, rhs=fac.o.rhs}):simplify()
-          else
-            tpow_base[n] = fac
-            table.insert(list_fac, fac)
-          end
-
-        else
-          table.insert(list_fac, fac)
-        end
+      local lhs, rhs
+      if fac.kind == "pow" then
+        lhs = fac.o.lhs
+        rhs = fac.o.rhs
       else
-        table.insert(list_fac, fac)
+        lhs = fac
+        rhs = nil
       end
-    end
 
+      local found = false
+      for _, elem in ipairs(pow_base) do
+        if elem[1] == lhs then
+          elem[2] = elem[2] or M.constant(1)
+          elem[2] = (elem[2] or M.constant(1)) + (rhs or M.constant(1))
+          found = true
+          break
+        end
+      end
+
+      if not found then
+        table.insert(pow_base, { lhs, rhs })
+      end
+
+    end
 
     local result = nil
-    result = M.reduce_all("mul", list_fac)
-    if coeff_i then
-      result = M.reduce_all("mul", {coeff_i}, result)
+    for _, elem in ipairs(pow_base) do
+      local new_elem
+      if not elem[2] then
+        new_elem = elem[1]
+      else
+        new_elem = elem[1] ^ (elem[2]:simplify())
+      end
+      result = (result and (result * new_elem)) or new_elem
     end
 
+    result = result and i_fac and i_fac * result or i_fac
     if coeff ~= 1 then
-      result = M.reduce_all("mul", {M.constant(coeff)}, result)
+      result = result and M.constant(coeff) * result or M.constant(coeff)
     end
-
     result = result or M.constant(1)
     return result
 
@@ -653,6 +648,9 @@ function Exp:simplify()
       return Exp.new("matrix", { rows = rows })
     else
       local terms = self:collect_terms()
+      for i=1,#terms do
+        terms[i] = terms[i]:simplify()
+      end
 
       local atomics = {}
       for _, term in ipairs(terms) do
@@ -790,20 +788,6 @@ function M.is_atomic_all(tbl)
   return true
 end
 
-function M.split_coeffs(tbl)
-  local coeff = 1
-  local facs = {}
-  local idx = 1
-  for _, term in ipairs(tbl) do
-    if term.kind == "constant" then
-      coeff = coeff * term.o.constant
-    else
-      table.insert(facs, term)
-    end
-  end
-  return coeff, facs
-end
-
 function M.is_same_all(tbl_a, tbl_b)
   if #tbl_a ~= #tbl_b then
     return false
@@ -827,31 +811,37 @@ function M.reduce_all(kind, tbl, prev)
   end
   return prev
 end
-function M.split_i(facs)
-  local rest = {}
-  local num_i = 0
+function M.split_kind(kind, facs)
+  local first = {}
+  local second = {}
   for _, elem in ipairs(facs) do
-    if elem.kind == "i" then
-      num_i = num_i + 1
+    if elem.kind == kind then
+      table.insert(first, elem)
     else
-      table.insert(rest, elem)
+      table.insert(second, elem)
     end
   end
-
-  local fac_i = M.pow_i(num_i)
-  return fac_i, rest
+  return first, second
 end
 
 function M.pow_i(num)
-  local fac_i = nil
-  if num % 4 == 1 then
-    fac_i = M.i
+  if num % 4 == 0 then
+    return 1, nil
+  elseif num % 4 == 1 then
+    return 1, M.i
   elseif num % 4 == 2 then
-    fac_i = M.constant(-1)
+    return -1, nil
   elseif num % 4 == 3 then
-    fac_i = M.constant(-1) * M.i
+    return -1, M.i
   end
-  return fac_i
+end
+
+function M.reduce_const(facs) 
+  local coeff = 1
+  for _, fac in ipairs(facs) do
+    coeff = coeff * fac.o.constant
+  end
+  return coeff
 end
 
 function M.sym(name)
@@ -880,7 +870,7 @@ M.i = Exp.new("i", {})
 
 
 function M.version()
-  return "0.0.7"
+  return "0.0.8"
 end
 
 function M.description()

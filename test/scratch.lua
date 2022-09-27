@@ -1,7 +1,6 @@
 local swan = require"swan"
 
-local x = swan.sym "x"
-local exp = x + x
-exp = exp:simplify()
-exp = exp:expand()
-print(exp)
+x = swan.sym "x"
+y = swan.sym "y"
+exp = (x+y)^2
+print(exp:expand():simplify())

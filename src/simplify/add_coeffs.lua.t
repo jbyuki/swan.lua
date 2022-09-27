@@ -1,6 +1,9 @@
 ##../swan
 @collect_terms_for_simplify+=
 local terms = self:collect_terms()
+for i=1,#terms do
+  terms[i] = terms[i]:simplify()
+end
 
 @combine_terms_for_simplify+=
 local atomics = {}
@@ -65,21 +68,6 @@ elseif lhs.kind == "named_constant" then
 elseif lhs.kind == "pow" then
   return lhs.o.lhs < rhs.o.lhs
 
-@methods+=
-function M.split_coeffs(tbl)
-  local coeff = 1
-  local facs = {}
-  local idx = 1
-  for _, term in ipairs(tbl) do
-    if term.kind == "constant" then
-      coeff = coeff * term.o.constant
-    else
-      table.insert(facs, term)
-    end
-  end
-  return coeff, facs
-end
-
 @metamethods+=
 __eq = function(lhs, rhs) 
   if lhs.kind == rhs.kind then
@@ -91,18 +79,18 @@ __eq = function(lhs, rhs)
 end,
 
 @compare_exp-=
-if self.kind == "constant" then
-  return self.o.constant == other.o.constant
+if lhs.kind == "constant" then
+  return lhs.o.constant == rhs.o.constant
 
 @compare_exp+=
-elseif self.kind == "named_constant" then
-  return self.o.name == other.o.name
-elseif self.kind == "sym" then
-  return self.o.name == other.o.name
-elseif self.kind == "i" then
+elseif lhs.kind == "named_constant" then
+  return lhs.o.name == rhs.o.name
+elseif lhs.kind == "sym" then
+  return lhs.o.name == rhs.o.name
+elseif lhs.kind == "i" then
   return true
-elseif self.kind == "pow" then
-  return self.o.lhs == other.o.lhs and self.o.rhs == other.o.rhs
+elseif lhs.kind == "pow" then
+  return lhs.o.lhs == rhs.o.lhs and lhs.o.rhs == rhs.o.rhs
 
 @append_coeff_and_facs+=
 local added = false
