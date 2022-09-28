@@ -836,7 +836,7 @@ function Exp:normalize()
     return self.o.lhs:normalize() ^ self.o.rhs:normalize()
 
   elseif self.kind == "div" then
-    return self.o.lhs:normalize() ^ self.o.rhs:normalize()
+    return self.o.lhs:normalize() / self.o.rhs:normalize()
   end
   return self:clone()
 end
