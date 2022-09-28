@@ -91,6 +91,10 @@ elseif lhs.kind == "i" then
   return true
 elseif lhs.kind == "pow" then
   return lhs.o.lhs == rhs.o.lhs and lhs.o.rhs == rhs.o.rhs
+elseif lhs.kind == "mul" then
+  return lhs.o.lhs == rhs.o.lhs and lhs.o.rhs == rhs.o.rhs
+elseif lhs.kind == "add" then
+  return lhs.o.lhs == rhs.o.lhs and lhs.o.rhs == rhs.o.rhs
 
 @append_coeff_and_facs+=
 local added = false

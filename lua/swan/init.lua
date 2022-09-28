@@ -192,6 +192,10 @@ local mt = { __index = Exp,
         return true
       elseif lhs.kind == "pow" then
         return lhs.o.lhs == rhs.o.lhs and lhs.o.rhs == rhs.o.rhs
+      elseif lhs.kind == "mul" then
+        return lhs.o.lhs == rhs.o.lhs and lhs.o.rhs == rhs.o.rhs
+      elseif lhs.kind == "add" then
+        return lhs.o.lhs == rhs.o.lhs and lhs.o.rhs == rhs.o.rhs
 
       end
     else
@@ -559,7 +563,6 @@ function Exp:simplify()
     end
 
 
-
     -- @handle_if_one_is_pow
     -- @handle_mul_simplify
 
@@ -807,6 +810,35 @@ function Exp:T()
     table.insert(rows, row)
   end
   return Exp.new("matrix", { rows = rows })
+end
+
+function Exp:normalize()
+  if self:is_atomic() then
+    return self:clone()
+
+  elseif self.kind == "mul" then
+    local facs = self:collect_factors()
+    for i=1,#facs do
+      facs[i] = facs[i]:normalize()
+    end
+    table.sort(facs)
+    return M.reduce_all("mul", facs)
+
+  elseif self.kind == "add" then
+    local terms = self:collect_terms()
+    for i=1,#terms do
+      terms[i] = terms[i]:normalize()
+    end
+    table.sort(terms)
+    return M.reduce_all("add", terms)
+    
+  elseif self.kind == "pow" then
+    return self.o.lhs:normalize() ^ self.o.rhs:normalize()
+
+  elseif self.kind == "div" then
+    return self.o.lhs:normalize() ^ self.o.rhs:normalize()
+  end
+  return self:clone()
 end
 
 function Exp:is_integer()
