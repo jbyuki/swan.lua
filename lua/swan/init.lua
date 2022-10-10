@@ -242,6 +242,7 @@ function Exp:derivate(dx)
       return self:clone() * self.o.rhs:derivate(dx)
     end
 
+
     if self.o.rhs.kind == "constant" then
       local der_lhs = self.o.lhs:derivate(dx)
       local coeff1 = Exp.new("constant", { constant = self.o.rhs.o.constant })
@@ -258,6 +259,23 @@ function Exp:derivate(dx)
         res = Exp.new("mul", { lhs = res, rhs = der_lhs })
       end
       return res
+    elseif self.o.rhs:derivate(dx):simplify():is_zero() then
+      local der_lhs = self.o.lhs:derivate(dx)
+      local coeff1 = self.o.rhs:clone()
+      local coeff2 = self.o.rhs:clone()-M.constant(1)
+
+      if not coeff2:is_one() then
+        res = self.o.lhs ^ coeff2
+      else
+        res = self.o.lhs
+      end
+
+      res = coeff1 * res
+      if not der_lhs:is_one() then
+        res = res * der_lhs
+      end
+      return res
+
     end
 
     print("ERROR: Unsupported algebraic pow derivation")
@@ -295,6 +313,11 @@ function Exp:derivate(dx)
   elseif self.kind == "ln" then
     return self.o.arg:derivate(dx) / self.o.arg:clone()
 
+  elseif self.kind == "div" then
+    local u = self.o.lhs
+    local v = self.o.rhs
+
+    return (u:derivate(dx) * v - u * v:derivate(dx))/(v*v)
   else
     print("ERROR! Cannot derivate of " .. self.kind)
   end
@@ -994,6 +1017,9 @@ function M.reduce_const(facs)
   return coeff
 end
 
+function M.sqrt(x)
+  return x ^ (M.constant(1)/M.constant(2))
+end
 function Exp:divergence()
   assert(self.kind == "matrix", "divergence must be called on a matrix")
   assert(self:cols() == 1, "divergence must be called on a matrix with one column")

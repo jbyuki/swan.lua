@@ -53,6 +53,7 @@ elseif self.kind == "pow" then
       res = Exp.new("mul", { lhs = res, rhs = der_lhs })
     end
     return res
+  @handle_pow_derivate_with_constant_expression
   end
 
   print("ERROR: Unsupported algebraic pow derivation")
@@ -111,3 +112,28 @@ elseif self.kind == "ln" then
 if self.o.lhs.kind == "named_constant" and self.o.lhs.o.name == "e" then
   return self:clone() * self.o.rhs:derivate(dx)
 end
+
+@handle_pow_derivate_with_constant_expression+=
+elseif self.o.rhs:derivate(dx):simplify():is_zero() then
+  local der_lhs = self.o.lhs:derivate(dx)
+  local coeff1 = self.o.rhs:clone()
+  local coeff2 = self.o.rhs:clone()-M.constant(1)
+
+  if not coeff2:is_one() then
+    res = self.o.lhs ^ coeff2
+  else
+    res = self.o.lhs
+  end
+
+  res = coeff1 * res
+  if not der_lhs:is_one() then
+    res = res * der_lhs
+  end
+  return res
+
+@derivate_exp+=
+elseif self.kind == "div" then
+  local u = self.o.lhs
+  local v = self.o.rhs
+
+  return (u:derivate(dx) * v - u * v:derivate(dx))/(v*v)
