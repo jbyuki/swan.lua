@@ -409,6 +409,7 @@ function Exp:expand()
 
     return Exp.new("add", { lhs = lhs, rhs = rhs })
 
+
   else
     return self:clone()
   end
@@ -1024,10 +1025,10 @@ M.pi = M.named_constant("pi")
 M.i = Exp.new("i", {})
 
 
+function M.clear_syms()
+  sym_table = {}
+end
 function Exp:gradient()
-  assert(self.kind == "matrix", "gradient must be called on a matrix")
-  assert(self:cols() == 1, "gradient must be called on a matrix with one column")
-
   local unknowns = {}
   self:collect_unknowns(unknowns)
 
@@ -1036,16 +1037,27 @@ function Exp:gradient()
     return a.o.name < b.o.name
   end)
 
-  local rows = {}
-  for i=1,#self.o.rows do
-    local row = {}
-    for j=1,#unknowns do
-      table.insert(row, self.o.rows[i][1]:derivate(unknowns[j]))
+  local exp
+  if self.kind == "matrix" then
+    local rows = {}
+    for i=1,#self.o.rows do
+      local row = {}
+      for j=1,#unknowns do
+        table.insert(row, self.o.rows[i][1]:derivate(unknowns[j]))
+      end
+      table.insert(rows, row)
     end
-    table.insert(rows, row)
-  end
 
-  local exp = Exp.new("matrix", { rows = rows })
+    exp = Exp.new("matrix", { rows = rows })
+
+  else
+    local rows = {}
+    for j=1,#unknowns do
+      table.insert(rows, { self:derivate(unknowns[j])} )
+    end
+
+    exp = Exp.new("matrix", { rows = rows })
+  end
   return exp
 end
 
@@ -1126,6 +1138,36 @@ function gcd(a, b)
     a,b = b,a
   end
   return gcd(a-b, b)
+end
+
+function Exp:rotational()
+  assert(self.kind == "matrix", "rotational must be called on a matrix")
+  assert(self:cols() == 1, "rotational must be called on a matrix with one column")
+  assert(self:rows() == 3, "rotational must be called on a matrix with three rows")
+
+  local Fx = self.o.rows[1][1]
+  local Fy = self.o.rows[2][1]
+  local Fz = self.o.rows[3][1]
+
+  local sym_x = sym_table["x"]
+  local sym_y = sym_table["y"]
+  local sym_z = sym_table["z"]
+
+  local dyFz = sym_y and Fz:derivate(sym_y) or M.constant(0)
+  local dzFy = sym_z and Fy:derivate(sym_z) or M.constant(0)
+
+  local dzFx = sym_z and Fx:derivate(sym_z) or M.constant(0)
+  local dxFz = sym_x and Fz:derivate(sym_x) or M.constant(0)
+
+  local dxFy = sym_x and Fy:derivate(sym_x) or M.constant(0)
+  local dyFx = sym_y and Fx:derivate(sym_y) or M.constant(0)
+
+  local exp = M.mat {
+    { dyFz - dzFy },
+    { dzFx - dxFz },
+    { dxFy - dyFx },
+  }
+  return exp
 end
 
 

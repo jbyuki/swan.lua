@@ -1,15 +1,15 @@
 ##swan
 @define+=
 function Exp:gradient()
-  @check_type_for_gradient
   @collect_all_unknowns
-  @derivate_for_each_row
+  local exp
+  if self.kind == "matrix" then
+    @derivate_for_each_row
+  else
+    @derivate_for_each_unknown
+  end
   return exp
 end
-
-@check_type_for_gradient+=
-assert(self.kind == "matrix", "gradient must be called on a matrix")
-assert(self:cols() == 1, "gradient must be called on a matrix with one column")
 
 @define+=
 function Exp:collect_unknowns(unknowns)
@@ -55,12 +55,12 @@ elseif self.kind == "mul" then
 local unknowns = {}
 self:collect_unknowns(unknowns)
 
-@derivate_for_each_row+=
 unknowns = vim.tbl_keys(unknowns)
 table.sort(unknowns, function(a, b)
   return a.o.name < b.o.name
 end)
 
+@derivate_for_each_row+=
 local rows = {}
 for i=1,#self.o.rows do
   local row = {}
@@ -70,4 +70,12 @@ for i=1,#self.o.rows do
   table.insert(rows, row)
 end
 
-local exp = Exp.new("matrix", { rows = rows })
+exp = Exp.new("matrix", { rows = rows })
+
+@derivate_for_each_unknown+=
+local rows = {}
+for j=1,#unknowns do
+  table.insert(rows, { self:derivate(unknowns[j])} )
+end
+
+exp = Exp.new("matrix", { rows = rows })

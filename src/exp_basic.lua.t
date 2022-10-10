@@ -363,3 +363,8 @@ elseif self.kind == "add" then
 
   return Exp.new("add", { lhs = lhs, rhs = rhs })
 
+
+@define+=
+function M.clear_syms()
+  sym_table = {}
+end
