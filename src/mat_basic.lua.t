@@ -196,3 +196,15 @@ for i = 1,rhs:rows() do
   end
   table.insert(rows, row)
 end
+
+@simplify_exp+=
+elseif self.kind == "matrix" then
+  local rows = {}
+  for i=1,#self.o.rows do
+    local row = {}
+    for j=1,#self.o.rows[i] do
+      table.insert(row, self.o.rows[i][j]:simplify())
+    end
+    table.insert(rows, row)
+  end
+  return Exp.new("matrix", { rows = rows })

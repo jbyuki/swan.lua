@@ -8,9 +8,11 @@ function Exp:derivate(dx)
   return exp
 end
 
-@derivate_exp+=
+@derivate_exp-=
 if self.kind == "constant" then
   return Exp.new("constant", { constant = 0 })
+
+@derivate_exp+=
 elseif self.kind == "sym" then
   if self == dx then
     return Exp.new("constant", { constant = 1 })
@@ -33,6 +35,8 @@ elseif self.kind == "sub" then
   return Exp.new("sub", { lhs = lhs, rhs = rhs })
 
 elseif self.kind == "pow" then
+  @special_case_for_exp_differentation
+
   if self.o.rhs.kind == "constant" then
     local der_lhs = self.o.lhs:derivate(dx)
     local coeff1 = Exp.new("constant", { constant = self.o.rhs.o.constant })
@@ -90,3 +94,20 @@ elseif self.kind == "mul" then
   end
 
   return Exp.new("add", {lhs = lhs_add, rhs = rhs_add})
+
+@derivate_exp+=
+elseif self.kind == "sin" then
+  return M.cos(self.o.arg:clone()) * self.o.arg:derivate(dx)
+
+@derivate_exp+=
+elseif self.kind == "cos" then
+  return M.constant(-1) * M.sin(self.o.arg:clone()) * self.o.arg:derivate(dx)
+
+@derivate_exp+=
+elseif self.kind == "ln" then
+  return self.o.arg:derivate(dx) / self.o.arg:clone()
+
+@special_case_for_exp_differentation+=
+if self.o.lhs.kind == "named_constant" and self.o.lhs.o.name == "e" then
+  return self:clone() * self.o.rhs:derivate(dx)
+end

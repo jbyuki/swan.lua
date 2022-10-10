@@ -164,6 +164,7 @@ local mt = { __index = Exp,
 
     return Exp.new("div", { lhs = lhs, rhs = rhs })
   end,
+
   __lt = function(lhs, rhs)
     if lhs.kind ~= rhs.kind then
       return kind_order[lhs.kind] < kind_order[rhs.kind]
@@ -212,6 +213,7 @@ local mt = { __index = Exp,
 function Exp:derivate(dx)
   if self.kind == "constant" then
     return Exp.new("constant", { constant = 0 })
+
   elseif self.kind == "sym" then
     if self == dx then
       return Exp.new("constant", { constant = 1 })
@@ -234,6 +236,10 @@ function Exp:derivate(dx)
     return Exp.new("sub", { lhs = lhs, rhs = rhs })
 
   elseif self.kind == "pow" then
+    if self.o.lhs.kind == "named_constant" and self.o.lhs.o.name == "e" then
+      return self:clone() * self.o.rhs:derivate(dx)
+    end
+
     if self.o.rhs.kind == "constant" then
       local der_lhs = self.o.lhs:derivate(dx)
       local coeff1 = Exp.new("constant", { constant = self.o.rhs.o.constant })
@@ -277,6 +283,16 @@ function Exp:derivate(dx)
     end
 
     return Exp.new("add", {lhs = lhs_add, rhs = rhs_add})
+
+  elseif self.kind == "sin" then
+    return M.cos(self.o.arg:clone()) * self.o.arg:derivate(dx)
+
+  elseif self.kind == "cos" then
+    return M.constant(-1) * M.sin(self.o.arg:clone()) * self.o.arg:derivate(dx)
+
+  elseif self.kind == "ln" then
+    return self.o.arg:derivate(dx) / self.o.arg:clone()
+
   else
     print("ERROR! Cannot derivate of " .. self.kind)
   end
@@ -699,6 +715,7 @@ function Exp:simplify()
         end
         table.insert(rows, row)
       end
+
       return Exp.new("matrix", { rows = rows })
     else
       local terms = self:collect_terms()
@@ -754,9 +771,23 @@ function Exp:simplify()
 
     return Exp.new("add", { lhs = lhs, rhs = rhs })
 
+  elseif self.kind == "matrix" then
+    local rows = {}
+    for i=1,#self.o.rows do
+      local row = {}
+      for j=1,#self.o.rows[i] do
+        table.insert(row, self.o.rows[i][j]:simplify())
+      end
+      table.insert(rows, row)
+    end
+    return Exp.new("matrix", { rows = rows })
   elseif self.kind == "div" then
     local lhs = self.o.lhs:simplify()
     local rhs = self.o.rhs:simplify()
+
+    if lhs:is_zero() then
+      return M.constant(0)
+    end
 
     if lhs:is_integer() and rhs:is_integer() then
       local num = lhs.o.constant

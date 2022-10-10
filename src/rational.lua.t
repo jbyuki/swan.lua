@@ -46,6 +46,8 @@ elseif self.kind == "div" then
   local lhs = self.o.lhs:simplify()
   local rhs = self.o.rhs:simplify()
 
+  @if_zero_divided_by_something_simplify
+
   if lhs:is_integer() and rhs:is_integer() then
     local num = lhs.o.constant
     local den = rhs.o.constant
@@ -81,3 +83,8 @@ __div = function(lhs, rhs)
 
   return Exp.new("div", { lhs = lhs, rhs = rhs })
 end,
+
+@if_zero_divided_by_something_simplify+=
+if lhs:is_zero() then
+  return M.constant(0)
+end
