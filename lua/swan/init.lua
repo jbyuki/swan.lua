@@ -5,6 +5,8 @@ local convert_constant
 
 local gcd
 
+local sym_table = {}
+
 local Exp = {}
 
 local kind_order = {
@@ -406,6 +408,7 @@ function Exp:expand()
     local rhs = self.o.rhs:expand()
 
     return Exp.new("add", { lhs = lhs, rhs = rhs })
+
   else
     return self:clone()
   end
@@ -970,8 +973,34 @@ function M.reduce_const(facs)
   return coeff
 end
 
+function Exp:divergence()
+  assert(self.kind == "matrix", "divergence must be called on a matrix")
+  assert(self:cols() == 1, "divergence must be called on a matrix with one column")
+  assert(self:rows() == 3, "divergence must be called on a matrix with three rows")
+
+  local sym_coord = { 
+    sym_table["x"], sym_table["y"], sym_table["z"] 
+  }
+
+  local terms = {}
+  for i=1,3 do
+    if sym_coord[i] then
+      local term
+      term = self.o.rows[i][1]:derivate(sym_coord[i])
+      table.insert(terms, term)
+    end
+  end
+
+  local exp = M.reduce_all("add", terms)
+  return exp
+end
+
 function M.sym(name)
-  return Exp.new("sym", { name = name })
+  local exp = Exp.new("sym", { name = name })
+  assert(not sym_table[name], ("%s is already defined!"):format(name))
+  sym_table[name] = exp
+
+  return exp
 end
 
 function convert_constant(x)

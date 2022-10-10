@@ -1,8 +1,17 @@
 ##swan
 @define+=
 function M.sym(name)
-  return Exp.new("sym", { name = name })
+  local exp = Exp.new("sym", { name = name })
+  @verify_that_symbol_is_not_defined_yet
+  return exp
 end
+
+@variables+=
+local sym_table = {}
+
+@verify_that_symbol_is_not_defined_yet+=
+assert(not sym_table[name], ("%s is already defined!"):format(name))
+sym_table[name] = exp
 
 @variables+=
 local Exp = {}
@@ -353,3 +362,4 @@ elseif self.kind == "add" then
   local rhs = self.o.rhs:expand()
 
   return Exp.new("add", { lhs = lhs, rhs = rhs })
+
