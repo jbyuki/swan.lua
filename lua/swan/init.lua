@@ -28,6 +28,10 @@ local mt = { __index = Exp,
   __tostring = function(self)
     if self.kind == "sym" then
       return self.o.name
+
+    elseif self.kind == "ln" then
+      return ("ln(%s)"):format(tostring(self.o.arg))
+
     elseif self.kind == "add" then
       local lhs = tostring(self.o.lhs)
       local rhs = tostring(self.o.rhs)
@@ -291,13 +295,24 @@ function Exp:is_constant()
   return self.kind == "constant"
 end
 
+function M.exp(x)
+  return M.e ^ x
+end
+
+function M.ln(x)
+  return Exp.new("ln", { arg = x })
+end
+
 function Exp.new(kind, opts)
   local o = { kind = kind, o = opts }
   return setmetatable(o, mt)
 end
 
 function Exp:expand()
-  if self.kind == "pow" then
+  if self.kind:is_atomic() then
+    return self.clone()
+
+  elseif self.kind == "pow" then
     local lhs = self.o.lhs:expand()
     local rhs = self.o.rhs:expand()
 
@@ -383,6 +398,9 @@ end
 function Exp:clone()
   if self.kind == "constant" then
     return Exp.new(self.kind, { constant = self.o.constant })
+
+  elseif self.kind == "ln" then
+    return Exp.new(self.kind, { arg = self.o.arg:clone() })
   elseif self.kind == "add" then
     return Exp.new(self.kind, { lhs = self.o.lhs:clone(), rhs = self.o.rhs:clone() })
   elseif self.kind == "sub" then
@@ -837,6 +855,17 @@ function Exp:normalize()
 
   elseif self.kind == "div" then
     return self.o.lhs:normalize() / self.o.rhs:normalize()
+
+  elseif self.kind == "matrix" then
+    local rows = {}
+    for i=1,#self.o.rows do
+      local row = {}
+      for j=1,#self.o.rows[i] do
+        table.insert(row, self.o.rows[i][j]:normalize())
+      end
+      table.insert(rows, row)
+    end
+    return Exp.new("matrix", { rows = rows })
   end
   return self:clone()
 end
@@ -934,6 +963,68 @@ M.pi = M.named_constant("pi")
 
 M.i = Exp.new("i", {})
 
+
+function Exp:gradient()
+  assert(self.kind == "matrix", "gradient must be called on a matrix")
+  assert(self:cols() == 1, "gradient must be called on a matrix with one column")
+
+  local unknowns = {}
+  self:collect_unknowns(unknowns)
+
+  unknowns = vim.tbl_keys(unknowns)
+  table.sort(unknowns, function(a, b)
+    return a.o.name < b.o.name
+  end)
+
+  local rows = {}
+  for i=1,#self.o.rows do
+    local row = {}
+    for j=1,#unknowns do
+      table.insert(row, self.o.rows[i][1]:derivate(unknowns[j]))
+    end
+    table.insert(rows, row)
+  end
+
+  local exp = Exp.new("matrix", { rows = rows })
+  return exp
+end
+
+function Exp:collect_unknowns(unknowns)
+  if self.kind == "sym" then
+    unknowns[self] = true
+  elseif self.kind == "ln" then
+    self.o.arg:collect_unknowns(unknowns)
+  elseif self.kind == "add" then
+    self.o.lhs:collect_unknowns(unknowns)
+    self.o.rhs:collect_unknowns(unknowns)
+  elseif self.kind == "sub" then
+    self.o.lhs:collect_unknowns(unknowns)
+    self.o.rhs:collect_unknowns(unknowns)
+  elseif self.kind == "pow" then
+    self.o.lhs:collect_unknowns(unknowns)
+    self.o.rhs:collect_unknowns(unknowns)
+  elseif self.kind == "cos" then
+    self.o.arg:collect_unknowns(unknowns)
+  elseif self.kind == "sin" then
+    self.o.arg:collect_unknowns(unknowns)
+  elseif self.kind == "inf" then
+  elseif self.kind == "named_constant" then
+  elseif self.kind == "i" then
+  elseif self.kind == "matrix" then
+    for i=1,#self.o.rows do
+      for j=1,#self.o.rows[i] do
+        self.o.rows[i][j]:collect_unknowns(unknowns)
+      end
+    end
+  elseif self.kind == "div" then
+    self.o.lhs:collect_unknowns(unknowns)
+    self.o.rhs:collect_unknowns(unknowns)
+  elseif self.kind == "mul" then
+    self.o.lhs:collect_unknowns(unknowns)
+    self.o.rhs:collect_unknowns(unknowns)
+
+  end
+end
 
 function M.version()
   return "0.0.8"

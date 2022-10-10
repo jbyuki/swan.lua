@@ -57,9 +57,11 @@ end
 lhs = convert_constant(lhs)
 rhs = convert_constant(rhs)
 
-@print_exp+=
+@print_exp-=
 if self.kind == "sym" then
   return self.o.name
+
+@print_exp+=
 elseif self.kind == "add" then
   @display_add_string
 elseif self.kind == "sub" then
@@ -93,8 +95,12 @@ function Exp:expand()
   end
 end
 
+@expand_exp-=
+if self.kind:is_atomic() then
+  return self.clone()
+
 @expand_exp+=
-if self.kind == "pow" then
+elseif self.kind == "pow" then
   local lhs = self.o.lhs:expand()
   local rhs = self.o.rhs:expand()
 
@@ -143,9 +149,11 @@ function Exp:clone()
   end
 end
 
-@clone_exp+=
+@clone_exp-=
 if self.kind == "constant" then
   return Exp.new(self.kind, { constant = self.o.constant })
+
+@clone_exp+=
 elseif self.kind == "add" then
   return Exp.new(self.kind, { lhs = self.o.lhs:clone(), rhs = self.o.rhs:clone() })
 elseif self.kind == "sub" then
