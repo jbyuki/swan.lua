@@ -1125,6 +1125,24 @@ end
 function M.description()
   return "swan.lua is a symbolic math toolbox written in lua"
 end
+function Exp:laplacian()
+  local sym_coord = { 
+    sym_table["x"], sym_table["y"], sym_table["z"] 
+  }
+
+  local terms = {}
+  for i=1,3 do
+    if sym_coord[i] then
+      local term
+      term = self:derivate(sym_coord[i]):derivate(sym_coord[i])
+      table.insert(terms, term)
+    end
+  end
+
+  local exp = M.reduce_all("add", terms)
+  return exp
+end
+
 function M.mat(array)
   assert(type(array) == "table", "Argument array must be table")
 
