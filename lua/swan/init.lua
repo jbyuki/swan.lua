@@ -785,6 +785,7 @@ function Exp:simplify()
       table.insert(rows, row)
     end
     return Exp.new("matrix", { rows = rows })
+
   elseif self.kind == "div" then
     local lhs = self.o.lhs:simplify()
     local rhs = self.o.rhs:simplify()
@@ -863,6 +864,25 @@ function Exp:T()
     table.insert(rows, row)
   end
   return Exp.new("matrix", { rows = rows })
+end
+
+function Exp:mul_elem(other)
+  assert(self.kind == "matrix", "lhs for mul_elem must be a matrix")
+  assert(other.kind == "matrix", "rhs for mul_elem must be a matrix")
+  assert(self:rows() == other:rows(), "lhs and rhs must have the same number of rows for mul_elem()")
+  assert(self:cols() == other:cols(), "lhs and rhs must have the same number of columns for mul_elem()")
+
+  local rows = {}
+  for i=1,#self.o.rows do
+    local row = {}
+    for j=1,#self.o.rows[i] do
+      table.insert(row, self.o.rows[i][j] * other.o.rows[i][j])
+    end
+    table.insert(rows, row)
+  end
+
+  local exp = Exp.new("matrix", { rows = rows })
+  return exp
 end
 
 function Exp:normalize()

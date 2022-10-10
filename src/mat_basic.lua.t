@@ -208,3 +208,28 @@ elseif self.kind == "matrix" then
     table.insert(rows, row)
   end
   return Exp.new("matrix", { rows = rows })
+
+@methods+=
+function Exp:mul_elem(other)
+  @check_types_for_mul_elem
+  @multiply_matrices_elementwise
+  return exp
+end
+
+@check_types_for_mul_elem+=
+assert(self.kind == "matrix", "lhs for mul_elem must be a matrix")
+assert(other.kind == "matrix", "rhs for mul_elem must be a matrix")
+assert(self:rows() == other:rows(), "lhs and rhs must have the same number of rows for mul_elem()")
+assert(self:cols() == other:cols(), "lhs and rhs must have the same number of columns for mul_elem()")
+
+@multiply_matrices_elementwise+=
+local rows = {}
+for i=1,#self.o.rows do
+  local row = {}
+  for j=1,#self.o.rows[i] do
+    table.insert(row, self.o.rows[i][j] * other.o.rows[i][j])
+  end
+  table.insert(rows, row)
+end
+
+local exp = Exp.new("matrix", { rows = rows })
