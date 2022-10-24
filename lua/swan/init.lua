@@ -350,8 +350,8 @@ function Exp.new(kind, opts)
 end
 
 function Exp:expand()
-  if self.kind:is_atomic() then
-    return self.clone()
+  if self:is_atomic() then
+    return self:clone()
 
   elseif self.kind == "pow" then
     local lhs = self.o.lhs:expand()

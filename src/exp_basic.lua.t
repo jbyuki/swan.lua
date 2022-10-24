@@ -105,8 +105,8 @@ function Exp:expand()
 end
 
 @expand_exp-=
-if self.kind:is_atomic() then
-  return self.clone()
+if self:is_atomic() then
+  return self:clone()
 
 @expand_exp+=
 elseif self.kind == "pow" then
