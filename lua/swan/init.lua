@@ -261,6 +261,31 @@ function M.find_gcd(A, B)
 	end
 end
 
+function M.mul_constant_div(lhs, rhs)
+	local lhs_den = lhs.o.rhs.o.constant
+	local rhs_den = rhs.o.rhs.o.constant
+
+	local common_den = M.constant(lhs_den * rhs_den)
+
+	local lhs_num = lhs.o.lhs.o.constant
+	local rhs_num = rhs.o.lhs.o.constant
+
+	local common_num = M.constant(lhs_num * rhs_num)
+
+	if common_den:is_integer() and common_num:is_integer() then
+		local gcd = M.find_gcd(common_den.o.constant, common_num.o.constant)
+		common_den.o.constant = common_den.o.constant / gcd
+		common_num.o.constant = common_num.o.constant / gcd
+	end
+
+	if common_den.o.constant == 1 then
+		return common_num
+	end
+
+	return common_num / common_den
+
+end
+
 function Exp:derivate(dx)
   if self.kind == "constant" then
     return Exp.new("constant", { constant = 0 })
@@ -675,6 +700,17 @@ function Exp:simplify()
       return Exp.new("matrix", { rows = rows })
     end
 
+
+  	if lhs:is_constant() and rhs:is_constant_div() then
+  		return M.mul_constant_div(lhs / 1, rhs)
+
+  	elseif lhs:is_constant_div() and rhs:is_constant() then
+  		return M.mul_constant_div(lhs, rhs / 1)
+
+  	elseif lhs:is_constant_div() and rhs:is_constant_div() then
+  		return M.mul_constant_div(lhs, rhs)
+
+  	end
 
     -- @handle_if_one_is_pow
     -- @handle_mul_simplify

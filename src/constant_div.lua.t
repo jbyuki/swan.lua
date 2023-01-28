@@ -73,3 +73,30 @@ end
 
 return common_num / common_den
 
+@simpify_rhs_constant_div_with_constant_mul+=
+return M.mul_constant_div(lhs / 1, rhs)
+
+@simpify_lhs_constant_div_with_constant_mul+=
+return M.mul_constant_div(lhs, rhs / 1)
+
+@simpify_both_constant_div_mul+=
+return M.mul_constant_div(lhs, rhs)
+
+@methods+=
+function M.mul_constant_div(lhs, rhs)
+	@multiply_numerator_and_denominator
+	@simplify_numerator_and_denominator_by_gcd
+	@return_added_constant_div
+end
+
+@multiply_numerator_and_denominator+=
+local lhs_den = lhs.o.rhs.o.constant
+local rhs_den = rhs.o.rhs.o.constant
+
+local common_den = M.constant(lhs_den * rhs_den)
+
+local lhs_num = lhs.o.lhs.o.constant
+local rhs_num = rhs.o.lhs.o.constant
+
+local common_num = M.constant(lhs_num * rhs_num)
+
