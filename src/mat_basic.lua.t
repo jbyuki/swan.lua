@@ -100,7 +100,9 @@ if self.kind == "mul" then
   @handle_rhs_coeff_mul_matrix
   @handle_lhs_coeff_mul_matrix
 
-	if lhs:is_constant() and rhs:is_constant_div() then
+	if lhs:is_constant() and rhs:is_constant() then
+		return M.constant(lhs.o.constant * rhs.o.constant)
+	elseif lhs:is_constant() and rhs:is_constant_div() then
 		@simpify_rhs_constant_div_with_constant_mul
 	elseif lhs:is_constant_div() and rhs:is_constant() then
 		@simpify_lhs_constant_div_with_constant_mul

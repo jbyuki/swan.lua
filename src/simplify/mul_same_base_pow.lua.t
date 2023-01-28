@@ -48,8 +48,8 @@ end
 if i_fac then
   result = result and i_fac * result or i_fac
 end
-if coeff ~= 1 then
-  result = result and M.constant(coeff) * result or M.constant(coeff)
+if not coeff:is_one() then
+  result = result and coeff * result or coeff
 end
 result = result or M.constant(1)
 return result

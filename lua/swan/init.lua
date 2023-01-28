@@ -701,7 +701,9 @@ function Exp:simplify()
     end
 
 
-  	if lhs:is_constant() and rhs:is_constant_div() then
+  	if lhs:is_constant() and rhs:is_constant() then
+  		return M.constant(lhs.o.constant * rhs.o.constant)
+  	elseif lhs:is_constant() and rhs:is_constant_div() then
   		return M.mul_constant_div(lhs / 1, rhs)
 
   	elseif lhs:is_constant_div() and rhs:is_constant() then
@@ -752,11 +754,11 @@ function Exp:simplify()
 
     local elem_i, factors = M.split_kind("i", factors)
     local i_const, i_fac = M.pow_i(#elem_i)
-    local elem_consts, factors = M.split_kind("constant", factors)
+    local elem_consts, factors = M.split_kind({"constant", "constant_div"}, factors)
     table.insert(elem_consts, M.constant(i_const))
     local coeff = M.reduce_const(elem_consts)
 
-    if coeff == 0 then
+    if coeff:is_zero() then
       return M.constant(0)
     end
 
@@ -803,8 +805,8 @@ function Exp:simplify()
     if i_fac then
       result = result and i_fac * result or i_fac
     end
-    if coeff ~= 1 then
-      result = result and M.constant(coeff) * result or M.constant(coeff)
+    if not coeff:is_one() then
+      result = result and coeff * result or coeff
     end
     result = result or M.constant(1)
     return result
@@ -858,33 +860,33 @@ function Exp:simplify()
         local added = false
         for i, atomic in ipairs(atomics) do
           if M.is_same_all(atomic[2], facs) then
-            atomic[1] = atomic[1] + (coeff or 1)
+            atomic[1] = (atomic[1] + (coeff or 1)):simplify()
             added = true
             break
           end
         end
 
         if not added then
-          table.insert(atomics, { (coeff or 1), facs })
+          table.insert(atomics, { (coeff or M.constant(1)), facs })
         end
 
       end
 
       atomics = vim.tbl_filter(function(atomic)
-        return atomic[1] ~= 0
+        return not atomic[1]:is_zero()
       end, atomics)
 
       atomics = vim.tbl_map(function(atomic)
         local rhs = M.reduce_all("mul", atomic[2])
         
         if not rhs then
-          return M.constant(atomic[1])
+          return atomic[1]
         end
 
-        if atomic[1] == 1 then
+        if atomic[1]:is_one() then
           return rhs
         else
-          return M.constant(atomic[1]) *  rhs
+          return atomic[1] *  rhs
         end
       end, atomics)
 
@@ -1122,12 +1124,9 @@ function M.pow_i(num)
 end
 
 function M.reduce_const(facs) 
-  local coeff = 1
+  local coeff = M.constant(1)
   for _, fac in ipairs(facs) do
-		if fac.type == "constant" then
-			coeff = coeff * fac.o.constant
-		elseif fac.type == "constant_div" then
-		end
+		coeff = (coeff * fac):simplify()
   end
   return coeff
 end

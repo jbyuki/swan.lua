@@ -49,13 +49,9 @@ function M.pow_i(num)
 end
 
 function M.reduce_const(facs) 
-  local coeff = 1
+  local coeff = M.constant(1)
   for _, fac in ipairs(facs) do
-		if fac.type == "constant" then
-			coeff = coeff * fac.o.constant
-		elseif fac.type == "constant_div" then
-			@reduce_constant_div
-		end
+		coeff = (coeff * fac):simplify()
   end
   return coeff
 end
@@ -63,11 +59,11 @@ end
 @combine_factors_for_simplify+=
 local elem_i, factors = M.split_kind("i", factors)
 local i_const, i_fac = M.pow_i(#elem_i)
-local elem_consts, factors = M.split_kind("constant", factors)
+local elem_consts, factors = M.split_kind({"constant", "constant_div"}, factors)
 table.insert(elem_consts, M.constant(i_const))
 local coeff = M.reduce_const(elem_consts)
 
-if coeff == 0 then
+if coeff:is_zero() then
   return M.constant(0)
 end
 

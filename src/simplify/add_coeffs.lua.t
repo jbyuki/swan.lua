@@ -100,14 +100,14 @@ elseif lhs.kind == "add" then
 local added = false
 for i, atomic in ipairs(atomics) do
   if M.is_same_all(atomic[2], facs) then
-    atomic[1] = atomic[1] + (coeff or 1)
+    atomic[1] = (atomic[1] + (coeff or 1)):simplify()
     added = true
     break
   end
 end
 
 if not added then
-  table.insert(atomics, { (coeff or 1), facs })
+  table.insert(atomics, { (coeff or M.constant(1)), facs })
 end
 
 @methods+=
@@ -126,20 +126,20 @@ end
 
 @construct_resulting_addition+=
 atomics = vim.tbl_filter(function(atomic)
-  return atomic[1] ~= 0
+  return not atomic[1]:is_zero()
 end, atomics)
 
 atomics = vim.tbl_map(function(atomic)
   local rhs = M.reduce_all("mul", atomic[2])
   
   if not rhs then
-    return M.constant(atomic[1])
+    return atomic[1]
   end
 
-  if atomic[1] == 1 then
+  if atomic[1]:is_one() then
     return rhs
   else
-    return M.constant(atomic[1]) *  rhs
+    return atomic[1] *  rhs
   end
 end, atomics)
 
