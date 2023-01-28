@@ -222,6 +222,45 @@ local mt = { __index = Exp,
 
 }
 
+function Exp:is_constant_div()
+  return self.kind == "constant_div"
+end
+
+function M.add_constant_div(lhs, rhs)
+	local lhs_den = lhs.o.rhs.o.constant
+	local rhs_den = rhs.o.rhs.o.constant
+
+	local common_den = M.constant(lhs_den * rhs_den)
+
+	local lhs_num = lhs.o.lhs.o.constant * rhs_den
+	local rhs_num = rhs.o.lhs.o.constant * lhs_den
+
+	local common_num = M.constant(lhs_num + rhs_num)
+
+	if common_den:is_integer() and common_num:is_integer() then
+		local gcd = M.find_gcd(common_den.o.constant, common_num.o.constant)
+		common_den.o.constant = common_den.o.constant / gcd
+		common_num.o.constant = common_num.o.constant / gcd
+	end
+
+	if common_den.o.constant == 1 then
+		return common_num
+	end
+
+	return common_num / common_den
+
+end
+
+function M.find_gcd(A, B)
+	if A > B then
+		return M.find_gcd(A - B, B)
+	elseif B > A then
+		return M.find_gcd(A, B - A)
+	else
+		return A
+	end
+end
+
 function Exp:derivate(dx)
   if self.kind == "constant" then
     return Exp.new("constant", { constant = 0 })
@@ -454,6 +493,7 @@ function Exp:clone()
 
   elseif self.kind == "constant_div" then
     return Exp.new(self.kind, { lhs = self.o.lhs:clone(), rhs = self.o.rhs:clone() })
+
   elseif self.kind == "ln" then
     return Exp.new(self.kind, { arg = self.o.arg:clone() })
   elseif self.kind == "add" then
@@ -756,6 +796,17 @@ function Exp:simplify()
       end
 
       return Exp.new("matrix", { rows = rows })
+  	elseif lhs:is_constant() and rhs:is_constant() then
+  		return M.constant(lhs.o.constant + rhs.o.constant)
+  	elseif lhs:is_constant() and rhs:is_constant_div() then
+  		return M.add_constant_div(lhs / 1, rhs)
+
+  	elseif lhs:is_constant_div() and rhs:is_constant() then
+  		return M.add_constant_div(lhs, rhs / 1)
+
+  	elseif lhs:is_constant_div() and rhs:is_constant_div() then
+  		return M.add_constant_div(lhs, rhs)
+
     else
       local terms = self:collect_terms()
       for i=1,#terms do
@@ -765,7 +816,7 @@ function Exp:simplify()
       local atomics = {}
       for _, term in ipairs(terms) do
         local facs = term:collect_factors()
-        local const, facs = M.split_kind("constant", facs)
+        local const, facs = M.split_kind({"constant", "constant_div"}, facs)
         local coeff = M.reduce_const(const)
         table.sort(facs) 
         local added = false
@@ -997,14 +1048,27 @@ function M.reduce_all(kind, tbl, prev)
   return prev
 end
 function M.split_kind(kind, facs)
+	if type(kind) ~= "table" then
+		kind = { kind }
+	end
+
   local first = {}
   local second = {}
+
   for _, elem in ipairs(facs) do
-    if elem.kind == kind then
-      table.insert(first, elem)
-    else
-      table.insert(second, elem)
-    end
+		local is_first = false
+		for _, ki in ipairs(kind) do
+			if elem.kind == ki then
+				is_first = true
+				break
+			end
+		end
+
+		if is_first then
+			table.insert(first, elem)
+		else
+			table.insert(second, elem)
+		end
   end
   return first, second
 end
@@ -1024,7 +1088,10 @@ end
 function M.reduce_const(facs) 
   local coeff = 1
   for _, fac in ipairs(facs) do
-    coeff = coeff * fac.o.constant
+		if fac.type == "constant" then
+			coeff = coeff * fac.o.constant
+		elseif fac.type == "constant_div" then
+		end
   end
   return coeff
 end

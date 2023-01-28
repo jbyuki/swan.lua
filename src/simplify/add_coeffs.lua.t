@@ -9,7 +9,7 @@ end
 local atomics = {}
 for _, term in ipairs(terms) do
   local facs = term:collect_factors()
-  local const, facs = M.split_kind("constant", facs)
+  local const, facs = M.split_kind({"constant", "constant_div"}, facs)
   local coeff = M.reduce_const(const)
   table.sort(facs) 
   @append_coeff_and_facs

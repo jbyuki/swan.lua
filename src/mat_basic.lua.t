@@ -127,6 +127,14 @@ elseif self.kind == "add" then
     @check_that_both_matrices_are_same_dimensions
     @add_matrix_elementwise
     return Exp.new("matrix", { rows = rows })
+	elseif lhs:is_constant() and rhs:is_constant() then
+		return M.constant(lhs.o.constant + rhs.o.constant)
+	elseif lhs:is_constant() and rhs:is_constant_div() then
+		@simpify_rhs_constant_div_with_constant_add
+	elseif lhs:is_constant_div() and rhs:is_constant() then
+		@simpify_lhs_constant_div_with_constant_add
+	elseif lhs:is_constant_div() and rhs:is_constant_div() then
+		@simpify_both_constant_div_add
   else
     @collect_terms_for_simplify
     @combine_terms_for_simplify

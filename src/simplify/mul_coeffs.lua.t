@@ -10,14 +10,27 @@ end
 
 @methods+=
 function M.split_kind(kind, facs)
+	if type(kind) ~= "table" then
+		kind = { kind }
+	end
+
   local first = {}
   local second = {}
+
   for _, elem in ipairs(facs) do
-    if elem.kind == kind then
-      table.insert(first, elem)
-    else
-      table.insert(second, elem)
-    end
+		local is_first = false
+		for _, ki in ipairs(kind) do
+			if elem.kind == ki then
+				is_first = true
+				break
+			end
+		end
+
+		if is_first then
+			table.insert(first, elem)
+		else
+			table.insert(second, elem)
+		end
   end
   return first, second
 end
@@ -38,7 +51,11 @@ end
 function M.reduce_const(facs) 
   local coeff = 1
   for _, fac in ipairs(facs) do
-    coeff = coeff * fac.o.constant
+		if fac.type == "constant" then
+			coeff = coeff * fac.o.constant
+		elseif fac.type == "constant_div" then
+			@reduce_constant_div
+		end
   end
   return coeff
 end
