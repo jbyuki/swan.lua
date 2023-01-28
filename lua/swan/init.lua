@@ -31,6 +31,11 @@ local mt = { __index = Exp,
     if self.kind == "sym" then
       return self.o.name
 
+    elseif self.kind == "constant_div" then
+      local lhs = tostring(self.o.lhs)
+      local rhs = tostring(self.o.rhs)
+      return lhs .. "/" .. rhs
+
     elseif self.kind == "ln" then
       return ("ln(%s)"):format(tostring(self.o.arg))
 
@@ -163,6 +168,11 @@ local mt = { __index = Exp,
   __div = function(lhs, rhs)
     lhs = convert_constant(lhs)
     rhs = convert_constant(rhs)
+
+  	if lhs:is_constant() and rhs:is_constant() then
+  	  return Exp.new("constant_div", { lhs = lhs, rhs = rhs })
+  	end
+
 
     return Exp.new("div", { lhs = lhs, rhs = rhs })
   end,
@@ -442,6 +452,8 @@ function Exp:clone()
   if self.kind == "constant" then
     return Exp.new(self.kind, { constant = self.o.constant })
 
+  elseif self.kind == "constant_div" then
+    return Exp.new(self.kind, { lhs = self.o.lhs:clone(), rhs = self.o.rhs:clone() })
   elseif self.kind == "ln" then
     return Exp.new(self.kind, { arg = self.o.arg:clone() })
   elseif self.kind == "add" then
@@ -1020,6 +1032,26 @@ end
 function M.sqrt(x)
   return x ^ (M.constant(1)/M.constant(2))
 end
+function Exp:cross(other)
+	assert(self.kind == "matrix")
+	assert(other.kind == "matrix")
+
+	assert(#self.o.rows == #other.o.rows)
+
+	assert(#self.o.rows[1] == 1)
+	assert(#other.o.rows[1] == 1)
+
+
+	assert(#self.o.rows == 3)
+
+	local rows = {}
+	table.insert(rows, { self.o.rows[2][1]:clone() * other.o.rows[3][1]:clone() - self.o.rows[3][1]:clone() * other.o.rows[2][1]:clone() })
+	table.insert(rows, { self.o.rows[3][1]:clone() * other.o.rows[1][1]:clone() - self.o.rows[1][1]:clone() * other.o.rows[3][1]:clone() })
+	table.insert(rows, { self.o.rows[1][1]:clone() * other.o.rows[2][1]:clone() - self.o.rows[2][1]:clone() * other.o.rows[1][1]:clone() })
+
+	return Exp.new("matrix", { rows = rows })
+end
+
 function Exp:divergence()
   assert(self.kind == "matrix", "divergence must be called on a matrix")
   assert(self:cols() == 1, "divergence must be called on a matrix with one column")

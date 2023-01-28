@@ -81,6 +81,8 @@ __div = function(lhs, rhs)
   lhs = convert_constant(lhs)
   rhs = convert_constant(rhs)
 
+	@create_constant_div_if_both_constants
+
   return Exp.new("div", { lhs = lhs, rhs = rhs })
 end,
 
