@@ -238,7 +238,7 @@ function M.add_constant_div(lhs, rhs)
 	local common_num = M.constant(lhs_num + rhs_num)
 
 	if common_den:is_integer() and common_num:is_integer() then
-		local gcd = M.find_gcd(common_den.o.constant, common_num.o.constant)
+		local gcd = M.find_gcd(math.abs(common_den.o.constant), math.abs(common_num.o.constant))
 		common_den.o.constant = common_den.o.constant / gcd
 		common_num.o.constant = common_num.o.constant / gcd
 	end
@@ -273,7 +273,7 @@ function M.mul_constant_div(lhs, rhs)
 	local common_num = M.constant(lhs_num * rhs_num)
 
 	if common_den:is_integer() and common_num:is_integer() then
-		local gcd = M.find_gcd(common_den.o.constant, common_num.o.constant)
+		local gcd = M.find_gcd(math.abs(common_den.o.constant), math.abs(common_num.o.constant))
 		common_den.o.constant = common_den.o.constant / gcd
 		common_num.o.constant = common_num.o.constant / gcd
 	end
@@ -290,6 +290,8 @@ function Exp:derivate(dx)
   if self.kind == "constant" then
     return Exp.new("constant", { constant = 0 })
 
+  elseif self.kind == "constant_div" then
+    return Exp.new("constant", { constant = 0 })
   elseif self.kind == "sym" then
     if self == dx then
       return Exp.new("constant", { constant = 1 })
