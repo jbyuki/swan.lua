@@ -1,0 +1,13 @@
+:: scratch.lua
+; requires
+; test symbols
+; show results
+
+;; requires
+package.loaded["swan"] = nil
+swan = require"swan"
+
+;; test symbols
+local a = swan.symbols "a"
+print(a)
+
