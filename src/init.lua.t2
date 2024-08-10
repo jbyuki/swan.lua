@@ -1,0 +1,17 @@
+;;; swan
+:: ../lua/swan/init.lua
+local M = {}
+; implement
+return M
+
+;; implement
+function M.syms(str)
+	; parse str for symbols names
+	; create symbols from list
+end
+
+;; parse str for symbols names
+local tokens = {}
+for token in str:gmatch("%S") do
+	table.insert(tokens, token)
+end
