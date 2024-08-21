@@ -1,0 +1,96 @@
+;;; swan
+;; implement
+function constant_methods:normal_form()
+	return self:clone()
+end
+
+function sym_methods:normal_form()
+	return self:clone()
+end
+
+function exp_methods:normal_form()
+	local children_normal = {}
+	; put children in normal form
+	; create sort indices
+	; determine each normal children type
+	; sort normal children
+	; create sorted normal children
+	; if add exp in normal form
+	; if mul exp in normal form
+	else
+		assert(false)
+	end
+end
+
+;; put children in normal form
+for i=1,#self.children do
+	table.insert(children_normal, self.children[i]:normal_form())
+end
+
+;; create sort indices
+local sorted_idx = {}
+for i=1,#children_normal do
+	table.insert(sorted_idx, i)
+end
+
+;; determine each normal children type
+local order = {}
+local order_lookup = {
+	[EXP_TYPE.CONSTANT] = 1,
+	[EXP_TYPE.SCALAR] = 20,
+	[EXP_TYPE.MUL] = 30,
+	[EXP_TYPE.ADD] = 40,
+	; order lookup
+}
+
+;; sort normal children
+table.sort(sorted_idx, function(i,j)
+	if order[i] == order[j] then
+		local left = children_normal[i]
+		local right = children_normal[j]
+		return left < right
+	end
+	return order[i] < order[j]
+end)
+
+;; create sorted normal children
+local sorted_children_normal = {}
+for i=1,#children_normal do
+	table.insert(sorted_children_normal, children_normal[sorted_idx[i]])
+end
+
+;; variables
+local create_add_exp
+
+;; implement
+function create_add_exp()
+	local exp = {}
+	exp.type = EXP_TYPE.ADD
+	exp.children = {}
+	; register add expression metamethods
+	return exp
+end
+
+;; if add exp in normal form
+if self.type == EXP_TYPE.ADD then
+	local exp = create_add_exp()
+	exp.children = sorted_children_normal
+	return exp
+
+;; variables
+local create_mul_exp
+
+;; implement
+function create_mul_exp()
+	local exp = {}
+	exp.type = EXP_TYPE.MUL
+	exp.children = {}
+	; register mul expression metamethods
+	return exp
+end
+
+;; if mul exp in normal form
+elseif self.type == EXP_TYPE.MUL then
+	local exp = create_mul_exp()
+	exp.children = sorted_children_normal
+	return exp

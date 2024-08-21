@@ -1,0 +1,31 @@
+;;; swan
+;; implement
+function constant_mt:__lt(other)
+	assert(other.type == self.type)
+	return self.value < other.value
+end
+
+function sym_mt:__lt(other)
+	assert(other.type == self.type)
+	return self.name < other.name
+end
+
+function add_exp_mt:__lt(other)
+	assert(other.type == self.type)
+	if #self.children ~= #other.children then
+		return #self.children < #other.children
+	end
+	for i=1,#self.children do
+		; if one child pair is not equal compare
+	end
+	return false
+end
+
+
+;; if one child pair is not equal compare
+if self.children[i] ~= other.children[i] then
+	return self.children[i] < other.children[i]
+end
+
+;; copy metamethods
+mul_exp_mt.__lt = add_exp_mt.__lt

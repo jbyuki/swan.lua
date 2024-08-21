@@ -8,6 +8,10 @@ local constant_methods = {}
 
 local sym_array_mt = {}
 
+local create_add_exp
+
+local create_mul_exp
+
 local is_integer
 
 local constant_mt = {}
@@ -31,6 +35,31 @@ local mul_exp_mt = {}
 
 local create_constant
 
+function constant_mt:__lt(other)
+	assert(other.type == self.type)
+	return self.value < other.value
+end
+
+function sym_mt:__lt(other)
+	assert(other.type == self.type)
+	return self.name < other.name
+end
+
+function add_exp_mt:__lt(other)
+	assert(other.type == self.type)
+	if #self.children ~= #other.children then
+		return #self.children < #other.children
+	end
+	for i=1,#self.children do
+		if self.children[i] ~= other.children[i] then
+			return self.children[i] < other.children[i]
+		end
+
+	end
+	return false
+end
+
+
 function constant_mt:__eq(other)
 	return other.type == EXP_TYPE.CONSTANT and self.value == other.value
 end
@@ -40,8 +69,22 @@ function sym_mt:__eq(other)
 end
 
 function add_exp_mt:__eq(other)
-	return false
+	if other.type ~= self.type then
+		return false
+	end
+
+	if #self.children ~= #other.children then
+		return false
+	end
+
+	for i=1,#self.children do
+		if self.children[i] ~= other.children[i] then
+			return false
+		end
+	end
+	return true
 end
+
 function exp_methods:expand()
 	if self.type == EXP_TYPE.SCALAR then
 		return self:clone()
@@ -196,6 +239,78 @@ function M.matrix(arr)
 	return mat
 end
 
+function constant_methods:normal_form()
+	return self:clone()
+end
+
+function sym_methods:normal_form()
+	return self:clone()
+end
+
+function exp_methods:normal_form()
+	local children_normal = {}
+	for i=1,#self.children do
+		table.insert(children_normal, self.children[i]:normal_form())
+	end
+
+	local sorted_idx = {}
+	for i=1,#children_normal do
+		table.insert(sorted_idx, i)
+	end
+
+	local order = {}
+	local order_lookup = {
+		[EXP_TYPE.CONSTANT] = 1,
+		[EXP_TYPE.SCALAR] = 20,
+		[EXP_TYPE.MUL] = 30,
+		[EXP_TYPE.ADD] = 40,
+	}
+
+	table.sort(sorted_idx, function(i,j)
+		if order[i] == order[j] then
+			local left = children_normal[i]
+			local right = children_normal[j]
+			return left < right
+		end
+		return order[i] < order[j]
+	end)
+
+	local sorted_children_normal = {}
+	for i=1,#children_normal do
+		table.insert(sorted_children_normal, children_normal[sorted_idx[i]])
+	end
+
+	if self.type == EXP_TYPE.ADD then
+		local exp = create_add_exp()
+		exp.children = sorted_children_normal
+		return exp
+
+	elseif self.type == EXP_TYPE.MUL then
+		local exp = create_mul_exp()
+		exp.children = sorted_children_normal
+		return exp
+	else
+		assert(false)
+	end
+end
+
+function create_add_exp()
+	local exp = {}
+	exp.type = EXP_TYPE.ADD
+	exp.children = {}
+	exp = setmetatable(exp, add_exp_mt)
+
+	return exp
+end
+
+function create_mul_exp()
+	local exp = {}
+	exp.type = EXP_TYPE.MUL
+	exp.children = {}
+	exp = setmetatable(exp, mul_exp_mt)
+	return exp
+end
+
 function sym_mt:__pow(sup)
 	assert(type(sup) == "number", "exponent must be a constant number")
 	assert(is_integer(sup), "exponent must be a constant integer number")
@@ -326,29 +441,26 @@ function exp_methods:simplify()
 		end
 
 		if self.type == EXP_TYPE.ADD then
-			local exp = {}
-			exp.type = EXP_TYPE.ADD
-			exp.children = {}
-			exp = setmetatable(exp, add_exp_mt)
-
-
+			local exp = create_add_exp()
 			local terms = {}
 			local coeffs = {}
 
 			for i=1,#children_simplified do
 				local candidate = children_simplified[i]
+				candidate = candidate:normal_form()
 
 				local found = false
 				for j=1,#terms do
 					local equal = false
-					local term = terms[i]
+					local term = terms[j]
 					equal = term == candidate
 
 					if equal then
-						coeffs[i] = coeffs[i] + 1
+						coeffs[j] = coeffs[j] + 1
 						found = true
 						break
 					end
+
 				end
 
 				if not found then
@@ -361,10 +473,15 @@ function exp_methods:simplify()
 			local add_exp = exp
 			for i=1,#terms do
 				if coeffs[i] > 1 then
-					local exp = {}
-					exp.type = EXP_TYPE.MUL
-					exp.children = { create_constant(terms[i]), terms[i] }
-					exp = setmetatable(exp, mul_exp_mt)
+					local exp
+					if terms[i].type == EXP_TYPE.MUL then
+						exp = terms[i]
+						table.insert(exp.children, 1, create_constant(coeffs[i]))
+
+					else
+						exp = create_mul_exp()
+						exp.children = { create_constant(coeffs[i]), terms[i] }
+					end
 					table.insert(add_exp.children, exp)
 				else
 					table.insert(add_exp.children, terms[i])
@@ -376,11 +493,8 @@ function exp_methods:simplify()
 		end
 
 		if self.type == EXP_TYPE.MUL then
-			local exp = {}
-			exp.type = EXP_TYPE.ADD
+			local exp = create_mul_exp()
 			exp.children = children_simplified
-
-			exp = setmetatable(exp, mul_exp_mt)
 			return exp
 		end
 
@@ -397,6 +511,8 @@ function create_constant(value)
 	return constant
 end
 
+mul_exp_mt.__lt = add_exp_mt.__lt
+mul_exp_mt.__eq = add_exp_mt.__eq
 mul_exp_mt.__index = exp_methods
 add_exp_mt.__index = exp_methods
 

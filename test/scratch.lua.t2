@@ -1,5 +1,5 @@
 :: scratch.lua
-; requires
+; reload
 ; start debugger
 ; playground
 ; testing
@@ -13,10 +13,9 @@ require"osv".launch { port = 8086 }
 ;; stop debugger
 require"osv".stop()
 
-;; requires
+;; reload
 package.loaded["swan"] = nil
 swan = require"swan"
-io.write(vim.inspect(swan))
 
 ;; test symbols
 local a, b = swan.symbols "a b"
@@ -25,6 +24,24 @@ eq = eq:expand()
 io.write(tostring(eq))
 
 ;; playground
-local t = {"a", "b", "c"}
-print(table.concat(t, ", "))
+; reload
+local a, b, c = swan.symbols "a b c"
+local eq1 = a+b
+local eq2 = b+a
+local eq3 = b+c
+local eq4 = a+b
+io.write(tostring(eq1 == eq2) .. "\n")
+io.write(tostring(eq1 == eq3) .. "\n")
+io.write(tostring(eq1 == eq4))
 
+;; playground
+; reload
+local a, b, c = swan.symbols "a b c"
+local eq1 = (a+b)^2
+eq1 = eq1:expand():simplify()
+io.write(tostring(eq1))
+
+;; playground
+local a = {1,2,3}
+table.insert(a,1,0)
+io.write(vim.inspect(a))

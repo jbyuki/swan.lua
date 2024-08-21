@@ -9,5 +9,21 @@ function sym_mt:__eq(other)
 end
 
 function add_exp_mt:__eq(other)
-	return false
+	if other.type ~= self.type then
+		return false
+	end
+
+	if #self.children ~= #other.children then
+		return false
+	end
+
+	for i=1,#self.children do
+		if self.children[i] ~= other.children[i] then
+			return false
+		end
+	end
+	return true
 end
+
+;; copy metamethods
+mul_exp_mt.__eq = add_exp_mt.__eq

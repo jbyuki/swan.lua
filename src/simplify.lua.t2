@@ -31,21 +31,14 @@ end
 
 ;; if mul exp leave children as is
 if self.type == EXP_TYPE.MUL then
-	local exp = {}
-	exp.type = EXP_TYPE.ADD
+	local exp = create_mul_exp()
 	exp.children = children_simplified
-
-	; register mul expression metamethods
 	return exp
 end
 
 ;; if add exp combine common terms
 if self.type == EXP_TYPE.ADD then
-	local exp = {}
-	exp.type = EXP_TYPE.ADD
-	exp.children = {}
-	; register add expression metamethods
-
+	local exp = create_add_exp()
 	local terms = {}
 	local coeffs = {}
 
@@ -76,17 +69,25 @@ end
 
 ;; create term with coefficient
 if coeffs[i] > 1 then
-	local exp = {}
-	exp.type = EXP_TYPE.MUL
-	exp.children = { create_constant(terms[i]), terms[i] }
-	; register mul expression metamethods
+	local exp
+	if terms[i].type == EXP_TYPE.MUL then
+		; append coeff at beginning
+	else
+		exp = create_mul_exp()
+		exp.children = { create_constant(coeffs[i]), terms[i] }
+	end
 	table.insert(add_exp.children, exp)
 else
 	table.insert(add_exp.children, terms[i])
 end
 
+;; append coeff at beginning
+exp = terms[i]
+table.insert(exp.children, 1, create_constant(coeffs[i]))
+
 ;; check if any existing term is equal
 local candidate = children_simplified[i]
+; put candidate in normal form
 
 local found = false
 for j=1,#terms do
@@ -102,12 +103,15 @@ end
 
 ;; compare candidate against term
 local equal = false
-local term = terms[i]
+local term = terms[j]
 equal = term == candidate
 
 ;; if equal add coefficient
 if equal then
-	coeffs[i] = coeffs[i] + 1
+	coeffs[j] = coeffs[j] + 1
 	found = true
 	break
 end
+
+;; put candidate in normal form
+candidate = candidate:normal_form()
