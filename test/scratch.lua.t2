@@ -37,7 +37,7 @@ io.write(tostring(eq1 == eq4))
 ;; playground
 ; reload
 local a, b, c = swan.symbols "a b c"
-local eq1 = (a+b)^2
+local eq1 = (a+b)^3
 eq1 = eq1:expand():simplify()
 io.write(tostring(eq1))
 
