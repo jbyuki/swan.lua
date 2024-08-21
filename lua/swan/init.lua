@@ -4,9 +4,13 @@ local exp_methods = {}
 
 local sym_methods = {}
 
+local constant_methods = {}
+
 local sym_array_mt = {}
 
 local is_integer
+
+local constant_mt = {}
 
 local sym_mt = {}
 
@@ -14,6 +18,8 @@ local EXP_TYPE = {
 	ADD = 1,
 	SCALAR = 3,
 	ARRAY = 4,
+
+	CONSTANT = 5,
 
 	MUL = 2,
 
@@ -23,8 +29,25 @@ local add_exp_mt = {}
 
 local mul_exp_mt = {}
 
+local create_constant
+
+function constant_mt:__eq(other)
+	return other.type == EXP_TYPE.CONSTANT and self.value == other.value
+end
+
+function sym_mt:__eq(other)
+	return other.type == EXP_TYPE.SCALAR and self.name == other.name
+end
+
+function add_exp_mt:__eq(other)
+	return false
+end
 function exp_methods:expand()
 	if self.type == EXP_TYPE.SCALAR then
+		return self:clone()
+	end
+
+	if self.type == EXP_TYPE.CONSTANT then
 		return self:clone()
 	end
 
@@ -72,6 +95,7 @@ function exp_methods:expand()
 			if not good then
 				break
 			end
+
 		end
 
 
@@ -105,6 +129,14 @@ function sym_methods:clone()
 	return sym
 end
 
+function constant_methods:clone()
+	local constant = {}
+	constant.type = EXP_TYPE.CONSTANT
+	constant.value = self.value
+	constant = setmetatable(constant, constant_mt)
+
+	return constant
+end
 function M.symbols(str)
 	local elems = vim.split(str, "%s+", { trimempty = true })
 
@@ -207,9 +239,13 @@ function mul_exp_mt:__tostring()
 			table.insert(children_str, child_str)
 		end
 	end
+
 	return table.concat(children_str, "*")
 end
 
+function constant_mt:__tostring()
+	return tostring(self.value)
+end
 function sym_mt:__add(other)
 	local exp = {}
 	exp.type = EXP_TYPE.ADD
@@ -217,7 +253,14 @@ function sym_mt:__add(other)
 
 	exp = setmetatable(exp, add_exp_mt)
 
-	if self.type and self.type == EXP_TYPE.ADD then
+	if type(self) == "number" then
+		local constant = {}
+		constant.type = EXP_TYPE.CONSTANT
+		constant.value = self
+		constant = setmetatable(constant, constant_mt)
+
+		table.insert(exp.children, constant)
+	elseif self.type and self.type == EXP_TYPE.ADD then
 		for _, child in ipairs(self.children) do
 			table.insert(exp.children, child)
 		end
@@ -242,7 +285,14 @@ function sym_mt:__mul(other)
 	exp.children = {}
 
 	exp = setmetatable(exp, mul_exp_mt)
-	if self.type and self.type == EXP_TYPE.MUL then
+	if type(self) == "number" then
+		local constant = {}
+		constant.type = EXP_TYPE.CONSTANT
+		constant.value = self
+		constant = setmetatable(constant, constant_mt)
+
+		table.insert(exp.children, constant)
+	elseif self.type and self.type == EXP_TYPE.MUL then
 		for _, child in ipairs(self.children) do
 			table.insert(exp.children, child)
 		end
@@ -261,11 +311,100 @@ function sym_mt:__mul(other)
 	return exp
 end
 
+function exp_methods:simplify()
+	if self.type == EXP_TYPE.CONSTANT then
+		return self:clone()
+
+	elseif self.type == EXP_TYPE.SCALAR then
+		return self:clone()
+
+	elseif self.type == EXP_TYPE.ADD or self.type == EXP_TYPE.MUL then
+		local children_simplified = {}
+
+		for i=1,#self.children do
+			table.insert(children_simplified, self.children[i]:simplify())
+		end
+
+		if self.type == EXP_TYPE.ADD then
+			local exp = {}
+			exp.type = EXP_TYPE.ADD
+			exp.children = {}
+			exp = setmetatable(exp, add_exp_mt)
+
+
+			local terms = {}
+			local coeffs = {}
+
+			for i=1,#children_simplified do
+				local candidate = children_simplified[i]
+
+				local found = false
+				for j=1,#terms do
+					local equal = false
+					local term = terms[i]
+					equal = term == candidate
+
+					if equal then
+						coeffs[i] = coeffs[i] + 1
+						found = true
+						break
+					end
+				end
+
+				if not found then
+					table.insert(terms, candidate)
+					table.insert(coeffs, 1)
+				end
+
+			end
+
+			local add_exp = exp
+			for i=1,#terms do
+				if coeffs[i] > 1 then
+					local exp = {}
+					exp.type = EXP_TYPE.MUL
+					exp.children = { create_constant(terms[i]), terms[i] }
+					exp = setmetatable(exp, mul_exp_mt)
+					table.insert(add_exp.children, exp)
+				else
+					table.insert(add_exp.children, terms[i])
+				end
+
+			end
+
+			return exp
+		end
+
+		if self.type == EXP_TYPE.MUL then
+			local exp = {}
+			exp.type = EXP_TYPE.ADD
+			exp.children = children_simplified
+
+			exp = setmetatable(exp, mul_exp_mt)
+			return exp
+		end
+
+	end
+
+end
+
+function create_constant(value)
+	local constant = {}
+	constant.type = EXP_TYPE.CONSTANT
+	constant.value = value
+	constant = setmetatable(constant, constant_mt)
+
+	return constant
+end
+
 mul_exp_mt.__index = exp_methods
 add_exp_mt.__index = exp_methods
 
 sym_mt.__index = sym_methods
 sym_methods.expand = exp_methods.expand
+
+constant_mt.__index = constant_methods
+constant_methods.expand = exp_methods.expand
 
 mul_exp_mt.__pow = sym_mt.__pow
 add_exp_mt.__pow = sym_mt.__pow
@@ -274,6 +413,8 @@ add_exp_mt.__add = sym_mt.__add
 mul_exp_mt.__mul = sym_mt.__mul
 add_exp_mt.__mul = sym_mt.__mul
 mul_exp_mt.__add = sym_mt.__add
+
+sym_methods.simplify = exp_methods.simplify
 
 return M
 

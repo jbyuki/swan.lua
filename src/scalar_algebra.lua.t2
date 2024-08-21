@@ -25,8 +25,17 @@ local exp = {}
 exp.type = EXP_TYPE.ADD
 exp.children = {}
 
+;; exp types
+CONSTANT = 5,
+
 ;; collect self add expression
-if self.type and self.type == EXP_TYPE.ADD then
+if type(self) == "number" then
+	local constant = {}
+	constant.type = EXP_TYPE.CONSTANT
+	constant.value = self
+	; register constant metamethods
+	table.insert(exp.children, constant)
+elseif self.type and self.type == EXP_TYPE.ADD then
 	for _, child in ipairs(self.children) do
 		table.insert(exp.children, child)
 	end
@@ -70,7 +79,13 @@ exp.type = EXP_TYPE.MUL
 exp.children = {}
 
 ;; collect self mul expression
-if self.type and self.type == EXP_TYPE.MUL then
+if type(self) == "number" then
+	local constant = {}
+	constant.type = EXP_TYPE.CONSTANT
+	constant.value = self
+	; register constant metamethods
+	table.insert(exp.children, constant)
+elseif self.type and self.type == EXP_TYPE.MUL then
 	for _, child in ipairs(self.children) do
 		table.insert(exp.children, child)
 	end

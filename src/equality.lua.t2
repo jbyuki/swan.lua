@@ -1,0 +1,13 @@
+;;; swan
+;; implement
+function constant_mt:__eq(other)
+	return other.type == EXP_TYPE.CONSTANT and self.value == other.value
+end
+
+function sym_mt:__eq(other)
+	return other.type == EXP_TYPE.SCALAR and self.name == other.name
+end
+
+function add_exp_mt:__eq(other)
+	return false
+end

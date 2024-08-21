@@ -32,3 +32,14 @@ for i=1,#self.children do
 		table.insert(children_str, child_str)
 	end
 end
+
+;; variables
+local constant_mt = {}
+
+;; register constant metamethods
+constant = setmetatable(constant, constant_mt)
+
+;; implement
+function constant_mt:__tostring()
+	return tostring(self.value)
+end

@@ -9,6 +9,7 @@ add_exp_mt.__index = exp_methods
 ;; implement
 function exp_methods:expand()
 	; if sym then clone
+	; if constant then clone
 	; expand each child if exp
 	; if mul exp expand all
 	; otherwise expand none
@@ -116,4 +117,25 @@ end
 
 if not good then
 	break
+end
+
+;; variables
+local constant_methods = {}
+
+;; copy metamethods
+constant_mt.__index = constant_methods
+constant_methods.expand = exp_methods.expand
+
+;; if constant then clone
+if self.type == EXP_TYPE.CONSTANT then
+	return self:clone()
+end
+
+;; implement
+function constant_methods:clone()
+	local constant = {}
+	constant.type = EXP_TYPE.CONSTANT
+	constant.value = self.value
+	; register constant metamethods
+	return constant
 end
