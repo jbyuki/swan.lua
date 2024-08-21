@@ -20,8 +20,8 @@ io.write(vim.inspect(swan))
 
 ;; test symbols
 local a, b, c = swan.symbols "a b c"
-local res = ((a+b)*(c+a))
-io.write(tostring(res))
+local res = (a+b)^2
+io.write(tostring(res:expand()))
 
 ;; playground
 local t = {"a", "b", "c"}

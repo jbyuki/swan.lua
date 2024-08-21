@@ -6,6 +6,8 @@ local sym_methods = {}
 
 local sym_array_mt = {}
 
+local is_integer
+
 local sym_mt = {}
 
 local EXP_TYPE = {
@@ -162,6 +164,26 @@ function M.matrix(arr)
 	return mat
 end
 
+function sym_mt:__pow(sup)
+	assert(type(sup) == "number", "exponent must be a constant number")
+	assert(is_integer(sup), "exponent must be a constant integer number")
+
+	local exp = {}
+	exp.type = EXP_TYPE.MUL
+	exp.children = {}
+	exp = setmetatable(exp, mul_exp_mt)
+
+	for i=1,sup do
+		table.insert(exp.children, self)
+	end
+
+	return exp
+end
+
+function is_integer(x)
+	return math.floor(x) == x
+end
+
 function sym_mt:__tostring()
 	return self.name
 end
@@ -245,6 +267,8 @@ add_exp_mt.__index = exp_methods
 sym_mt.__index = sym_methods
 sym_methods.expand = exp_methods.expand
 
+mul_exp_mt.__pow = sym_mt.__pow
+add_exp_mt.__pow = sym_mt.__pow
 add_exp_mt.__add = sym_mt.__add 
 
 mul_exp_mt.__mul = sym_mt.__mul

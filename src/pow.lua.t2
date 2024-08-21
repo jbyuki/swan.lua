@@ -1,0 +1,31 @@
+;;; swan
+;; implement
+function sym_mt:__pow(sup)
+	assert(type(sup) == "number", "exponent must be a constant number")
+	assert(is_integer(sup), "exponent must be a constant integer number")
+
+	; pow current expression with exp
+	return exp
+end
+
+;; variables
+local is_integer
+
+;; implement
+function is_integer(x)
+	return math.floor(x) == x
+end
+
+;; pow current expression with exp
+local exp = {}
+exp.type = EXP_TYPE.MUL
+exp.children = {}
+; register mul expression metamethods
+
+for i=1,sup do
+	table.insert(exp.children, self)
+end
+
+;; copy metamethods
+mul_exp_mt.__pow = sym_mt.__pow
+add_exp_mt.__pow = sym_mt.__pow
