@@ -1,0 +1,34 @@
+;;; swan
+;; implement
+function sym_mt:__tostring()
+	return self.name
+end
+
+;; implement
+function add_exp_mt:__tostring()
+	local children_str = {}
+	; transform children to string add
+	return table.concat(children_str, " + ")
+end
+
+;; transform children to string add
+for i=1,#self.children do
+	table.insert(children_str, tostring(self.children[i]))
+end
+
+;; implement
+function mul_exp_mt:__tostring()
+	local children_str = {}
+	; transform children to string mul
+	return table.concat(children_str, "*")
+end
+
+;; transform children to string mul
+for i=1,#self.children do
+	local child_str = tostring(self.children[i])
+	if self.children[i].type == EXP_TYPE.ADD then
+		table.insert(children_str, ("(%s)"):format(child_str))
+	else
+		table.insert(children_str, child_str)
+	end
+end

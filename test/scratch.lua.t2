@@ -1,13 +1,29 @@
 :: scratch.lua
 ; requires
+; start debugger
+; playground
+; testing
 ; test symbols
 ; show results
+; stop debugger
+
+;; start debugger
+require"osv".launch { port = 8086 }
+
+;; stop debugger
+require"osv".stop()
 
 ;; requires
 package.loaded["swan"] = nil
 swan = require"swan"
+io.write(vim.inspect(swan))
 
 ;; test symbols
-local a = swan.symbols "a"
-print(a)
+local a, b, c = swan.symbols "a b c"
+local res = ((a+b)*(c+a))
+io.write(tostring(res))
+
+;; playground
+local t = {"a", "b", "c"}
+print(table.concat(t, ", "))
 

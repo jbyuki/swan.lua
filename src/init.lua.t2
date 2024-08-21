@@ -1,31 +1,62 @@
 ;;; swan
 :: ../lua/swan/init.lua
 local M = {}
+; variables
 ; implement
+; copy metamethods
 return M
 
 ;; implement
 function M.symbols(str)
-	; parse str for symbols names
-	; create symbols from list
+	; split into tokens
+	local syms = {}
+	for _, elem in ipairs(elems) do
+		local sym = {}
+		; if indices create array
+		; otherwise create scalar symbols
+		table.insert(syms, sym)
+	end
+	return unpack(syms)
 end
 
-;; parse str for symbols names
-local tokens = {}
-for token in str:gmatch("%S") do
-	; parse token
-end
+;; split into tokens
+local elems = vim.split(str, "%s+", { trimempty = true })
 
-;; parse token
-local name, s1, s2 = token:match("(.+)(%d+):(%d+)$")
-if name then
-	tokens.insert({
-		s1 = s1,
-		s2 = s2,
-		name = name,
-	})
+;; if indices create array
+if elem:match(".+%d+:%d+$") then
+	local name, idx1, idx2 = elem:match("(.+)(%d+):(%d+)$")
+	sym.name = name
+	sym.range = {tonumber(idx1), tonumber(idx2)}
+	; set type sym array
+	; register sym array metamethods
+	; create array of syms
+
+;; otherwise create scalar symbols
 else
-	table.insert({
-		name = name,
-	})
+	local name = vim.trim(elem)
+	sym.name = name
+	; set type sym
+	; register scalar sym metamethods
 end
+
+;; create array of syms
+sym.syms = {}
+local sym_array = sym
+for idx=sym.range[1],sym.range[2] do
+	local sym = {}
+	sym.name = ("%s%d"):format(name, idx)
+	; set type sym
+	; register scalar sym metamethods
+	table.insert(sym_array.syms, sym)
+end
+
+;; variables
+local sym_array_mt = {}
+
+;; implement
+function sym_array_mt:__index(index)
+	return self.syms[index]
+end
+
+;; register sym array metamethods
+sym = setmetatable(sym, sym_array_mt)

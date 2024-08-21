@@ -1,0 +1,20 @@
+;;; swan
+;; implement
+function M.matrix(arr)
+	; check arr table and shape
+
+	local mat = {}
+	mat.elems = arr
+	; register matrix metamethods
+	return mat
+end
+
+;; check arr table and shape
+assert(type(arr) == "table")
+local N = #arr
+assert(N > 0)
+
+local M = #arr[1]
+for i=2,N do
+	assert(#arr[i] == M)
+end

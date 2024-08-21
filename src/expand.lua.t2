@@ -1,0 +1,119 @@
+;;; swan
+;; variables
+local exp_methods = {}
+
+;; copy metamethods
+mul_exp_mt.__index = exp_methods
+add_exp_mt.__index = exp_methods
+
+;; implement
+function exp_methods:expand()
+	; if sym then clone
+	; expand each child if exp
+	; if mul exp expand all
+	; otherwise expand none
+end
+
+;; variables
+local sym_methods = {}
+
+;; copy metamethods
+sym_mt.__index = sym_methods
+sym_methods.expand = exp_methods.expand
+
+;; expand each child if exp
+local expanded_children = {}
+for _, child in ipairs(self.children) do
+	table.insert(expanded_children, child:expand())
+end
+
+;; implement
+function sym_methods:clone()
+	local sym = {}
+	sym.name = self.name
+	; set type sym
+	; register scalar sym metamethods
+	return sym
+end
+
+;; exp types
+SCALAR = 3,
+ARRAY = 4,
+
+;; set type sym
+sym.type = EXP_TYPE.SCALAR
+
+;; set type sym array
+sym.type = EXP_TYPE.ARRAY
+
+;; if sym then clone
+if self.type == EXP_TYPE.SCALAR then
+	return self:clone()
+end
+
+;; if mul exp expand all
+if self.type == EXP_TYPE.MUL then
+	local new_children = {}
+	; expand all add exp children
+
+	local exp = {}
+	exp.type = EXP_TYPE.ADD
+	exp.children = new_children
+	; register add expression metamethods
+	return exp
+
+;; otherwise expand none
+elseif self.type == EXP_TYPE.ADD then
+	local exp = {}
+	exp.type = EXP_TYPE.ADD
+	exp.children = expanded_children
+	; register add expression metamethods
+	return exp
+else
+	assert(false)
+end
+
+;; expand all add exp children
+local idx = {}
+for i=1,#expanded_children do
+	idx[i] = 1
+end
+
+while true do
+	; create mul expression from idx
+	; increment idx
+end
+
+;; create mul expression from idx
+local exp = {}
+exp.type = EXP_TYPE.MUL
+exp.children = {}
+; register mul expression metamethods
+
+for i=1,#expanded_children do
+	if expanded_children[i].type == EXP_TYPE.ADD then
+		table.insert(exp.children, expanded_children[i].children[idx[i]])
+	else
+		table.insert(exp.children, expanded_children[i])
+	end
+end
+
+table.insert(new_children, exp)
+
+;; increment idx
+local good = false
+for i=1,#idx do
+	if expanded_children[i].type == EXP_TYPE.ADD then
+		if idx[i] + 1 <= #expanded_children[i].children then
+			idx[i] = idx[i] + 1
+			good = true
+			break
+		else
+			idx[i] = 1
+		end
+	end
+end
+
+if not good then
+	break
+end

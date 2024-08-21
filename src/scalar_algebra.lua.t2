@@ -1,0 +1,99 @@
+;;; swan
+;; variables
+local sym_mt = {}
+
+;; implement
+function sym_mt:__add(other)
+	; create add expression
+	; register add expression metamethods
+	; collect self add expression
+	; collect other add expression
+	return exp
+end
+
+;; register scalar sym metamethods
+sym = setmetatable(sym, sym_mt)
+
+;; variables
+local EXP_TYPE = {
+	ADD = 1,
+	; exp types
+}
+
+;; create add expression
+local exp = {}
+exp.type = EXP_TYPE.ADD
+exp.children = {}
+
+;; collect self add expression
+if self.type and self.type == EXP_TYPE.ADD then
+	for _, child in ipairs(self.children) do
+		table.insert(exp.children, child)
+	end
+else
+	table.insert(exp.children, self)
+end
+
+;; collect other add expression
+if other.type and other.type == EXP_TYPE.ADD then
+	for _, child in ipairs(other.children) do
+		table.insert(exp.children, child)
+	end
+else
+	table.insert(exp.children, other)
+end
+
+;; variables
+local add_exp_mt = {}
+
+;; copy metamethods
+add_exp_mt.__add = sym_mt.__add 
+
+;; register add expression metamethods
+exp = setmetatable(exp, add_exp_mt)
+
+;; implement
+function sym_mt:__mul(other)
+	; create mul expression
+	; register mul expression metamethods
+	; collect self mul expression
+	; collect other mul expression
+	return exp
+end
+
+;; exp types
+MUL = 2,
+
+;; create mul expression
+local exp = {}
+exp.type = EXP_TYPE.MUL
+exp.children = {}
+
+;; collect self mul expression
+if self.type and self.type == EXP_TYPE.MUL then
+	for _, child in ipairs(self.children) do
+		table.insert(exp.children, child)
+	end
+else
+	table.insert(exp.children, self)
+end
+
+;; collect other mul expression
+if other.type and other.type == EXP_TYPE.MUL then
+	for _, child in ipairs(other.children) do
+		table.insert(exp.children, child)
+	end
+else
+	table.insert(exp.children, other)
+end
+
+;; variables
+local mul_exp_mt = {}
+
+;; copy metamethods
+mul_exp_mt.__mul = sym_mt.__mul
+add_exp_mt.__mul = sym_mt.__mul
+mul_exp_mt.__add = sym_mt.__add
+
+;; register mul expression metamethods
+exp = setmetatable(exp, mul_exp_mt)
