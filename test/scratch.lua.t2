@@ -19,11 +19,10 @@ swan = require"swan"
 io.write(vim.inspect(swan))
 
 ;; test symbols
-local a, b, c = swan.symbols "a b c"
-local eq1 = a+b
-local eq2 = b+a
-
-io.write(tostring(eq1 == eq2))
+local a, b = swan.symbols "a b"
+local eq = (a+b)^2
+eq = eq:expand()
+io.write(tostring(eq))
 
 ;; playground
 local t = {"a", "b", "c"}
