@@ -4,6 +4,7 @@ function M.poly(exp, ...)
 	local vars = { ... }
 	; check that all vars are scalar symbols
 	; put exp in expanded normal form
+	; construct vars lookup
 	; collect all gens and coeffs
 	; create poly object with gens and coeffs
 end
@@ -14,7 +15,7 @@ for i=1,#vars do
 end
 
 ;; put exp in expanded normal form
-local norm_form = exp:expand():normal_form()
+local norm_form = exp:expand():simplify()
 ; if single monomial add exp
 ; check that all are monomials
 
@@ -61,8 +62,23 @@ assert(#vars > 0)
 
 ;; create empty gen
 local gen = {}
-for i=1,#vars do
+for j=1,#vars do
 	table.insert(gen, 0)
 end
 
 ;; detect gen for term
+local coeffs = {}
+if term.type == EXP_TYPE.CONSTANT then
+	table.insert(coeffs, term)
+elseif term.type == EXP_TYPE.SCALAR then
+	; check symbol is in generator 
+elseif term.type == EXP_TYPE.MUL then
+	; detect gen for mul exp
+else
+	assert(false)
+end
+
+;; check symbol is in generator 
+for j=1,#vars do
+
+end

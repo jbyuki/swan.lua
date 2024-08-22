@@ -323,7 +323,7 @@ function M.poly(exp, ...)
 
 	assert(#vars > 0)
 
-	local norm_form = exp:expand():normal_form()
+	local norm_form = exp:expand():simplify()
 	if norm_form.type ~= EXP_TYPE.ADD then
 		local add_exp = create_add_exp()
 		add_exp.children = { norm_form }
@@ -338,8 +338,20 @@ function M.poly(exp, ...)
 	for i=1,#norm_form.children do
 		local term = norm_form.children[i]
 		local gen = {}
-		for i=1,#vars do
+		for j=1,#vars do
 			table.insert(gen, 0)
+		end
+
+		local coeffs = {}
+		if term.type == EXP_TYPE.CONSTANT then
+			table.insert(coeffs, term)
+		elseif term.type == EXP_TYPE.SCALAR then
+			for j=1,#vars do
+
+			end
+		elseif term.type == EXP_TYPE.MUL then
+		else
+			assert(false)
 		end
 
 	end
