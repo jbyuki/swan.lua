@@ -1,6 +1,7 @@
 ;;; swan
 ;; copy metamethods
 sym_methods.simplify = exp_methods.simplify
+constant_methods.simplify = exp_methods.simplify
 
 ;; implement
 function exp_methods:simplify()
@@ -31,6 +32,7 @@ end
 
 ;; if mul exp leave children as is
 if self.type == EXP_TYPE.MUL then
+	; combine constant factor mul
 	local exp = create_mul_exp()
 	exp.children = children_simplified
 	return exp
@@ -38,6 +40,7 @@ end
 
 ;; if add exp combine common terms
 if self.type == EXP_TYPE.ADD then
+	; combine constant term add
 	local exp = create_add_exp()
 	local terms = {}
 	local coeffs = {}
@@ -76,7 +79,7 @@ if coeffs[i] > 1 then
 		exp = create_mul_exp()
 		exp.children = { create_constant(coeffs[i]), terms[i] }
 	end
-	table.insert(add_exp.children, exp)
+	table.insert(add_exp.children, exp:simplify())
 else
 	table.insert(add_exp.children, terms[i])
 end
@@ -115,3 +118,41 @@ end
 
 ;; put candidate in normal form
 candidate = candidate:normal_form()
+
+;; combine constant factor mul
+local all_factor = 1
+local new_children_simplified = {}
+for i=1,#children_simplified do
+	if children_simplified[i].type == EXP_TYPE.CONSTANT then
+		all_factor = all_factor * children_simplified[i].value
+	else
+		table.insert(new_children_simplified, children_simplified[i])
+	end
+end
+
+if all_factor ~= 1 then
+	local constant = create_constant()
+	constant.value = all_factor
+	table.insert(new_children_simplified, 1, constant)
+end
+
+children_simplified = new_children_simplified
+
+;; combine constant term add
+local all_terms = 0
+local new_children_simplified = {}
+for i=1,#children_simplified do
+	if children_simplified[i].type == EXP_TYPE.CONSTANT then
+		all_terms = all_terms + children_simplified[i].value
+	else
+		table.insert(new_children_simplified, children_simplified[i])
+	end
+end
+
+if all_terms ~= 0 then
+	local constant = create_constant()
+	constant.value = all_terms
+	table.insert(new_children_simplified, 1, constant)
+end
+
+children_simplified = new_children_simplified

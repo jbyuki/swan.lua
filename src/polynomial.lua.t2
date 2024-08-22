@@ -1,0 +1,68 @@
+;;; swan
+;; implement
+function M.poly(exp, ...)
+	local vars = { ... }
+	; check that all vars are scalar symbols
+	; put exp in expanded normal form
+	; collect all gens and coeffs
+	; create poly object with gens and coeffs
+end
+
+;; check that all vars are scalar symbols
+for i=1,#vars do
+	assert(vars[i].type == EXP_TYPE.SCALAR)
+end
+
+;; put exp in expanded normal form
+local norm_form = exp:expand():normal_form()
+; if single monomial add exp
+; check that all are monomials
+
+;; implement
+function constant_methods:is_monomial()
+	return true
+end
+
+function sym_methods:is_monomial()
+	return true
+end
+
+function exp_methods:is_monomial()
+	if self.type == EXP_TYPE.ADD then
+		return false
+	elseif self.type == EXP_TYPE.MUL then
+		return true
+	end
+	return false
+end
+
+;; if single monomial add exp
+if norm_form.type ~= EXP_TYPE.ADD then
+	local add_exp = create_add_exp()
+	add_exp.children = { norm_form }
+	norm_form = add_exp
+end
+
+;; check that all are monomials
+for i=1,#norm_form.children do
+	assert(norm_form.children[i]:is_monomial())
+end
+
+;; collect all gens and coeffs
+for i=1,#norm_form.children do
+	local term = norm_form.children[i]
+	; create empty gen
+	; detect gen for term
+	; add coeff to gen
+end
+
+;; check that all vars are scalar symbols
+assert(#vars > 0)
+
+;; create empty gen
+local gen = {}
+for i=1,#vars do
+	table.insert(gen, 0)
+end
+
+;; detect gen for term

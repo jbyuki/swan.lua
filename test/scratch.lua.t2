@@ -45,3 +45,17 @@ io.write(tostring(eq1))
 local a = {1,2,3}
 table.insert(a,1,0)
 io.write(vim.inspect(a))
+
+;; playground
+; reload
+local a, b = swan.symbols "a b"
+local cubic = (a+b)^3
+swan.poly(cubic, a, b)
+
+;; playground
+; reload
+local a,b = swan.symbols "a b"
+local eq = (a+3)^3
+eq = eq:expand():simplify()
+io.write(tostring(eq))
+

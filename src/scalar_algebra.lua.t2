@@ -30,10 +30,8 @@ CONSTANT = 5,
 
 ;; collect self add expression
 if type(self) == "number" then
-	local constant = {}
-	constant.type = EXP_TYPE.CONSTANT
+	local constant = create_constant()
 	constant.value = self
-	; register constant metamethods
 	table.insert(exp.children, constant)
 elseif self.type and self.type == EXP_TYPE.ADD then
 	for _, child in ipairs(self.children) do
@@ -44,7 +42,11 @@ else
 end
 
 ;; collect other add expression
-if other.type and other.type == EXP_TYPE.ADD then
+if type(other) == "number" then
+	local constant = create_constant()
+	constant.value = other
+	table.insert(exp.children, constant)
+elseif other.type and other.type == EXP_TYPE.ADD then
 	for _, child in ipairs(other.children) do
 		table.insert(exp.children, child)
 	end

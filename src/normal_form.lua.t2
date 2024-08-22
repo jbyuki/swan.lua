@@ -43,6 +43,10 @@ local order_lookup = {
 	; order lookup
 }
 
+for i=1,#children_normal do
+	table.insert(order, order_lookup[children_normal[i].type])
+end
+
 ;; sort normal children
 table.sort(sorted_idx, function(i,j)
 	if order[i] == order[j] then

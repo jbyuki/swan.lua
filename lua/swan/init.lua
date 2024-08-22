@@ -266,6 +266,10 @@ function exp_methods:normal_form()
 		[EXP_TYPE.ADD] = 40,
 	}
 
+	for i=1,#children_normal do
+		table.insert(order, order_lookup[children_normal[i].type])
+	end
+
 	table.sort(sorted_idx, function(i,j)
 		if order[i] == order[j] then
 			local left = children_normal[i]
@@ -309,6 +313,54 @@ function create_mul_exp()
 	exp.children = {}
 	exp = setmetatable(exp, mul_exp_mt)
 	return exp
+end
+
+function M.poly(exp, ...)
+	local vars = { ... }
+	for i=1,#vars do
+		assert(vars[i].type == EXP_TYPE.SCALAR)
+	end
+
+	assert(#vars > 0)
+
+	local norm_form = exp:expand():normal_form()
+	if norm_form.type ~= EXP_TYPE.ADD then
+		local add_exp = create_add_exp()
+		add_exp.children = { norm_form }
+		norm_form = add_exp
+	end
+
+	for i=1,#norm_form.children do
+		assert(norm_form.children[i]:is_monomial())
+	end
+
+
+	for i=1,#norm_form.children do
+		local term = norm_form.children[i]
+		local gen = {}
+		for i=1,#vars do
+			table.insert(gen, 0)
+		end
+
+	end
+
+end
+
+function constant_methods:is_monomial()
+	return true
+end
+
+function sym_methods:is_monomial()
+	return true
+end
+
+function exp_methods:is_monomial()
+	if self.type == EXP_TYPE.ADD then
+		return false
+	elseif self.type == EXP_TYPE.MUL then
+		return true
+	end
+	return false
 end
 
 function sym_mt:__pow(sup)
@@ -369,11 +421,8 @@ function sym_mt:__add(other)
 	exp = setmetatable(exp, add_exp_mt)
 
 	if type(self) == "number" then
-		local constant = {}
-		constant.type = EXP_TYPE.CONSTANT
+		local constant = create_constant()
 		constant.value = self
-		constant = setmetatable(constant, constant_mt)
-
 		table.insert(exp.children, constant)
 	elseif self.type and self.type == EXP_TYPE.ADD then
 		for _, child in ipairs(self.children) do
@@ -383,7 +432,11 @@ function sym_mt:__add(other)
 		table.insert(exp.children, self)
 	end
 
-	if other.type and other.type == EXP_TYPE.ADD then
+	if type(other) == "number" then
+		local constant = create_constant()
+		constant.value = other
+		table.insert(exp.children, constant)
+	elseif other.type and other.type == EXP_TYPE.ADD then
 		for _, child in ipairs(other.children) do
 			table.insert(exp.children, child)
 		end
@@ -441,6 +494,23 @@ function exp_methods:simplify()
 		end
 
 		if self.type == EXP_TYPE.ADD then
+			local all_terms = 0
+			local new_children_simplified = {}
+			for i=1,#children_simplified do
+				if children_simplified[i].type == EXP_TYPE.CONSTANT then
+					all_terms = all_terms + children_simplified[i].value
+				else
+					table.insert(new_children_simplified, children_simplified[i])
+				end
+			end
+
+			if all_terms ~= 0 then
+				local constant = create_constant()
+				constant.value = all_terms
+				table.insert(new_children_simplified, 1, constant)
+			end
+
+			children_simplified = new_children_simplified
 			local exp = create_add_exp()
 			local terms = {}
 			local coeffs = {}
@@ -448,6 +518,7 @@ function exp_methods:simplify()
 			for i=1,#children_simplified do
 				local candidate = children_simplified[i]
 				candidate = candidate:normal_form()
+
 
 				local found = false
 				for j=1,#terms do
@@ -482,7 +553,7 @@ function exp_methods:simplify()
 						exp = create_mul_exp()
 						exp.children = { create_constant(coeffs[i]), terms[i] }
 					end
-					table.insert(add_exp.children, exp)
+					table.insert(add_exp.children, exp:simplify())
 				else
 					table.insert(add_exp.children, terms[i])
 				end
@@ -493,6 +564,24 @@ function exp_methods:simplify()
 		end
 
 		if self.type == EXP_TYPE.MUL then
+			local all_factor = 1
+			local new_children_simplified = {}
+			for i=1,#children_simplified do
+				if children_simplified[i].type == EXP_TYPE.CONSTANT then
+					all_factor = all_factor * children_simplified[i].value
+				else
+					table.insert(new_children_simplified, children_simplified[i])
+				end
+			end
+
+			if all_factor ~= 1 then
+				local constant = create_constant()
+				constant.value = all_factor
+				table.insert(new_children_simplified, 1, constant)
+			end
+
+			children_simplified = new_children_simplified
+
 			local exp = create_mul_exp()
 			exp.children = children_simplified
 			return exp
@@ -531,6 +620,7 @@ add_exp_mt.__mul = sym_mt.__mul
 mul_exp_mt.__add = sym_mt.__add
 
 sym_methods.simplify = exp_methods.simplify
+constant_methods.simplify = exp_methods.simplify
 
 return M
 
