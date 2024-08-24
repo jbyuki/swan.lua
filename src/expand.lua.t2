@@ -30,11 +30,12 @@ end
 
 ;; implement
 function sym_methods:clone()
-	local sym = {}
-	sym.name = self.name
-	; set type sym
-	; register scalar sym metamethods
-	return sym
+	-- local sym = {}
+	-- sym.name = self.name
+	-- ; set type sym
+	-- ; register scalar sym metamethods
+	-- return sym
+	return self
 end
 
 ;; exp types
@@ -57,10 +58,13 @@ if self.type == EXP_TYPE.MUL then
 	local new_children = {}
 	; expand all add exp children
 
-	local exp = {}
-	exp.type = EXP_TYPE.ADD
-	exp.children = new_children
-	; register add expression metamethods
+	local exp
+	if #new_children > 1 then
+		exp = create_add_exp()
+		exp.children = new_children
+	else
+		exp = new_children[1]
+	end
 	return exp
 
 ;; otherwise expand none
@@ -86,10 +90,7 @@ while true do
 end
 
 ;; create mul expression from idx
-local exp = {}
-exp.type = EXP_TYPE.MUL
-exp.children = {}
-; register mul expression metamethods
+local exp = create_mul_exp()
 
 for i=1,#expanded_children do
 	if expanded_children[i].type == EXP_TYPE.ADD then

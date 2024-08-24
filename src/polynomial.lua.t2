@@ -46,7 +46,7 @@ end
 
 ;; check that all are monomials
 for i=1,#norm_form.children do
-	assert(norm_form.children[i]:is_monomial())
+	assert(norm_form.children[i]:is_monomial(), tostring(norm_form.children[i]))
 end
 
 ;; collect all gens and coeffs
@@ -73,12 +73,44 @@ if term.type == EXP_TYPE.CONSTANT then
 elseif term.type == EXP_TYPE.SCALAR then
 	; check symbol is in generator 
 elseif term.type == EXP_TYPE.MUL then
-	; detect gen for mul exp
+	; detect gen for monomial mul exp
 else
 	assert(false)
 end
 
-;; check symbol is in generator 
-for j=1,#vars do
-
+;; construct vars lookup
+local vars_lookup = {}
+for i=1,#vars do
+	vars_lookup[vars[i]] = i
 end
+
+;; check symbol is in generator 
+local idx = vars_lookup[term]
+if idx then
+	table.insert(coeffs, 1)
+	gen[idx] = 1
+else
+	table.insert(coeffs, term)
+end
+
+;; detect gen for monomial mul exp
+for j=1,#term.children do
+	local found_gen = false
+	if term.children[j].type == EXP_TYPE.SCALAR then
+		local idx = vars_lookup[term.children[j]]
+		if idx then
+			gen[idx] = gen[idx] + 1
+			found_gen = true
+		end
+	end
+
+	if not found_gen then
+		table.insert(coeffs, term.children[j])
+	end
+end
+
+;; add coeff to gen
+local coeff_exp = create_mul_exp()
+coeff_exp.children = coeffs
+io.write(tostring(coeff_exp) .. "\n")
+io.write(vim.inspect(gen) .. "\n")

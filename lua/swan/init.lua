@@ -111,10 +111,7 @@ function exp_methods:expand()
 		end
 
 		while true do
-			local exp = {}
-			exp.type = EXP_TYPE.MUL
-			exp.children = {}
-			exp = setmetatable(exp, mul_exp_mt)
+			local exp = create_mul_exp()
 
 			for i=1,#expanded_children do
 				if expanded_children[i].type == EXP_TYPE.ADD then
@@ -146,11 +143,13 @@ function exp_methods:expand()
 		end
 
 
-		local exp = {}
-		exp.type = EXP_TYPE.ADD
-		exp.children = new_children
-		exp = setmetatable(exp, add_exp_mt)
-
+		local exp
+		if #new_children > 1 then
+			exp = create_add_exp()
+			exp.children = new_children
+		else
+			exp = new_children[1]
+		end
 		return exp
 
 	elseif self.type == EXP_TYPE.ADD then
@@ -167,13 +166,12 @@ function exp_methods:expand()
 end
 
 function sym_methods:clone()
-	local sym = {}
-	sym.name = self.name
-	sym.type = EXP_TYPE.SCALAR
-
-	sym = setmetatable(sym, sym_mt)
-
-	return sym
+	-- local sym = {}
+	-- sym.name = self.name
+	-- ; set type sym
+	-- ; register scalar sym metamethods
+	-- return sym
+	return self
 end
 
 function constant_methods:clone()
@@ -335,9 +333,14 @@ function M.poly(exp, ...)
 	end
 
 	for i=1,#norm_form.children do
-		assert(norm_form.children[i]:is_monomial())
+		assert(norm_form.children[i]:is_monomial(), tostring(norm_form.children[i]))
 	end
 
+
+	local vars_lookup = {}
+	for i=1,#vars do
+		vars_lookup[vars[i]] = i
+	end
 
 	for i=1,#norm_form.children do
 		local term = norm_form.children[i]
@@ -350,14 +353,38 @@ function M.poly(exp, ...)
 		if term.type == EXP_TYPE.CONSTANT then
 			table.insert(coeffs, term)
 		elseif term.type == EXP_TYPE.SCALAR then
-			for j=1,#vars do
-
+			local idx = vars_lookup[term]
+			if idx then
+				table.insert(coeffs, 1)
+				gen[idx] = 1
+			else
+				table.insert(coeffs, term)
 			end
+
 		elseif term.type == EXP_TYPE.MUL then
+			for j=1,#term.children do
+				local found_gen = false
+				if term.children[j].type == EXP_TYPE.SCALAR then
+					local idx = vars_lookup[term.children[j]]
+					if idx then
+						gen[idx] = gen[idx] + 1
+						found_gen = true
+					end
+				end
+
+				if not found_gen then
+					table.insert(coeffs, term.children[j])
+				end
+			end
+
 		else
 			assert(false)
 		end
 
+		local coeff_exp = create_mul_exp()
+		coeff_exp.children = coeffs
+		io.write(tostring(coeff_exp) .. "\n")
+		io.write(vim.inspect(gen) .. "\n")
 	end
 
 end
