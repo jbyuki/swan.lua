@@ -6,7 +6,6 @@
 ; test symbols
 ; show results
 ; stop debugger
-; プレイグランド
 
 ;; start debugger
 require"osv".launch { port = 8086 }
@@ -55,11 +54,7 @@ swan.poly(cubic, a, b)
 
 ;; playground
 ; reload
-local a,b = swan.symbols "a b"
-local eq = (a+b)^3
+local a,b,c = swan.symbols "a b c"
+local eq = (a+b+c)^4
 eq = eq:expand():simplify()
 io.write(tostring(eq))
-
-;; プレイグランド
-print("hello")
-

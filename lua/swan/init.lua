@@ -16,6 +16,10 @@ local is_integer
 
 local constant_mt = {}
 
+local superscript = {
+	["0"] = "⁰", ["1"] = "¹", ["2"] = "²", ["3"] = "³", ["4"] = "⁴", ["5"] = "⁵", ["6"] = "⁶", ["7"] = "⁷", ["8"] = "⁸", ["9"] = "⁹"
+}
+
 local sym_mt = {}
 
 local EXP_TYPE = {
@@ -419,12 +423,44 @@ function mul_exp_mt:__tostring()
 		end
 	end
 
-	return table.concat(children_str, "*")
+	local power = {}
+	local factors = {}
+	local last_child
+
+	for i=1,#children_str do
+		local child = children_str[i]
+		if last_child == child then
+			power[#power] = power[#power] + 1
+		else
+			table.insert(power, 1)
+			table.insert(factors, child)
+		end
+		last_child = factors[#factors]
+	end
+
+	local elems = {}
+	for i=1,#factors do
+		if power[i] == 1 then
+			table.insert(elems, factors[i])
+		else
+			local sup = tostring(power[i])
+			local new_sup = ""
+			for j=1,#sup do
+				new_sup = new_sup .. superscript[sup:sub(j,j)]
+			end
+			sup = new_sup
+			table.insert(elems, factors[i] .. sup)
+		end
+	end
+
+	return table.concat(elems,"")
+
 end
 
 function constant_mt:__tostring()
 	return tostring(self.value)
 end
+
 function sym_mt:__add(other)
 	local exp = {}
 	exp.type = EXP_TYPE.ADD
