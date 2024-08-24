@@ -111,6 +111,11 @@ end
 
 ;; add coeff to gen
 local coeff_exp = create_mul_exp()
+if #coeffs == 0 then
+	local constant = create_constant()
+	constant.value = 1
+	table.insert(coeffs, constant)
+end
 coeff_exp.children = coeffs
 io.write(tostring(coeff_exp) .. "\n")
 io.write(vim.inspect(gen) .. "\n")
