@@ -19,8 +19,8 @@ swan = require"swan"
 
 ;; test symbols
 local a, b = swan.symbols "a b"
-local eq = (a+b)^2
-eq = eq:expand()
+local eq = (a+b)^4
+eq = eq:expand():simplify()
 io.write(tostring(eq))
 
 ;; playground
