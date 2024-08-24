@@ -56,8 +56,6 @@ swan.poly(cubic, a, b)
 ; reload
 local a,b = swan.symbols "a b"
 local eq = (a+b)^4
-eq = eq:expand():simplify()
-io.write(tostring(eq) .. "\n")
-swan.poly(eq, a, b)
+swan.poly(eq, a)
 
 

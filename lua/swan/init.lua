@@ -388,8 +388,7 @@ function M.poly(exp, ...)
 			table.insert(coeffs, constant)
 		end
 		coeff_exp.children = coeffs
-		io.write(tostring(coeff_exp) .. "\n")
-		io.write(vim.inspect(gen) .. "\n")
+		io.write(tostring(coeff_exp) .. " " .. vim.inspect(gen) .. "\n")
 	end
 
 end
