@@ -12,6 +12,8 @@ local create_add_exp
 
 local create_mul_exp
 
+local create_poly
+
 local is_integer
 
 local constant_mt = {}
@@ -175,11 +177,8 @@ function sym_methods:clone()
 end
 
 function constant_methods:clone()
-	local constant = {}
-	constant.type = EXP_TYPE.CONSTANT
+	local constant = create_constant()
 	constant.value = self.value
-	constant = setmetatable(constant, constant_mt)
-
 	return constant
 end
 function M.symbols(str)
@@ -342,6 +341,8 @@ function M.poly(exp, ...)
 		vars_lookup[vars[i]] = i
 	end
 
+	local all_gens = {}
+
 	for i=1,#norm_form.children do
 		local term = norm_form.children[i]
 		local gen = {}
@@ -388,9 +389,77 @@ function M.poly(exp, ...)
 			table.insert(coeffs, constant)
 		end
 		coeff_exp.children = coeffs
-		io.write(tostring(coeff_exp) .. " " .. vim.inspect(gen) .. "\n")
+
+		local curmap = all_gens
+		local acc = nil
+		for i=1,#gen do
+			if i == #gen then
+				acc = curmap[gen[i]]
+				if not acc then
+					acc = create_add_exp()
+					curmap[gen[i]] = acc
+				end
+			else
+				if not curmap[gen[i]] then
+					curmap[gen[i]] = {}
+				end
+				curmap = curmap[gen[i]]
+			end
+		end
+
+		table.insert(acc.children, coeff_exp)
+
+
 	end
 
+	local current = {}
+	current[{}] = all_gens
+
+	for i=1,#vars do
+		local next = {}
+		for gen, curmap in pairs(current) do
+			for geni, nmap in pairs(curmap) do
+				local ngen = {}
+				for _, g in ipairs(gen) do
+					table.insert(ngen, g)
+				end
+				table.insert(ngen, geni)
+				next[ngen] = nmap
+			end
+		end
+		current = next
+	end
+
+	for gen, coeffs in pairs(current) do
+		current[gen] = coeffs:simplify()
+	end
+
+	local sorted_gens = {}
+	for gen, coeffs in pairs(current) do
+		table.insert(sorted_gens, gen)
+	end
+
+	table.sort(sorted_gens, function(a,b)
+		for i=1,#a do
+			if a[i] < b[i] then
+				return true
+			elseif a[i] > b[i] then
+				return false
+			end
+		end
+	end)
+
+	local poly = create_poly()
+
+	poly.gens = sorted_gens
+
+	for _, gen in ipairs(sorted_gens) do
+		table.insert(poly.coeffs, current[gen])
+	end
+
+
+
+	return poly
 end
 
 function constant_methods:is_monomial()
@@ -408,6 +477,13 @@ function exp_methods:is_monomial()
 		return true
 	end
 	return false
+end
+
+function create_poly()
+	local poly = {}
+	poly.gens = {}
+	poly.coeffs = {}
+	return poly
 end
 
 function sym_mt:__pow(sup)
@@ -639,6 +715,11 @@ function exp_methods:simplify()
 
 			end
 
+			if #add_exp.children == 1 then
+				return add_exp.children[1]
+			end
+
+
 			return exp
 		end
 
@@ -660,6 +741,16 @@ function exp_methods:simplify()
 			end
 
 			children_simplified = new_children_simplified
+
+			if #children_simplified == 0 then
+				local exp = create_constant()
+				exp.value = all_factor
+				return exp
+			end
+
+			if #children_simplified == 1 then
+				return children_simplified[1]
+			end
 
 			local exp = create_mul_exp()
 			exp.children = children_simplified

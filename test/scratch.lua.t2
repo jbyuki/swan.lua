@@ -54,8 +54,9 @@ swan.poly(cubic, a, b)
 
 ;; playground
 ; reload
-local a,b = swan.symbols "a b"
-local eq = (a+b)^4
-swan.poly(eq, a)
+local a,b,c = swan.symbols "a b c"
+local eq = (a+b+c)^4
+local p = swan.poly(eq, a, b)
+io.write(tostring(p.coeffs[1]))
 
 

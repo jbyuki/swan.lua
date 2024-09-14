@@ -7,6 +7,7 @@ function M.poly(exp, ...)
 	; construct vars lookup
 	; collect all gens and coeffs
 	; create poly object with gens and coeffs
+	return poly
 end
 
 ;; check that all vars are scalar symbols
@@ -117,4 +118,101 @@ if #coeffs == 0 then
 	table.insert(coeffs, constant)
 end
 coeff_exp.children = coeffs
-io.write(tostring(coeff_exp) .. " " .. vim.inspect(gen) .. "\n")
+
+; get current coeff for gen
+; accumulate coeff to accumulator
+
+;;- collect all gens and coeffs
+local all_gens = {}
+
+;; get current coeff for gen
+local curmap = all_gens
+local acc = nil
+for i=1,#gen do
+	if i == #gen then
+		acc = curmap[gen[i]]
+		if not acc then
+			acc = create_add_exp()
+			curmap[gen[i]] = acc
+		end
+	else
+		if not curmap[gen[i]] then
+			curmap[gen[i]] = {}
+		end
+		curmap = curmap[gen[i]]
+	end
+end
+
+;; accumulate coeff to accumulator
+table.insert(acc.children, coeff_exp)
+
+;; create poly object with gens and coeffs
+; get all coeffs with gens with bfs
+; simplify all coeffs
+; sort all gens
+; create poly object
+; store coeffs and gens in poly object
+
+;; get all coeffs with gens with bfs
+local current = {}
+current[{}] = all_gens
+
+for i=1,#vars do
+	local next = {}
+	for gen, curmap in pairs(current) do
+		for geni, nmap in pairs(curmap) do
+			local ngen = {}
+			for _, g in ipairs(gen) do
+				table.insert(ngen, g)
+			end
+			table.insert(ngen, geni)
+			next[ngen] = nmap
+		end
+	end
+	current = next
+end
+
+;; simplify all coeffs
+for gen, coeffs in pairs(current) do
+	current[gen] = coeffs:simplify()
+end
+
+;; sort all gens
+local sorted_gens = {}
+for gen, coeffs in pairs(current) do
+	table.insert(sorted_gens, gen)
+end
+
+table.sort(sorted_gens, function(a,b)
+	for i=1,#a do
+		if a[i] < b[i] then
+			return true
+		elseif a[i] > b[i] then
+			return false
+		end
+	end
+end)
+
+;; variables
+local create_poly
+
+;; implement
+function create_poly()
+	local poly = {}
+	; register poly metamethods
+	poly.gens = {}
+	poly.coeffs = {}
+	return poly
+end
+
+;; create poly object
+local poly = create_poly()
+
+;; store coeffs and gens in poly object
+poly.gens = sorted_gens
+
+for _, gen in ipairs(sorted_gens) do
+	table.insert(poly.coeffs, current[gen])
+end
+
+

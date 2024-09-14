@@ -134,9 +134,7 @@ end
 
 ;; implement
 function constant_methods:clone()
-	local constant = {}
-	constant.type = EXP_TYPE.CONSTANT
+	local constant = create_constant()
 	constant.value = self.value
-	; register constant metamethods
 	return constant
 end

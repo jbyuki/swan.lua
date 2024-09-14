@@ -33,8 +33,22 @@ end
 ;; if mul exp leave children as is
 if self.type == EXP_TYPE.MUL then
 	; combine constant factor mul
+	; if only constant factors return as constant
+	; if only one return child as is
 	local exp = create_mul_exp()
 	exp.children = children_simplified
+	return exp
+end
+
+;; if only one return child as is
+if #children_simplified == 1 then
+	return children_simplified[1]
+end
+
+;; if only constant factors return as constant
+if #children_simplified == 0 then
+	local exp = create_constant()
+	exp.value = all_factor
 	return exp
 end
 
@@ -55,7 +69,14 @@ if self.type == EXP_TYPE.ADD then
 		; create term with coefficient
 	end
 
+	; if only one add exp child return child
+
 	return exp
+end
+
+;; if only one add exp child return child
+if #add_exp.children == 1 then
+	return add_exp.children[1]
 end
 
 ;; variables
