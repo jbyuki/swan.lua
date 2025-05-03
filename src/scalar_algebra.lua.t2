@@ -114,3 +114,59 @@ mul_exp_mt.__add = sym_mt.__add
 
 ;; register mul expression metamethods
 exp = setmetatable(exp, mul_exp_mt)
+
+;; implement
+function sym_mt:__sub(other)
+	; create add expression
+	; register add expression metamethods
+	; collect self add expression
+	; collect other add expression with negative one
+	return exp
+end
+
+;; collect other add expression with negative one
+if type(other) == "number" then
+	local constant = create_constant()
+	constant.value = other
+	table.insert(exp.children, -constant)
+elseif other.type and other.type == EXP_TYPE.ADD then
+	for _, child in ipairs(other.children) do
+		table.insert(exp.children, -child)
+	end
+else
+	table.insert(exp.children, -other)
+end
+
+;; implement
+function sym_mt:__unm()
+	if self.type == EXP_TYPE.CONSTANT then
+		local result = create_constant()
+		result.value = -self.value
+		return result
+	elseif self.type == EXP_TYPE.ADD then
+		local exp = create_add_exp()
+		for i=1,#result.children do
+			table.insert(exp.children, -self.children[i])
+		end
+		return exp
+	else
+		local exp = create_mul_exp()
+		local constant = create_constant()
+		constant.value = -1
+		table.insert(exp.children, constant)
+		if self.type == EXP_TYPE.MUL then
+			for _,child in ipairs(self.children) do
+				table.insert(exp.children, child)
+			end
+		else
+			table.insert(exp.children, self)
+		end
+		return exp
+	end
+end
+
+;; copy metamethods
+add_exp_mt.__unm = sym_mt.__unm
+mul_exp_mt.__unm = sym_mt.__unm
+add_exp_mt.__sub = sym_mt.__sub
+mul_exp_mt.__sub = sym_mt.__sub

@@ -313,10 +313,39 @@ function create_mul_exp()
 	exp.type = EXP_TYPE.MUL
 	exp.children = {}
 	exp = setmetatable(exp, mul_exp_mt)
+
 	return exp
 end
 
 function M.poly(exp, ...)
+	return M.poly_with_order(exp, 'lex', ...)
+end
+
+function constant_methods:is_monomial()
+	return true
+end
+
+function sym_methods:is_monomial()
+	return true
+end
+
+function exp_methods:is_monomial()
+	if self.type == EXP_TYPE.ADD then
+		return false
+	elseif self.type == EXP_TYPE.MUL then
+		return true
+	end
+	return false
+end
+
+function create_poly()
+	local poly = {}
+	poly.gens = {}
+	poly.coeffs = {}
+	return poly
+end
+
+function M.poly_with_order(exp, order, ...)
 	local vars = { ... }
 	for i=1,#vars do
 		assert(vars[i].type == EXP_TYPE.SCALAR)
@@ -449,6 +478,73 @@ function M.poly(exp, ...)
 		end
 	end)
 
+	local sorted_gens = {}
+	for gen, coeffs in pairs(current) do
+		table.insert(sorted_gens, gen)
+	end
+
+	if order == 'lex' then
+		table.sort(sorted_gens, function(a,b)
+			for i=1,#a do
+				if a[i] < b[i] then
+					return true
+				elseif a[i] > b[i] then
+					return false
+				end
+			end
+
+		end)
+	elseif order == 'grlex' then
+		table.sort(sorted_gens, function(a,b)
+			local total_a = 0
+			local total_b = 0
+			for i=1,#a do
+				total_a = total_a + a[i]
+				total_b = total_b + b[i]
+			end
+
+			if total_a < total_b then
+				return true
+			elseif total_a > total_b then
+				return false
+			else
+				for i=1,#a do
+					if a[i] < b[i] then
+						return true
+					elseif a[i] > b[i] then
+						return false
+					end
+				end
+
+			end
+		end)
+	elseif order == 'grevlex' then
+		table.sort(sorted_gens, function(a,b)
+			local total_a = 0
+			local total_b = 0
+			for i=1,#a do
+				total_a = total_a + a[i]
+				total_b = total_b + b[i]
+			end
+
+
+			if total_a < total_b then
+				return true
+			elseif total_a > total_b then
+				return false
+			else
+				for i=#a,1 do
+					if a[i] - b[i] < 0 then
+						return false
+					elseif a[i] - b[i] > 0 then
+						return true
+					end
+				end
+				return true
+			end
+		end)
+	end
+
 	local poly = create_poly()
 
 	poly.gens = sorted_gens
@@ -462,30 +558,6 @@ function M.poly(exp, ...)
 	return poly
 end
 
-function constant_methods:is_monomial()
-	return true
-end
-
-function sym_methods:is_monomial()
-	return true
-end
-
-function exp_methods:is_monomial()
-	if self.type == EXP_TYPE.ADD then
-		return false
-	elseif self.type == EXP_TYPE.MUL then
-		return true
-	end
-	return false
-end
-
-function create_poly()
-	local poly = {}
-	poly.gens = {}
-	poly.coeffs = {}
-	return poly
-end
-
 function sym_mt:__pow(sup)
 	assert(type(sup) == "number", "exponent must be a constant number")
 	assert(is_integer(sup), "exponent must be a constant integer number")
@@ -494,6 +566,7 @@ function sym_mt:__pow(sup)
 	exp.type = EXP_TYPE.MUL
 	exp.children = {}
 	exp = setmetatable(exp, mul_exp_mt)
+
 
 	for i=1,sup do
 		table.insert(exp.children, self)
@@ -608,6 +681,7 @@ function sym_mt:__mul(other)
 	exp.children = {}
 
 	exp = setmetatable(exp, mul_exp_mt)
+
 	if type(self) == "number" then
 		local constant = {}
 		constant.type = EXP_TYPE.CONSTANT
@@ -632,6 +706,67 @@ function sym_mt:__mul(other)
 	end
 
 	return exp
+end
+
+function sym_mt:__sub(other)
+	local exp = {}
+	exp.type = EXP_TYPE.ADD
+	exp.children = {}
+
+	exp = setmetatable(exp, add_exp_mt)
+
+	if type(self) == "number" then
+		local constant = create_constant()
+		constant.value = self
+		table.insert(exp.children, constant)
+	elseif self.type and self.type == EXP_TYPE.ADD then
+		for _, child in ipairs(self.children) do
+			table.insert(exp.children, child)
+		end
+	else
+		table.insert(exp.children, self)
+	end
+
+	if type(other) == "number" then
+		local constant = create_constant()
+		constant.value = other
+		table.insert(exp.children, -constant)
+	elseif other.type and other.type == EXP_TYPE.ADD then
+		for _, child in ipairs(other.children) do
+			table.insert(exp.children, -child)
+		end
+	else
+		table.insert(exp.children, -other)
+	end
+
+	return exp
+end
+
+function sym_mt:__unm()
+	if self.type == EXP_TYPE.CONSTANT then
+		local result = create_constant()
+		result.value = -self.value
+		return result
+	elseif self.type == EXP_TYPE.ADD then
+		local exp = create_add_exp()
+		for i=1,#result.children do
+			table.insert(exp.children, -self.children[i])
+		end
+		return exp
+	else
+		local exp = create_mul_exp()
+		local constant = create_constant()
+		constant.value = -1
+		table.insert(exp.children, constant)
+		if self.type == EXP_TYPE.MUL then
+			for _,child in ipairs(self.children) do
+				table.insert(exp.children, child)
+			end
+		else
+			table.insert(exp.children, self)
+		end
+		return exp
+	end
 end
 
 function exp_methods:simplify()
@@ -789,6 +924,10 @@ mul_exp_mt.__mul = sym_mt.__mul
 add_exp_mt.__mul = sym_mt.__mul
 mul_exp_mt.__add = sym_mt.__add
 
+add_exp_mt.__unm = sym_mt.__unm
+mul_exp_mt.__unm = sym_mt.__unm
+add_exp_mt.__sub = sym_mt.__sub
+mul_exp_mt.__sub = sym_mt.__sub
 sym_methods.simplify = exp_methods.simplify
 constant_methods.simplify = exp_methods.simplify
 

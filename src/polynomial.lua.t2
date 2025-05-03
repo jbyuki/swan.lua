@@ -1,13 +1,7 @@
 ;;; swan
 ;; implement
 function M.poly(exp, ...)
-	local vars = { ... }
-	; check that all vars are scalar symbols
-	; put exp in expanded normal form
-	; construct vars lookup
-	; collect all gens and coeffs
-	; create poly object with gens and coeffs
-	return poly
+	return M.poly_with_order(exp, 'lex', ...)
 end
 
 ;; check that all vars are scalar symbols

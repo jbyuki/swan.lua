@@ -59,4 +59,13 @@ local eq = (a+b+c)^4
 local p = swan.poly(eq, a, b)
 io.write(tostring(p.coeffs[1]))
 
+;; playground
+; reload
+local x,y,z = swan.symbols "x y z"
+local eq = 4*x*y^2*z + 4*z^2 - 5*x^3 + 7*x^2*z^2
+eq = eq:simplify()
+io.write(tostring(eq))
+-- local p = swan.poly_with_order(eq, "lex", x, y, z)
+-- io.write(vim.inspect(p))
 
+;; playground
