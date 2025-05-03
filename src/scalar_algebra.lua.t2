@@ -173,3 +173,4 @@ mul_exp_mt.__sub = sym_mt.__sub
 constant_mt.__unm = sym_mt.__unm
 constant_mt.__sub = sym_mt.__sub
 constant_mt.__add = sym_mt.__add
+constant_mt.__mul = sym_mt.__mul
