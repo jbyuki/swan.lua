@@ -82,7 +82,7 @@ end
 ;; check symbol is in generator 
 local idx = vars_lookup[term]
 if idx then
-	table.insert(coeffs, 1)
+	table.insert(coeffs, create_constant(1))
 	gen[idx] = 1
 else
 	table.insert(coeffs, term)

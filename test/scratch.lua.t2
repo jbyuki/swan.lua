@@ -65,3 +65,10 @@ local x,y,z = swan.symbols "x y z"
 local eq = 4*x*y^2*z + 4*z^2 - 5*x^3 + 7*x^2*z^2
 local p = swan.poly_with_order(eq, "grevlex", x, y, z)
 io.write(tostring(p))
+
+;; playground
+; reload
+local x,y,z = swan.symbols "x y z"
+local eq = z*x - y
+local p = swan.poly_with_order(eq, "grevlex", y)
+io.write(tostring(p))

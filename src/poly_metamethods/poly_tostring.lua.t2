@@ -27,6 +27,12 @@ end
 
 ;; poly coeff to string
 term = tostring(coeff)  
+if term == "1" then
+  term = ""
+elseif term == "-1" then
+  term = "-"
+end
+
 if result ~= "" then
   term = " + " .. term 
 end

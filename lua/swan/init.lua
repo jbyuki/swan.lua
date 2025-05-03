@@ -1,5 +1,7 @@
 -- Generated using ntangle.nvim
 local M = {}
+local poly_methods = {}
+
 local exp_methods = {}
 
 local sym_methods = {}
@@ -43,6 +45,18 @@ local mul_exp_mt = {}
 
 local create_constant
 
+function poly_methods:same_ring(other)
+  if #self.vars ~= other.vars then
+    return false
+  end
+
+  for i=1,#self.vars do
+    if self.vars[i] ~= other.vars[i] then
+      return false
+    end
+  end
+  return true
+end
 function constant_mt:__lt(other)
 	assert(other.type == self.type)
 	return self.value < other.value
@@ -390,7 +404,7 @@ function M.poly_with_order(exp, order, ...)
 		elseif term.type == EXP_TYPE.SCALAR then
 			local idx = vars_lookup[term]
 			if idx then
-				table.insert(coeffs, 1)
+				table.insert(coeffs, create_constant(1))
 				gen[idx] = 1
 			else
 				table.insert(coeffs, term)
@@ -556,6 +570,12 @@ function poly_mt:__tostring()
     local coeff = self.coeffs[i]
     local term = ""
     term = tostring(coeff)  
+    if term == "1" then
+      term = ""
+    elseif term == "-1" then
+      term = "-"
+    end
+
     if result ~= "" then
       term = " + " .. term 
     end
@@ -932,6 +952,8 @@ function create_constant(value)
 
 	return constant
 end
+
+poly_mt.__index = poly_methods
 
 mul_exp_mt.__lt = add_exp_mt.__lt
 mul_exp_mt.__eq = add_exp_mt.__eq
