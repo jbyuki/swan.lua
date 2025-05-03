@@ -1,6 +1,6 @@
 ## swan.lua
 
-A _work-in-progress_ symbolic math toolbox written in Lua.
+A _work-in-progress_ symbolic math toolbox written in Lua for learning purposes.
 
 ### Goals
 
