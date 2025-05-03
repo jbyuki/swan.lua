@@ -5,7 +5,7 @@ A _work-in-progress_ symbolic math toolbox written in Lua.
 ### Goals
 
 * Fast manipulation of large polynomials
-* Implement algorithms from [^1]. " 
+* Implement algorithms from [^1].
 
 ### Quickstart
 
