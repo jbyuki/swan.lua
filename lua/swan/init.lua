@@ -582,7 +582,7 @@ function poly_mt:__tostring()
   for i=1,#self.vars do
     table.insert(vars, tostring(self.vars[i]))
   end
-  result = result .. " ∈ ℝ[" .. table.concat(vars, ",") .. "]"
+  result = result .. " ∈ k[" .. table.concat(vars, ",") .. "]"
   return result
 end
 
