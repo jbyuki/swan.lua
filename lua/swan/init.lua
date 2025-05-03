@@ -75,11 +75,21 @@ function poly_methods:lm()
       end
     end
   end
+
+  if #mono.children == 0 then
+    table.insert(mono.children, create_constant(1))
+  end
   return mono
 end
 
 function poly_methods:lt()
-  return self:lc() * self:lm()
+  local lc = self:lc()
+  local lm = self:lm()
+  if lc.type == EXP_TYPE.CONSTANT and lc.value == 1 then
+    return lm
+  else
+    return lc * lm
+  end
 end
 function constant_mt:__lt(other)
 	assert(other.type == self.type)
@@ -1015,6 +1025,8 @@ add_exp_mt.__unm = sym_mt.__unm
 mul_exp_mt.__unm = sym_mt.__unm
 add_exp_mt.__sub = sym_mt.__sub
 mul_exp_mt.__sub = sym_mt.__sub
+constant_mt.__unm = sym_mt.__unm
+constant_mt.__sub = sym_mt.__sub
 sym_methods.simplify = exp_methods.simplify
 constant_methods.simplify = exp_methods.simplify
 

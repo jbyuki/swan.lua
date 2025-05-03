@@ -75,7 +75,7 @@ io.write(tostring(p))
 ;; playground
 ; reload
 local x,y = swan.symbols "x y z"
-local f = swan.poly_with_order(x*y^2+1, "lex", x,y)
-local f1 = swan.poly_with_order(x*y+1, "lex", x,y)
-local f2 = swan.poly_with_order(y+1, "lex", x,y)
-io.write(tostring(f2))
+local f = swan.poly_with_order(x^2*y+x*y^2+y^2, "lex", x,y)
+local f1 = swan.poly_with_order(x*y - 1, "lex", x,y)
+local f2 = swan.poly_with_order(y^2 - 1, "lex", x,y)
+io.write(tostring(f1))
