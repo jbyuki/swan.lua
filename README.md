@@ -17,6 +17,8 @@ eq = eq:expand():simplify()
 print(eq) -- => a⁴ + 4a³b + 6a²b² + 4ab³ + b⁴
 ```
 
+Also see [scratch.lua.t2](test/scratch.lua.t2).
+
 More to come...
 
 [^1]: [Cox, David, et al. Ideals, varieties, and algorithms. Vol. 3. New York: Springer, 1997.](https://link.springer.com/book/10.1007/978-3-319-16721-3)
