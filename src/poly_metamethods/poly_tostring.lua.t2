@@ -21,6 +21,7 @@ function poly_mt:__tostring()
     end
     result = result .. term
   end
+  ; print polynomial ring
   return result
 end
 
@@ -41,3 +42,10 @@ if gen[i] ~= 1 then
 else
   sup = ""
 end
+
+;; print polynomial ring
+local vars = {}
+for i=1,#self.vars do
+  table.insert(vars, tostring(self.vars[i]))
+end
+result = result .. " ∈ ℝ[" .. table.concat(vars, ",") .. "]"

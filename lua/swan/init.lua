@@ -572,11 +572,17 @@ function poly_mt:__tostring()
         else
           sup = ""
         end
+
         term = term .. tostring(self.vars[i]) .. sup
       end
     end
     result = result .. term
   end
+  local vars = {}
+  for i=1,#self.vars do
+    table.insert(vars, tostring(self.vars[i]))
+  end
+  result = result .. " ∈ ℝ[" .. table.concat(vars, ",") .. "]"
   return result
 end
 
