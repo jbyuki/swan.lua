@@ -570,9 +570,9 @@ function poly_mt:__tostring()
     local coeff = self.coeffs[i]
     local term = ""
     term = tostring(coeff)  
-    if term == "1" then
+    if term == "1" and not is_zero_gen(gen) then
       term = ""
-    elseif term == "-1" then
+    elseif term == "-1" and not is_zero_gen(gen) then
       term = "-"
     end
 
@@ -604,6 +604,15 @@ function poly_mt:__tostring()
   end
   result = result .. " ∈ k[" .. table.concat(vars, ",") .. "]"
   return result
+end
+
+function is_zero_gen(gen)
+  for i=1,#gen do
+    if gen[i] ~= 0 then
+      return false
+    end
+  end
+  return true
 end
 
 function sym_mt:__pow(sup)
