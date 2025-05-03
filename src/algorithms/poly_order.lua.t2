@@ -16,7 +16,7 @@ function poly_methods:lm()
   for i=1,#last_gen do
     if last_gen[i] > 0 then
       for j=1,last_gen[i] do
-        table.insert(mono.children, self.vars[i])
+        table.insert(mono.children, self.ring.vars[i])
       end
     end
   end

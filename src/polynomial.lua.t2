@@ -1,7 +1,16 @@
 ;;; swan
 ;; implement
-function M.poly(exp, ...)
-	return M.poly_with_order(exp, 'lex', ...)
+function M.poly(exp, poly_ring, order)
+	order = order or 'lex'
+
+	local vars = poly_ring.vars
+	; check that all vars are scalar symbols
+	; put exp in expanded normal form
+	; construct vars lookup
+	; collect all gens and coeffs
+	; create poly object with gens and coeffs
+	; update poly lookup gens
+	return poly
 end
 
 ;; check that all vars are scalar symbols
@@ -146,8 +155,6 @@ table.insert(acc.children, coeff_exp)
 ; sort all gens
 ; create poly object
 ; store coeffs and gens in poly object
-; store vars in poly object
-; store mono order function
 
 ;; get all coeffs with gens with bfs
 local current = {}
@@ -178,24 +185,22 @@ end
 local create_poly
 
 ;; implement
-function create_poly()
+function create_poly(ring)
 	local poly = {}
 	; register poly metamethods
 	poly.gens = {}
 	poly.coeffs = {}
-	poly.vars = {}
+	poly.ring = ring
 	return poly
 end
 
 ;; create poly object
-local poly = create_poly()
+local poly = create_poly(poly_ring)
 
 ;; store coeffs and gens in poly object
-poly.gens = sorted_gens
+; get gen from polynomial ring
+poly.gens = ring_gens
 
 for _, gen in ipairs(sorted_gens) do
 	table.insert(poly.coeffs, current[gen])
 end
-
-;; store vars in poly object
-poly.vars = vars

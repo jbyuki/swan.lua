@@ -1,0 +1,56 @@
+;;; ../swan
+;; implement
+function poly_methods:update_lookup()
+  self.gen_lookup = {}
+  for i=1,#self.gens do
+    self.gen_lookup[self.gens[i]] = i
+  end
+end
+
+;; update poly lookup gens
+poly:update_lookup()
+
+;; implement
+function poly_mt:__add(other)
+  assert(self.ring == other.ring)
+
+  local gens = {}
+  local coeffs = {}
+  local overlap = {}
+  for i, gen in ipairs(self.gens) do
+    local j = other.gen_lookup[gen]
+    if j then
+      coeffs[gen] = (self.coeffs[i] + other.coeffs[j]):simplify()
+      overlap[j] = true
+    else
+      coeffs[gen] = self.coeffs[i]
+    end
+    table.insert(gens, gen)
+  end
+
+  for j, gen in ipairs(other.gens) do
+    if not overlap[j] then
+      coeffs[gen] = other.coeffs[j]
+      table.insert(gens, gen)
+    end
+  end
+
+  ; sort according to self order
+  ; create result poly
+  ; update poly lookup gens
+  return poly
+end
+
+;; sort according to self order
+table.sort(gens, self.mono_order)
+
+;; create result poly
+local poly = create_poly()
+poly.gens = gens
+local sorted_coeffs = {}
+for _, gen in ipairs(gens) do
+  table.insert(sorted_coeffs, coeffs[gen])
+end
+poly.coeffs = sorted_coeffs
+poly.ring = self.ring
+poly.mono_order = self.mono_order

@@ -1,78 +1,8 @@
 ;;; swan
-;; implement
-function M.poly_with_order(exp, order, ...)
-	local vars = { ... }
-	; check that all vars are scalar symbols
-	; put exp in expanded normal form
-	; construct vars lookup
-	; collect all gens and coeffs
-	; create poly object with gens and coeffs
-	return poly
-end
-
 ;; sort all gens
-local mono_order = nil
 local sorted_gens = {}
 for gen, coeffs in pairs(current) do
 	table.insert(sorted_gens, gen)
 end
 
-if order == 'lex' then
-	mono_order = function(a,b) 
-		; lex order
-	end
-elseif order == 'grlex' then
-	mono_order = function(a,b)
-		; compute total degrees
-		if total_a < total_b then
-			return true
-		elseif total_a > total_b then
-			return false
-		else
-			; lex order
-		end
-	end
-elseif order == 'grevlex' then
-	mono_order = function(a,b)
-		; compute total degrees
-		if total_a < total_b then
-			return true
-		elseif total_a > total_b then
-			return false
-		else
-			; break ties grevlex
-		end
-	end
-end
-
-table.sort(sorted_gens, mono_order)
-
-;; store mono order function
-poly.mono_order = mono_order
-
-;; compute total degrees
-local total_a = 0
-local total_b = 0
-for i=1,#a do
-	total_a = total_a + a[i]
-	total_b = total_b + b[i]
-end
-
-;; lex order
-for i=1,#a do
-	if a[i] < b[i] then
-		return true
-	elseif a[i] > b[i] then
-		return false
-	end
-end
-
-;; break ties grevlex
-for i=#a,1 do
-	if a[i] - b[i] < 0 then
-		return false
-	elseif a[i] - b[i] > 0 then
-		return true
-	end
-end
-return true
+table.sort(sorted_gens, poly_ring.mono_order)

@@ -16,7 +16,7 @@ function poly_mt:__tostring()
     for i=1,#gen do
       if gen[i] > 0 then
         ; convert gen number to superscript
-        term = term .. tostring(self.vars[i]) .. sup
+        term = term .. tostring(self.ring.vars[i]) .. sup
       end
     end
     result = result .. term
@@ -61,7 +61,7 @@ end
 
 ;; print polynomial ring
 local vars = {}
-for i=1,#self.vars do
-  table.insert(vars, tostring(self.vars[i]))
+for i=1,#self.ring.vars do
+  table.insert(vars, tostring(self.ring.vars[i]))
 end
 result = result .. " ∈ k[" .. table.concat(vars, ",") .. "]"

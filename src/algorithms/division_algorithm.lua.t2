@@ -4,17 +4,3 @@ local poly_methods = {}
 
 ;; copy metamethods
 poly_mt.__index = poly_methods
-
-;; implement
-function poly_methods:same_ring(other)
-  if #self.vars ~= other.vars then
-    return false
-  end
-
-  for i=1,#self.vars do
-    if self.vars[i] ~= other.vars[i] then
-      return false
-    end
-  end
-  return true
-end

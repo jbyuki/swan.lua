@@ -16,6 +16,9 @@ local create_mul_exp
 
 local create_poly
 
+local poly_ring_methods = {}
+local poly_ring_mt = {}
+
 local poly_mt = {}
 
 local is_integer
@@ -45,18 +48,6 @@ local mul_exp_mt = {}
 
 local create_constant
 
-function poly_methods:same_ring(other)
-  if #self.vars ~= other.vars then
-    return false
-  end
-
-  for i=1,#self.vars do
-    if self.vars[i] ~= other.vars[i] then
-      return false
-    end
-  end
-  return true
-end
 function poly_methods:multideg()
   return self.gens[#self.gens]
 end
@@ -71,7 +62,7 @@ function poly_methods:lm()
   for i=1,#last_gen do
     if last_gen[i] > 0 then
       for j=1,last_gen[i] do
-        table.insert(mono.children, self.vars[i])
+        table.insert(mono.children, self.ring.vars[i])
       end
     end
   end
@@ -367,39 +358,10 @@ function create_mul_exp()
 	return exp
 end
 
-function M.poly(exp, ...)
-	return M.poly_with_order(exp, 'lex', ...)
-end
+function M.poly(exp, poly_ring, order)
+	order = order or 'lex'
 
-function constant_methods:is_monomial()
-	return true
-end
-
-function sym_methods:is_monomial()
-	return true
-end
-
-function exp_methods:is_monomial()
-	if self.type == EXP_TYPE.ADD then
-		return false
-	elseif self.type == EXP_TYPE.MUL then
-		return true
-	end
-	return false
-end
-
-function create_poly()
-	local poly = {}
-	poly = setmetatable(poly, poly_mt)
-
-	poly.gens = {}
-	poly.coeffs = {}
-	poly.vars = {}
-	return poly
-end
-
-function M.poly_with_order(exp, order, ...)
-	local vars = { ... }
+	local vars = poly_ring.vars
 	for i=1,#vars do
 		assert(vars[i].type == EXP_TYPE.SCALAR)
 	end
@@ -517,88 +479,203 @@ function M.poly_with_order(exp, order, ...)
 	end
 
 
-	local mono_order = nil
 	local sorted_gens = {}
 	for gen, coeffs in pairs(current) do
 		table.insert(sorted_gens, gen)
 	end
 
-	if order == 'lex' then
-		mono_order = function(a,b) 
-			for i=1,#a do
-				if a[i] < b[i] then
-					return true
-				elseif a[i] > b[i] then
-					return false
-				end
-			end
+	table.sort(sorted_gens, poly_ring.mono_order)
+	local poly = create_poly(poly_ring)
 
-		end
-	elseif order == 'grlex' then
-		mono_order = function(a,b)
-			local total_a = 0
-			local total_b = 0
-			for i=1,#a do
-				total_a = total_a + a[i]
-				total_b = total_b + b[i]
-			end
-
-			if total_a < total_b then
-				return true
-			elseif total_a > total_b then
-				return false
-			else
-				for i=1,#a do
-					if a[i] < b[i] then
-						return true
-					elseif a[i] > b[i] then
-						return false
-					end
-				end
-
-			end
-		end
-	elseif order == 'grevlex' then
-		mono_order = function(a,b)
-			local total_a = 0
-			local total_b = 0
-			for i=1,#a do
-				total_a = total_a + a[i]
-				total_b = total_b + b[i]
-			end
-
-			if total_a < total_b then
-				return true
-			elseif total_a > total_b then
-				return false
-			else
-				for i=#a,1 do
-					if a[i] - b[i] < 0 then
-						return false
-					elseif a[i] - b[i] > 0 then
-						return true
-					end
-				end
-				return true
-			end
-		end
+	local ring_gens = {}
+	for i=1,#sorted_gens do
+	  table.insert(ring_gens, poly_ring:unique_gen(sorted_gens[i]))
 	end
-
-	table.sort(sorted_gens, mono_order)
-
-	local poly = create_poly()
-
-	poly.gens = sorted_gens
+	poly.gens = ring_gens
 
 	for _, gen in ipairs(sorted_gens) do
 		table.insert(poly.coeffs, current[gen])
 	end
 
-	poly.vars = vars
-	poly.mono_order = mono_order
-
+	poly:update_lookup()
 
 	return poly
+end
+
+function constant_methods:is_monomial()
+	return true
+end
+
+function sym_methods:is_monomial()
+	return true
+end
+
+function exp_methods:is_monomial()
+	if self.type == EXP_TYPE.ADD then
+		return false
+	elseif self.type == EXP_TYPE.MUL then
+		return true
+	end
+	return false
+end
+
+function create_poly(ring)
+	local poly = {}
+	poly = setmetatable(poly, poly_mt)
+
+	poly.gens = {}
+	poly.coeffs = {}
+	poly.ring = ring
+	return poly
+end
+
+function create_poly_ring()
+	local poly_ring = {}
+  poly_ring = setmetatable(poly_ring, poly_ring_mt)
+  poly_ring.vars = {}
+  poly_ring.gen_list = {}
+  poly_ring.mono_order = nil
+  return poly_ring
+end
+
+function M.poly_ring(order, ...)
+  local poly_ring = create_poly_ring()
+  poly_ring.vars = { ... }
+  local mono_order = nil
+  local mono_order = nil
+
+  if order == 'lex' then
+  	mono_order = function(a,b) 
+  		for i=1,#a do
+  			if a[i] < b[i] then
+  				return true
+  			elseif a[i] > b[i] then
+  				return false
+  			end
+  		end
+
+  	end
+  elseif order == 'grlex' then
+  	mono_order = function(a,b)
+  		local total_a = 0
+  		local total_b = 0
+  		for i=1,#a do
+  			total_a = total_a + a[i]
+  			total_b = total_b + b[i]
+  		end
+
+  		if total_a < total_b then
+  			return true
+  		elseif total_a > total_b then
+  			return false
+  		else
+  			for i=1,#a do
+  				if a[i] < b[i] then
+  					return true
+  				elseif a[i] > b[i] then
+  					return false
+  				end
+  			end
+
+  		end
+  	end
+  elseif order == 'grevlex' then
+  	mono_order = function(a,b)
+  		local total_a = 0
+  		local total_b = 0
+  		for i=1,#a do
+  			total_a = total_a + a[i]
+  			total_b = total_b + b[i]
+  		end
+
+  		if total_a < total_b then
+  			return true
+  		elseif total_a > total_b then
+  			return false
+  		else
+  			for i=#a,1 do
+  				if a[i] - b[i] < 0 then
+  					return false
+  				elseif a[i] - b[i] > 0 then
+  					return true
+  				end
+  			end
+  			return true
+
+  		end
+  	end
+  end
+
+  poly_ring.mono_order = mono_order
+  return poly_ring
+end
+
+function poly_ring_methods:unique_gen(gen)
+  assert(#gen == #self.vars)
+
+  for i=1,#self.gen_list do
+    local same = true
+    for j=1,#gen do
+      if self.gen_list[i][j] ~= gen[j] then
+        same = false
+        break
+      end
+    end
+
+    if same then
+      return self.gen_list[i]
+    end
+  end
+
+  table.insert(self.gen_list, gen)
+  return gen
+end
+
+function poly_methods:update_lookup()
+  self.gen_lookup = {}
+  for i=1,#self.gens do
+    self.gen_lookup[self.gens[i]] = i
+  end
+end
+
+function poly_mt:__add(other)
+  assert(self.ring == other.ring)
+
+  local gens = {}
+  local coeffs = {}
+  local overlap = {}
+  for i, gen in ipairs(self.gens) do
+    local j = other.gen_lookup[gen]
+    if j then
+      coeffs[gen] = (self.coeffs[i] + other.coeffs[j]):simplify()
+      overlap[j] = true
+    else
+      coeffs[gen] = self.coeffs[i]
+    end
+    table.insert(gens, gen)
+  end
+
+  for j, gen in ipairs(other.gens) do
+    if not overlap[j] then
+      coeffs[gen] = other.coeffs[j]
+      table.insert(gens, gen)
+    end
+  end
+
+  table.sort(gens, self.mono_order)
+
+  local poly = create_poly()
+  poly.gens = gens
+  local sorted_coeffs = {}
+  for _, gen in ipairs(gens) do
+    table.insert(sorted_coeffs, coeffs[gen])
+  end
+  poly.coeffs = sorted_coeffs
+  poly.ring = self.ring
+  poly.mono_order = self.mono_order
+  poly:update_lookup()
+
+  return poly
 end
 
 function poly_mt:__tostring()
@@ -631,14 +708,14 @@ function poly_mt:__tostring()
           sup = ""
         end
 
-        term = term .. tostring(self.vars[i]) .. sup
+        term = term .. tostring(self.ring.vars[i]) .. sup
       end
     end
     result = result .. term
   end
   local vars = {}
-  for i=1,#self.vars do
-    table.insert(vars, tostring(self.vars[i]))
+  for i=1,#self.ring.vars do
+    table.insert(vars, tostring(self.ring.vars[i]))
   end
   result = result .. " ∈ k[" .. table.concat(vars, ",") .. "]"
   return result
@@ -1001,7 +1078,6 @@ function create_constant(value)
 end
 
 poly_mt.__index = poly_methods
-
 mul_exp_mt.__lt = add_exp_mt.__lt
 mul_exp_mt.__eq = add_exp_mt.__eq
 mul_exp_mt.__index = exp_methods
@@ -1012,6 +1088,8 @@ sym_methods.expand = exp_methods.expand
 
 constant_mt.__index = constant_methods
 constant_methods.expand = exp_methods.expand
+
+poly_ring_mt.__index = poly_ring_methods
 
 mul_exp_mt.__pow = sym_mt.__pow
 add_exp_mt.__pow = sym_mt.__pow
