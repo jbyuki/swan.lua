@@ -147,6 +147,7 @@ table.insert(acc.children, coeff_exp)
 ; create poly object
 ; store coeffs and gens in poly object
 ; store vars in poly object
+; store mono order function
 
 ;; get all coeffs with gens with bfs
 local current = {}

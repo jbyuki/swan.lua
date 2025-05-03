@@ -11,17 +11,18 @@ function M.poly_with_order(exp, order, ...)
 end
 
 ;; sort all gens
+local mono_order = nil
 local sorted_gens = {}
 for gen, coeffs in pairs(current) do
 	table.insert(sorted_gens, gen)
 end
 
 if order == 'lex' then
-	table.sort(sorted_gens, function(a,b)
+	mono_order = function(a,b) 
 		; lex order
-	end)
+	end
 elseif order == 'grlex' then
-	table.sort(sorted_gens, function(a,b)
+	mono_order = function(a,b)
 		; compute total degrees
 		if total_a < total_b then
 			return true
@@ -30,11 +31,10 @@ elseif order == 'grlex' then
 		else
 			; lex order
 		end
-	end)
+	end
 elseif order == 'grevlex' then
-	table.sort(sorted_gens, function(a,b)
+	mono_order = function(a,b)
 		; compute total degrees
-
 		if total_a < total_b then
 			return true
 		elseif total_a > total_b then
@@ -42,8 +42,13 @@ elseif order == 'grevlex' then
 		else
 			; break ties grevlex
 		end
-	end)
+	end
 end
+
+table.sort(sorted_gens, mono_order)
+
+;; store mono order function
+poly.mono_order = mono_order
 
 ;; compute total degrees
 local total_a = 0

@@ -1,0 +1,29 @@
+;;; ../swan
+;; implement
+function poly_methods:multideg()
+  return self.gens[#self.gens]
+end
+
+;; implement
+function poly_methods:lc()
+  return self.coeffs[#self.coeffs]
+end
+
+;; implement
+function poly_methods:lm()
+  local mono = create_mul_exp()
+  local last_gen = self.gens[#self.gens]
+  for i=1,#last_gen do
+    if last_gen[i] > 0 then
+      for j=1,last_gen[i] do
+        table.insert(mono.children, self.vars[i])
+      end
+    end
+  end
+  return mono
+end
+
+;; implement
+function poly_methods:lt()
+  return self:lc() * self:lm()
+end

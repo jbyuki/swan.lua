@@ -57,6 +57,30 @@ function poly_methods:same_ring(other)
   end
   return true
 end
+function poly_methods:multideg()
+  return self.gens[#self.gens]
+end
+
+function poly_methods:lc()
+  return self.coeffs[#self.coeffs]
+end
+
+function poly_methods:lm()
+  local mono = create_mul_exp()
+  local last_gen = self.gens[#self.gens]
+  for i=1,#last_gen do
+    if last_gen[i] > 0 then
+      for j=1,last_gen[i] do
+        table.insert(mono.children, self.vars[i])
+      end
+    end
+  end
+  return mono
+end
+
+function poly_methods:lt()
+  return self:lc() * self:lm()
+end
 function constant_mt:__lt(other)
 	assert(other.type == self.type)
 	return self.value < other.value
@@ -483,13 +507,14 @@ function M.poly_with_order(exp, order, ...)
 	end
 
 
+	local mono_order = nil
 	local sorted_gens = {}
 	for gen, coeffs in pairs(current) do
 		table.insert(sorted_gens, gen)
 	end
 
 	if order == 'lex' then
-		table.sort(sorted_gens, function(a,b)
+		mono_order = function(a,b) 
 			for i=1,#a do
 				if a[i] < b[i] then
 					return true
@@ -498,9 +523,9 @@ function M.poly_with_order(exp, order, ...)
 				end
 			end
 
-		end)
+		end
 	elseif order == 'grlex' then
-		table.sort(sorted_gens, function(a,b)
+		mono_order = function(a,b)
 			local total_a = 0
 			local total_b = 0
 			for i=1,#a do
@@ -522,16 +547,15 @@ function M.poly_with_order(exp, order, ...)
 				end
 
 			end
-		end)
+		end
 	elseif order == 'grevlex' then
-		table.sort(sorted_gens, function(a,b)
+		mono_order = function(a,b)
 			local total_a = 0
 			local total_b = 0
 			for i=1,#a do
 				total_a = total_a + a[i]
 				total_b = total_b + b[i]
 			end
-
 
 			if total_a < total_b then
 				return true
@@ -547,8 +571,10 @@ function M.poly_with_order(exp, order, ...)
 				end
 				return true
 			end
-		end)
+		end
 	end
+
+	table.sort(sorted_gens, mono_order)
 
 	local poly = create_poly()
 
@@ -559,6 +585,8 @@ function M.poly_with_order(exp, order, ...)
 	end
 
 	poly.vars = vars
+	poly.mono_order = mono_order
+
 
 	return poly
 end
