@@ -48,6 +48,84 @@ local mul_exp_mt = {}
 
 local create_constant
 
+function poly_methods:div(...)
+  local divisors = { ... }
+
+  local dividend = self
+  local q = {}
+  local r
+  while dividend:num_mono() > 0 do
+    local has_divided = false
+    for i=1,#divisors do
+      local divisible
+      local gen1 = dividend:multideg()
+      local gen2 = divisors[i]:multideg()
+
+      divisible = true
+      for i=1,#gen1 do
+        if gen1[i] < gen2[i] then
+          divisible = false
+          break
+        end
+      end
+
+      if divisible then
+        has_divided = true
+        local qi = (dividend:lc() / divisors[i]:lc())
+        local mono_q = nil
+        for i=1,#gen1 do
+          local diff_gen = gen1[i] - gen2[i]
+          if diff_gen > 0 then
+            if not mono_q then
+              mono_q = self.ring.vars[i]^diff_gen
+            else
+              mono_q = mono_q * self.ring.vars[i]^diff_gen
+            end
+          end
+        end
+
+        if qi.value and qi.value == 1 then
+          qi = mono_q or create_constant(1)
+        else
+          if mono_q then
+            qi = qi * mono_q
+          end
+        end
+
+        qi = M.poly(qi, self.ring)
+        dividend = dividend - divisors[i] * qi
+        if q[i] then
+          q[i] = q[i] + qi
+        else
+          q[i] = qi
+        end
+
+        break
+      end
+    end
+
+    if not has_divided then
+      local ri = M.poly(dividend:lt(), self.ring)
+      dividend:pop_lt()
+      if not r then
+        r = ri
+      else
+        r = r + ri
+      end
+    end
+  end
+  return q, r
+end
+
+function poly_methods:num_mono()
+  return #self.gens
+end
+
+function poly_methods:pop_lt()
+  table.remove(self.coeffs)
+  table.remove(self.gens)
+end
+
 function poly_methods:multideg()
   return self.gens[#self.gens]
 end
@@ -1035,6 +1113,11 @@ function sym_mt:__unm()
 	end
 end
 
+function constant_mt:__div(other)
+	assert(other.type == EXP_TYPE.CONSTANT)
+	assert(other.value ~= 0)
+	return create_constant(self.value / other.value)
+end
 function exp_methods:simplify()
 	if self.type == EXP_TYPE.CONSTANT then
 		return self:clone()
@@ -1172,6 +1255,7 @@ function create_constant(value)
 end
 
 poly_mt.__index = poly_methods
+
 mul_exp_mt.__lt = add_exp_mt.__lt
 mul_exp_mt.__eq = add_exp_mt.__eq
 mul_exp_mt.__index = exp_methods
@@ -1201,6 +1285,7 @@ constant_mt.__unm = sym_mt.__unm
 constant_mt.__sub = sym_mt.__sub
 constant_mt.__add = sym_mt.__add
 constant_mt.__mul = sym_mt.__mul
+
 sym_methods.simplify = exp_methods.simplify
 constant_methods.simplify = exp_methods.simplify
 

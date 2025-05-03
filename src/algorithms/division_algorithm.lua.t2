@@ -4,3 +4,93 @@ local poly_methods = {}
 
 ;; copy metamethods
 poly_mt.__index = poly_methods
+
+;; implement
+function poly_methods:div(...)
+  local divisors = { ... }
+
+  local dividend = self
+  local q = {}
+  local r
+  while dividend:num_mono() > 0 do
+    local has_divided = false
+    for i=1,#divisors do
+      local divisible
+      ; check if lt can be divided
+      if divisible then
+        has_divided = true
+        ; update dividend and quotients
+        break
+      end
+    end
+
+    if not has_divided then
+      ; update remain and dividend
+    end
+  end
+  return q, r
+end
+
+;; check if lt can be divided
+local gen1 = dividend:multideg()
+local gen2 = divisors[i]:multideg()
+
+divisible = true
+for i=1,#gen1 do
+  if gen1[i] < gen2[i] then
+    divisible = false
+    break
+  end
+end
+
+;; update dividend and quotients
+local qi = (dividend:lc() / divisors[i]:lc())
+; create monomial of quotient
+if qi.value and qi.value == 1 then
+  qi = mono_q or create_constant(1)
+else
+  if mono_q then
+    qi = qi * mono_q
+  end
+end
+
+qi = M.poly(qi, self.ring)
+dividend = dividend - divisors[i] * qi
+if q[i] then
+  q[i] = q[i] + qi
+else
+  q[i] = qi
+end
+
+;; create monomial of quotient
+local mono_q = nil
+for i=1,#gen1 do
+  local diff_gen = gen1[i] - gen2[i]
+  if diff_gen > 0 then
+    if not mono_q then
+      mono_q = self.ring.vars[i]^diff_gen
+    else
+      mono_q = mono_q * self.ring.vars[i]^diff_gen
+    end
+  end
+end
+
+;; implement
+function poly_methods:num_mono()
+  return #self.gens
+end
+
+;; implement
+function poly_methods:pop_lt()
+  table.remove(self.coeffs)
+  table.remove(self.gens)
+end
+
+;; update remain and dividend
+local ri = M.poly(dividend:lt(), self.ring)
+dividend:pop_lt()
+if not r then
+  r = ri
+else
+  r = r + ri
+end

@@ -79,4 +79,10 @@ local k = swan.poly_ring("lex", x, y)
 local f = swan.poly(x^2*y+x*y^2+y^2, k)
 local f1 = swan.poly(x*y - 1, k)
 local f2 = swan.poly(y^2 - 1, k)
-io.write(tostring(f1*f2))
+local q,r = f:div(f1,f2)
+io.write(tostring(q[1]))
+
+;; playground
+local a = {1,2,3,4}
+table.remove(a)
+io.write(vim.inspect(a))
