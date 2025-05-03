@@ -671,11 +671,58 @@ function poly_mt:__add(other)
     table.insert(sorted_coeffs, coeffs[gen])
   end
   poly.coeffs = sorted_coeffs
+
   poly:update_lookup()
 
   return poly
 end
 
+function poly_mt:__sub(other)
+  assert(self.ring == other.ring)
+
+  local gens = {}
+  local coeffs = {}
+  local overlap = {}
+  for i, gen in ipairs(self.gens) do
+    local j = other.gen_lookup[gen]
+    local ok = true
+    if j then
+      local result = (self.coeffs[i] - other.coeffs[j]):simplify()
+      coeffs[gen] = result
+      if result.children and #result.children == 0 then
+        coeffs[gen] = nil
+        ok = false
+      end
+      overlap[j] = true
+    else
+      coeffs[gen] = self.coeffs[i]
+    end
+    if ok then
+      table.insert(gens, gen)
+    end
+  end
+
+  for j, gen in ipairs(other.gens) do
+    if not overlap[j] then
+      coeffs[gen] = -other.coeffs[j]
+      table.insert(gens, gen)
+    end
+  end
+
+  table.sort(gens, self.ring.mono_order)
+
+  local poly = create_poly(self.ring)
+  poly.gens = gens
+  local sorted_coeffs = {}
+  for _, gen in ipairs(gens) do
+    table.insert(sorted_coeffs, coeffs[gen])
+  end
+  poly.coeffs = sorted_coeffs
+
+  poly:update_lookup()
+
+  return poly
+end
 function poly_mt:__tostring()
   local result = ""
   for i=#self.gens,1,-1 do
