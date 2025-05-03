@@ -42,15 +42,13 @@ function poly_mt:__add(other)
 end
 
 ;; sort according to self order
-table.sort(gens, self.mono_order)
+table.sort(gens, self.ring.mono_order)
 
 ;; create result poly
-local poly = create_poly()
+local poly = create_poly(self.ring)
 poly.gens = gens
 local sorted_coeffs = {}
 for _, gen in ipairs(gens) do
   table.insert(sorted_coeffs, coeffs[gen])
 end
 poly.coeffs = sorted_coeffs
-poly.ring = self.ring
-poly.mono_order = self.mono_order

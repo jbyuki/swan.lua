@@ -662,17 +662,15 @@ function poly_mt:__add(other)
     end
   end
 
-  table.sort(gens, self.mono_order)
+  table.sort(gens, self.ring.mono_order)
 
-  local poly = create_poly()
+  local poly = create_poly(self.ring)
   poly.gens = gens
   local sorted_coeffs = {}
   for _, gen in ipairs(gens) do
     table.insert(sorted_coeffs, coeffs[gen])
   end
   poly.coeffs = sorted_coeffs
-  poly.ring = self.ring
-  poly.mono_order = self.mono_order
   poly:update_lookup()
 
   return poly
@@ -1105,6 +1103,7 @@ add_exp_mt.__sub = sym_mt.__sub
 mul_exp_mt.__sub = sym_mt.__sub
 constant_mt.__unm = sym_mt.__unm
 constant_mt.__sub = sym_mt.__sub
+constant_mt.__add = sym_mt.__add
 sym_methods.simplify = exp_methods.simplify
 constant_methods.simplify = exp_methods.simplify
 
