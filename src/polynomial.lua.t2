@@ -146,6 +146,7 @@ table.insert(acc.children, coeff_exp)
 ; sort all gens
 ; create poly object
 ; store coeffs and gens in poly object
+; store vars in poly object
 
 ;; get all coeffs with gens with bfs
 local current = {}
@@ -171,21 +172,6 @@ for gen, coeffs in pairs(current) do
 	current[gen] = coeffs:simplify()
 end
 
-;; sort all gens
-local sorted_gens = {}
-for gen, coeffs in pairs(current) do
-	table.insert(sorted_gens, gen)
-end
-
-table.sort(sorted_gens, function(a,b)
-	for i=1,#a do
-		if a[i] < b[i] then
-			return true
-		elseif a[i] > b[i] then
-			return false
-		end
-	end
-end)
 
 ;; variables
 local create_poly
@@ -196,6 +182,7 @@ function create_poly()
 	; register poly metamethods
 	poly.gens = {}
 	poly.coeffs = {}
+	poly.vars = {}
 	return poly
 end
 
@@ -209,4 +196,5 @@ for _, gen in ipairs(sorted_gens) do
 	table.insert(poly.coeffs, current[gen])
 end
 
-
+;; store vars in poly object
+poly.vars = vars

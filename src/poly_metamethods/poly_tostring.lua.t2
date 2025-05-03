@@ -1,0 +1,43 @@
+;;; ../swan
+;; variables
+local poly_mt = {}
+
+;; register poly metamethods
+poly = setmetatable(poly, poly_mt)
+
+;; implement
+function poly_mt:__tostring()
+  local result = ""
+  for i=#self.gens,1,-1 do
+    local gen = self.gens[i]
+    local coeff = self.coeffs[i]
+    local term = ""
+    ; poly coeff to string
+    for i=1,#gen do
+      if gen[i] > 0 then
+        ; convert gen number to superscript
+        term = term .. tostring(self.vars[i]) .. sup
+      end
+    end
+    result = result .. term
+  end
+  return result
+end
+
+;; poly coeff to string
+term = tostring(coeff)  
+if result ~= "" then
+  term = " + " .. term 
+end
+
+;; convert gen number to superscript
+local sup = tostring(gen[i])
+if gen[i] ~= 1 then
+  local new_sup = ""
+  for j=1,#sup do
+    new_sup = new_sup .. superscript[sup:sub(j,j)]
+  end
+  sup = new_sup
+else
+  sup = ""
+end

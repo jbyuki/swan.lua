@@ -14,6 +14,8 @@ local create_mul_exp
 
 local create_poly
 
+local poly_mt = {}
+
 local is_integer
 
 local constant_mt = {}
@@ -340,8 +342,11 @@ end
 
 function create_poly()
 	local poly = {}
+	poly = setmetatable(poly, poly_mt)
+
 	poly.gens = {}
 	poly.coeffs = {}
+	poly.vars = {}
 	return poly
 end
 
@@ -463,20 +468,6 @@ function M.poly_with_order(exp, order, ...)
 		current[gen] = coeffs:simplify()
 	end
 
-	local sorted_gens = {}
-	for gen, coeffs in pairs(current) do
-		table.insert(sorted_gens, gen)
-	end
-
-	table.sort(sorted_gens, function(a,b)
-		for i=1,#a do
-			if a[i] < b[i] then
-				return true
-			elseif a[i] > b[i] then
-				return false
-			end
-		end
-	end)
 
 	local sorted_gens = {}
 	for gen, coeffs in pairs(current) do
@@ -553,9 +544,40 @@ function M.poly_with_order(exp, order, ...)
 		table.insert(poly.coeffs, current[gen])
 	end
 
-
+	poly.vars = vars
 
 	return poly
+end
+
+function poly_mt:__tostring()
+  local result = ""
+  for i=#self.gens,1,-1 do
+    local gen = self.gens[i]
+    local coeff = self.coeffs[i]
+    local term = ""
+    term = tostring(coeff)  
+    if result ~= "" then
+      term = " + " .. term 
+    end
+
+    for i=1,#gen do
+      if gen[i] > 0 then
+        local sup = tostring(gen[i])
+        if gen[i] ~= 1 then
+          local new_sup = ""
+          for j=1,#sup do
+            new_sup = new_sup .. superscript[sup:sub(j,j)]
+          end
+          sup = new_sup
+        else
+          sup = ""
+        end
+        term = term .. tostring(self.vars[i]) .. sup
+      end
+    end
+    result = result .. term
+  end
+  return result
 end
 
 function sym_mt:__pow(sup)
