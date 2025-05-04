@@ -40,6 +40,7 @@ local order_lookup = {
 	[EXP_TYPE.SCALAR] = 20,
 	[EXP_TYPE.MUL] = 30,
 	[EXP_TYPE.ADD] = 40,
+	; order lookup
 }
 
 for i=1,#children_normal do

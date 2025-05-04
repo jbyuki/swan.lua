@@ -82,6 +82,7 @@ local f2 = swan.poly(x*y - 1, k)
 io.write(tostring(f1:lcm(f2)))
 
 ;; playground
-local a = {1,2,3,4}
-table.remove(a)
-io.write(vim.inspect(a))
+; reload
+local a = swan.constant(2)
+local b = swan.constant(3)
+io.write(tostring(a/b))

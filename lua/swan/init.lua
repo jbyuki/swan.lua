@@ -29,12 +29,20 @@ local superscript = {
 	["0"] = "⁰", ["1"] = "¹", ["2"] = "²", ["3"] = "³", ["4"] = "⁴", ["5"] = "⁵", ["6"] = "⁶", ["7"] = "⁷", ["8"] = "⁸", ["9"] = "⁹"
 }
 
+local create_rational
+local rational_mt = {}
+local rational_methods = {}
+
+local isint
+
 local sym_mt = {}
 
 local EXP_TYPE = {
 	ADD = 1,
 	SCALAR = 3,
 	ARRAY = 4,
+
+	RATIONAL = 6,
 
 	CONSTANT = 5,
 
@@ -176,6 +184,12 @@ function poly_methods:lt()
   else
     return lc * lm
   end
+end
+function poly_methods:s_poly(other)
+  assert(self.ring == other.ring)
+
+  local multideg_self = self:multideg()
+  local multideg_other = other:multideg()
 end
 function constant_mt:__lt(other)
 	assert(other.type == self.type)
@@ -401,6 +415,8 @@ function exp_methods:normal_form()
 		[EXP_TYPE.SCALAR] = 20,
 		[EXP_TYPE.MUL] = 30,
 		[EXP_TYPE.ADD] = 40,
+		[EXP_TYPE.RATIONAL] = 10,
+
 	}
 
 	for i=1,#children_normal do
@@ -1002,6 +1018,71 @@ function constant_mt:__tostring()
 	return tostring(self.value)
 end
 
+function create_rational(num, den)
+  assert(den ~= 0)
+
+	local rational = {}
+	rational.type = EXP_TYPE.RATIONAL
+	rational.num = num
+	rational.den = den
+  rational = setmetatable(rational, rational_mt)
+  return rational
+end
+
+function isint(n)
+  return math.floor(n) == n
+end
+
+function rational_methods:gcd()
+  assert(isint(self.num))
+  assert(isint(self.den))
+
+  local a = self.num
+  local b = self.den
+  local t
+  while b ~= 0 do
+    t = b
+    b = math.fmod(a,b)
+    a = t
+  end
+
+  local num = self.num / a
+  local den = self.den / a
+
+  if den == 1 then
+    return create_constant(num)
+  else
+    return create_rational(num, den)
+  end
+end
+
+function rational_methods:normal_form()
+  return self:gcd()
+end
+
+function constant_mt:__div(other)
+	if other.type == EXP_TYPE.CONSTANT then
+		return create_rational(self.value, other.value):gcd()
+	elseif other.type == EXP_TYPE.RATIONAL then
+		return create_rational(self.value * self.den, other.num):gcd()
+	else
+		assert(false)
+	end
+end
+
+function rational_mt:__div(other)
+	if other.type == EXP_TYPE.CONSTANT then
+		return create_rational(self.num, self.den * other.value):gcd()
+	elseif other.type == EXP_TYPE.RATIONAL then
+		return create_rational(self.num * self.den, self.den * other.num):gcd()
+	else
+		assert(false)
+	end
+end
+
+function rational_mt:__tostring()
+  return "(" .. tostring(self.num) .. "/" .. tostring(self.den) .. ")"
+end
 function sym_mt:__add(other)
 	local exp = {}
 	exp.type = EXP_TYPE.ADD
@@ -1131,9 +1212,17 @@ function sym_mt:__unm()
 end
 
 function constant_mt:__div(other)
-	assert(other.type == EXP_TYPE.CONSTANT)
-	assert(other.value ~= 0)
-	return create_constant(self.value / other.value)
+	if other.type == EXP_TYPE.CONSTANT then
+		return create_rational(self.value, other.value):gcd()
+	elseif other.type == EXP_TYPE.RATIONAL then
+		return create_rational(self.value * self.den, other.num):gcd()
+	else
+		assert(false)
+	end
+end
+
+function M.constant(value)
+	return create_constant(value)
 end
 function exp_methods:simplify()
 	if self.type == EXP_TYPE.CONSTANT then
@@ -1288,6 +1377,8 @@ poly_ring_mt.__index = poly_ring_methods
 
 mul_exp_mt.__pow = sym_mt.__pow
 add_exp_mt.__pow = sym_mt.__pow
+rational_mt.__index = rational_methods
+
 add_exp_mt.__add = sym_mt.__add 
 
 mul_exp_mt.__mul = sym_mt.__mul

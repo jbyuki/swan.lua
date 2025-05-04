@@ -1,0 +1,8 @@
+;;; ../swan
+;; implement
+function poly_methods:s_poly(other)
+  assert(self.ring == other.ring)
+
+  local multideg_self = self:multideg()
+  local multideg_other = other:multideg()
+end
