@@ -35,18 +35,7 @@ end
 
 ;; implement
 function rational_methods:gcd()
-  assert(isint(self.num))
-  assert(isint(self.den))
-
-  local a = self.num
-  local b = self.den
-  local t
-  while b ~= 0 do
-    t = b
-    b = math.fmod(a,b)
-    a = t
-  end
-
+  local a = gcd(self.num, self.den)
   local num = self.num / a
   local den = self.den / a
 
@@ -57,9 +46,26 @@ function rational_methods:gcd()
   end
 end
 
+;; variables
+local rational_simplify_neg
+
+;; implement
+function rational_simplify_neg(num,den) 
+  if num < 0 and den < 0 then
+    num = -num
+    den = -den
+  elseif den < 0 then
+    num = -num
+    den = -den
+  end
+  return num, den
+end
+
 ;; implement
 function rational_methods:normal_form()
-  return self:gcd()
+  local result = self:gcd()
+  result.num, result.den = rational_simplify_neg(result.num, result.den)
+  return result
 end
 
 ;; implement
@@ -88,3 +94,28 @@ end
 function rational_mt:__tostring()
   return "(" .. tostring(self.num) .. "/" .. tostring(self.den) .. ")"
 end
+
+;; if rational then clone
+if self.type == EXP_TYPE.RATIONAL then
+  return self:clone()
+end
+
+;; copy metamethods
+rational_methods.expand = exp_methods.expand
+rational_methods.simplify = exp_methods.simplify
+
+;; implement
+function rational_methods:clone()
+  return self
+end
+
+;; if rational return gcd of it
+elseif self.type == EXP_TYPE.RATIONAL then
+  return self:gcd()
+
+;; if rational return with numerator minus
+elseif self.type == EXP_TYPE.RATIONAL then
+  return create_rational(-self.num, self.den)
+
+;; copy metamethods
+rational_mt.__unm = sym_mt.__unm

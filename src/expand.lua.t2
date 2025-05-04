@@ -10,6 +10,7 @@ add_exp_mt.__index = exp_methods
 function exp_methods:expand()
 	; if sym then clone
 	; if constant then clone
+	; if rational then clone
 	; expand each child if exp
 	; if mul exp expand all
 	; otherwise expand none

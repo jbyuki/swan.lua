@@ -74,15 +74,20 @@ io.write(tostring(p))
 
 ;; playground
 ; reload
-local x,y = swan.symbols "x y z"
-local k = swan.poly_ring("lex", x, y)
-local f = swan.poly(x^2*y +x*y^2 + y^2, k)
-local f1 = swan.poly(y^2 - 1, k)
-local f2 = swan.poly(x*y - 1, k)
-io.write(tostring(f1:lcm(f2)))
+local x,y = swan.symbols "x y"
+local k = swan.poly_ring("grlex", x, y)
+local f = swan.poly(x^3 * y^2 - x^2 * y^3 + x, k)
+local g = swan.poly(3*x^4 * y + y^2, k)
+io.write(tostring(f:s_poly(g)))
 
 ;; playground
 ; reload
-local a = swan.constant(2)
-local b = swan.constant(3)
+local a = swan.constant(4)
+local b = swan.constant(6)
+io.write(tostring(a/b))
+
+;; playground
+; reload
+local f = swan.constant(4)
+local b = swan.constant(6)
 io.write(tostring(a/b))

@@ -35,6 +35,8 @@ local rational_methods = {}
 
 local isint
 
+local rational_simplify_neg
+
 local sym_mt = {}
 
 local EXP_TYPE = {
@@ -55,6 +57,8 @@ local add_exp_mt = {}
 local mul_exp_mt = {}
 
 local create_constant
+
+local gcd
 
 function poly_methods:div(...)
   local divisors = { ... }
@@ -153,6 +157,19 @@ function poly_methods:lcm(other)
   end
   return mono or create_constant(1)
 end
+
+function poly_methods:lcm_multideg(other)
+  assert(self.ring == other.ring)
+
+  local multideg_self = self:multideg()
+  local multideg_other = other:multideg()
+
+  local lcm_gen = {}
+  for i=1,#multideg_self do
+    table.insert(lcm_gen,math.max(multideg_self[i], multideg_other[i]))
+  end
+  return lcm_gen
+end
 function poly_methods:multideg()
   return self.gens[#self.gens]
 end
@@ -190,7 +207,56 @@ function poly_methods:s_poly(other)
 
   local multideg_self = self:multideg()
   local multideg_other = other:multideg()
+
+  local multideg_lcm = self:lcm_multideg(other)
+
+  local mul_self = nil
+  for i=1,#multideg_self do
+    local diff = multideg_lcm[i] - multideg_self[i]
+    if diff > 0 then
+      if not mul_self then
+        mul_self = self.ring.vars[i] ^ diff
+      else
+        mul_self = mul_self * self.ring.vars[i] ^ diff
+      end
+    end
+  end
+
+  if not mul_self then
+    mul_self = create_constant(1) / self:lc() 
+  else
+    mul_self = (create_constant(1) / self:lc()) * mul_self
+  end
+
+  mul_self = mul_self or create_constant(1)
+
+  local mul_other = nil
+  for i=1,#multideg_other do
+    local diff = multideg_lcm[i] - multideg_other[i]
+    if diff > 0 then
+      if not mul_other then
+        mul_other = other.ring.vars[i] ^ diff
+      else
+        mul_other = mul_other * other.ring.vars[i] ^ diff
+      end
+    end
+  end
+
+  if not mul_other then
+    mul_other = create_constant(1) / other:lc() 
+  else
+    mul_other = (create_constant(1) / other:lc()) * mul_other
+  end
+  mul_other = mul_other or create_constant(1)
+
+  mul_self = M.poly(mul_self, self.ring)
+  mul_other = M.poly(mul_other, other.ring)
+
+  local lhs = mul_self * self
+  local rhs = mul_other * other
+  return lhs - rhs
 end
+
 function constant_mt:__lt(other)
 	assert(other.type == self.type)
 	return self.value < other.value
@@ -248,6 +314,10 @@ function exp_methods:expand()
 
 	if self.type == EXP_TYPE.CONSTANT then
 		return self:clone()
+	end
+
+	if self.type == EXP_TYPE.RATIONAL then
+	  return self:clone()
 	end
 
 	local expanded_children = {}
@@ -469,9 +539,7 @@ function create_mul_exp()
 	return exp
 end
 
-function M.poly(exp, poly_ring, order)
-	order = order or 'lex'
-
+function M.poly(exp, poly_ring)
 	local vars = poly_ring.vars
 	for i=1,#vars do
 		assert(vars[i].type == EXP_TYPE.SCALAR)
@@ -506,7 +574,7 @@ function M.poly(exp, poly_ring, order)
 		end
 
 		local coeffs = {}
-		if term.type == EXP_TYPE.CONSTANT then
+		if term.type == EXP_TYPE.CONSTANT or term.type == EXP_TYPE.RATIONAL then
 			table.insert(coeffs, term)
 		elseif term.type == EXP_TYPE.SCALAR then
 			local idx = vars_lookup[term]
@@ -757,7 +825,13 @@ function poly_mt:__add(other)
   for i, gen in ipairs(self.gens) do
     local j = other.gen_lookup[gen]
     if j then
-      coeffs[gen] = (self.coeffs[i] + other.coeffs[j]):simplify()
+      local result = (self.coeffs[i] + other.coeffs[j]):simplify()
+      coeffs[gen] = result
+      if result.children and #result.children == 0 then
+        coeffs[gen] = nil
+      elseif result.value and result.value == 0 then
+        coeffs[gen] = nil
+      end
       overlap[j] = true
     else
       coeffs[gen] = self.coeffs[i]
@@ -797,13 +871,13 @@ function poly_mt:__sub(other)
   local overlap = {}
   for i, gen in ipairs(self.gens) do
     local j = other.gen_lookup[gen]
-    local ok = true
     if j then
       local result = (self.coeffs[i] - other.coeffs[j]):simplify()
       coeffs[gen] = result
       if result.children and #result.children == 0 then
         coeffs[gen] = nil
-        ok = false
+      elseif result.value and result.value == 0 then
+        coeffs[gen] = nil
       end
       overlap[j] = true
     else
@@ -1034,18 +1108,7 @@ function isint(n)
 end
 
 function rational_methods:gcd()
-  assert(isint(self.num))
-  assert(isint(self.den))
-
-  local a = self.num
-  local b = self.den
-  local t
-  while b ~= 0 do
-    t = b
-    b = math.fmod(a,b)
-    a = t
-  end
-
+  local a = gcd(self.num, self.den)
   local num = self.num / a
   local den = self.den / a
 
@@ -1056,8 +1119,21 @@ function rational_methods:gcd()
   end
 end
 
+function rational_simplify_neg(num,den) 
+  if num < 0 and den < 0 then
+    num = -num
+    den = -den
+  elseif den < 0 then
+    num = -num
+    den = -den
+  end
+  return num, den
+end
+
 function rational_methods:normal_form()
-  return self:gcd()
+  local result = self:gcd()
+  result.num, result.den = rational_simplify_neg(result.num, result.den)
+  return result
 end
 
 function constant_mt:__div(other)
@@ -1083,6 +1159,11 @@ end
 function rational_mt:__tostring()
   return "(" .. tostring(self.num) .. "/" .. tostring(self.den) .. ")"
 end
+
+function rational_methods:clone()
+  return self
+end
+
 function sym_mt:__add(other)
 	local exp = {}
 	exp.type = EXP_TYPE.ADD
@@ -1189,6 +1270,9 @@ function sym_mt:__unm()
 		local result = create_constant()
 		result.value = -self.value
 		return result
+	elseif self.type == EXP_TYPE.RATIONAL then
+	  return create_rational(-self.num, self.den)
+
 	elseif self.type == EXP_TYPE.ADD then
 		local exp = create_add_exp()
 		for i=1,#result.children do
@@ -1228,6 +1312,9 @@ function exp_methods:simplify()
 	if self.type == EXP_TYPE.CONSTANT then
 		return self:clone()
 
+	elseif self.type == EXP_TYPE.RATIONAL then
+	  return self:gcd()
+
 	elseif self.type == EXP_TYPE.SCALAR then
 		return self:clone()
 
@@ -1239,20 +1326,36 @@ function exp_methods:simplify()
 		end
 
 		if self.type == EXP_TYPE.ADD then
-			local all_terms = 0
+			local all_terms_num = 0
+			local all_terms_den = 1
+
 			local new_children_simplified = {}
 			for i=1,#children_simplified do
 				if children_simplified[i].type == EXP_TYPE.CONSTANT then
-					all_terms = all_terms + children_simplified[i].value
+					all_terms_num = all_terms_num + children_simplified[i].value * all_terms_den
+
+					local div = gcd(all_terms_num , all_terms_den)
+					all_terms_num = all_terms_num / div
+					all_terms_den = all_terms_den / div
+
+				elseif children_simplified[i].type == EXP_TYPE.RATIONAL then
+					all_terms_num = all_terms_num * children_simplified[i].den + children_simplified[i].num * all_terms_den
+					all_terms_den = all_terms_den  * children_simplified[i].den
+
+					local div = gcd(all_terms_num , all_terms_den)
+					all_terms_num = all_terms_num / div
+					all_terms_den = all_terms_den / div
 				else
 					table.insert(new_children_simplified, children_simplified[i])
 				end
 			end
 
-			if all_terms ~= 0 then
-				local constant = create_constant()
-				constant.value = all_terms
-				table.insert(new_children_simplified, 1, constant)
+			all_terms_num, all_terms_den = rational_simplify_neg(all_terms_num, all_terms_den)
+
+			if all_terms_num ~= 0 and all_terms_den == 1 then
+				table.insert(new_children_simplified, 1, create_constant(all_terms_num ))
+			elseif all_terms_num ~= 0 and all_terms_den ~= 1 then
+				table.insert(new_children_simplified, 1, create_rational(all_terms_num , all_terms_den))
 			end
 
 			children_simplified = new_children_simplified
@@ -1309,33 +1412,46 @@ function exp_methods:simplify()
 				return add_exp.children[1]
 			end
 
+			if #add_exp.children == 0 then
+				return create_constant(0)
+			end
+
 
 			return exp
 		end
 
 		if self.type == EXP_TYPE.MUL then
-			local all_factor = 1
+			local all_factor_num = 1
+			local all_factor_den = 1
+
 			local new_children_simplified = {}
 			for i=1,#children_simplified do
 				if children_simplified[i].type == EXP_TYPE.CONSTANT then
-					all_factor = all_factor * children_simplified[i].value
+					all_factor_num = all_factor_num  * children_simplified[i].value
+				elseif children_simplified[i].type == EXP_TYPE.RATIONAL then
+					all_factor_num = all_factor_num  * children_simplified[i].num
+					all_factor_den = all_factor_den  * children_simplified[i].den
 				else
 					table.insert(new_children_simplified, children_simplified[i])
 				end
 			end
 
-			if all_factor ~= 1 then
-				local constant = create_constant()
-				constant.value = all_factor
-				table.insert(new_children_simplified, 1, constant)
+			local div = gcd(all_factor_num, all_factor_den)
+			all_factor_num = all_factor_num / div 
+			all_factor_den = all_factor_den / div 
+
+			all_factor_num, all_factor_den = rational_simplify_neg(all_factor_num, all_factor_den)
+
+			if all_factor_num ~= 1 and all_factor_den == 1 then
+				table.insert(new_children_simplified, 1, create_constant(all_factor_num ))
+			elseif all_factor_den ~= 1 then
+				table.insert(new_children_simplified, 1, create_rational(all_factor_num , all_factor_den))
 			end
 
 			children_simplified = new_children_simplified
 
 			if #children_simplified == 0 then
-				local exp = create_constant()
-				exp.value = all_factor
-				return exp
+				return create_constant(1)
 			end
 
 			if #children_simplified == 1 then
@@ -1360,6 +1476,21 @@ function create_constant(value)
 	return constant
 end
 
+function gcd(a,b)
+  assert(isint(a))
+  assert(isint(b))
+
+  a = math.abs(a)
+  b = math.abs(b)
+  local t
+  while b ~= 0 do
+    t = b
+    b = math.fmod(a,b)
+    a = t
+  end
+	return a
+end
+
 poly_mt.__index = poly_methods
 
 mul_exp_mt.__lt = add_exp_mt.__lt
@@ -1379,6 +1510,10 @@ mul_exp_mt.__pow = sym_mt.__pow
 add_exp_mt.__pow = sym_mt.__pow
 rational_mt.__index = rational_methods
 
+rational_methods.expand = exp_methods.expand
+rational_methods.simplify = exp_methods.simplify
+
+rational_mt.__unm = sym_mt.__unm
 add_exp_mt.__add = sym_mt.__add 
 
 mul_exp_mt.__mul = sym_mt.__mul

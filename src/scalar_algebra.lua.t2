@@ -143,6 +143,7 @@ function sym_mt:__unm()
 		local result = create_constant()
 		result.value = -self.value
 		return result
+	; if rational return with numerator minus
 	elseif self.type == EXP_TYPE.ADD then
 		local exp = create_add_exp()
 		for i=1,#result.children do

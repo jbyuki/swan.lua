@@ -1,8 +1,6 @@
 ;;; swan
 ;; implement
-function M.poly(exp, poly_ring, order)
-	order = order or 'lex'
-
+function M.poly(exp, poly_ring)
 	local vars = poly_ring.vars
 	; check that all vars are scalar symbols
 	; put exp in expanded normal form
@@ -72,7 +70,7 @@ end
 
 ;; detect gen for term
 local coeffs = {}
-if term.type == EXP_TYPE.CONSTANT then
+if term.type == EXP_TYPE.CONSTANT or term.type == EXP_TYPE.RATIONAL then
 	table.insert(coeffs, term)
 elseif term.type == EXP_TYPE.SCALAR then
 	; check symbol is in generator 

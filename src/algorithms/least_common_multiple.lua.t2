@@ -19,3 +19,17 @@ function poly_methods:lcm(other)
   end
   return mono or create_constant(1)
 end
+
+;; implement
+function poly_methods:lcm_multideg(other)
+  assert(self.ring == other.ring)
+
+  local multideg_self = self:multideg()
+  local multideg_other = other:multideg()
+
+  local lcm_gen = {}
+  for i=1,#multideg_self do
+    table.insert(lcm_gen,math.max(multideg_self[i], multideg_other[i]))
+  end
+  return lcm_gen
+end

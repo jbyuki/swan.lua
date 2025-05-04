@@ -6,6 +6,7 @@ constant_methods.simplify = exp_methods.simplify
 ;; implement
 function exp_methods:simplify()
 	; if constant return as is
+	; if rational return gcd of it
 	; if symbol return as is
 	; if exp simplify each children
 end
@@ -32,7 +33,7 @@ end
 
 ;; if mul exp leave children as is
 if self.type == EXP_TYPE.MUL then
-	; combine constant factor mul
+	; combine constant and rational factor mul
 	; if only constant factors return as constant
 	; if only one return child as is
 	local exp = create_mul_exp()
@@ -47,14 +48,12 @@ end
 
 ;; if only constant factors return as constant
 if #children_simplified == 0 then
-	local exp = create_constant()
-	exp.value = all_factor
-	return exp
+	return create_constant(1)
 end
 
 ;; if add exp combine common terms
 if self.type == EXP_TYPE.ADD then
-	; combine constant term add
+	; combine constant and rational term add
 	local exp = create_add_exp()
 	local terms = {}
 	local coeffs = {}
@@ -70,6 +69,7 @@ if self.type == EXP_TYPE.ADD then
 	end
 
 	; if only one add exp child return child
+	; if only zero add exp child return 0
 
 	return exp
 end
@@ -77,6 +77,11 @@ end
 ;; if only one add exp child return child
 if #add_exp.children == 1 then
 	return add_exp.children[1]
+end
+
+;; if only zero add exp child return 0
+if #add_exp.children == 0 then
+	return create_constant(0)
 end
 
 ;; variables
@@ -140,40 +145,86 @@ end
 ;; put candidate in normal form
 candidate = candidate:normal_form()
 
-;; combine constant factor mul
-local all_factor = 1
+;; variables
+local gcd
+
+;; implement
+function gcd(a,b)
+  assert(isint(a))
+  assert(isint(b))
+
+  a = math.abs(a)
+  b = math.abs(b)
+  local t
+  while b ~= 0 do
+    t = b
+    b = math.fmod(a,b)
+    a = t
+  end
+	return a
+end
+
+;; combine constant and rational factor mul
+local all_factor_num = 1
+local all_factor_den = 1
+
 local new_children_simplified = {}
 for i=1,#children_simplified do
 	if children_simplified[i].type == EXP_TYPE.CONSTANT then
-		all_factor = all_factor * children_simplified[i].value
+		all_factor_num = all_factor_num  * children_simplified[i].value
+	elseif children_simplified[i].type == EXP_TYPE.RATIONAL then
+		all_factor_num = all_factor_num  * children_simplified[i].num
+		all_factor_den = all_factor_den  * children_simplified[i].den
 	else
 		table.insert(new_children_simplified, children_simplified[i])
 	end
 end
 
-if all_factor ~= 1 then
-	local constant = create_constant()
-	constant.value = all_factor
-	table.insert(new_children_simplified, 1, constant)
+local div = gcd(all_factor_num, all_factor_den)
+all_factor_num = all_factor_num / div 
+all_factor_den = all_factor_den / div 
+
+all_factor_num, all_factor_den = rational_simplify_neg(all_factor_num, all_factor_den)
+
+if all_factor_num ~= 1 and all_factor_den == 1 then
+	table.insert(new_children_simplified, 1, create_constant(all_factor_num ))
+elseif all_factor_den ~= 1 then
+	table.insert(new_children_simplified, 1, create_rational(all_factor_num , all_factor_den))
 end
 
 children_simplified = new_children_simplified
 
-;; combine constant term add
-local all_terms = 0
+;; combine constant and rational term add
+local all_terms_num = 0
+local all_terms_den = 1
+
 local new_children_simplified = {}
 for i=1,#children_simplified do
 	if children_simplified[i].type == EXP_TYPE.CONSTANT then
-		all_terms = all_terms + children_simplified[i].value
+		all_terms_num = all_terms_num + children_simplified[i].value * all_terms_den
+
+		local div = gcd(all_terms_num , all_terms_den)
+		all_terms_num = all_terms_num / div
+		all_terms_den = all_terms_den / div
+
+	elseif children_simplified[i].type == EXP_TYPE.RATIONAL then
+		all_terms_num = all_terms_num * children_simplified[i].den + children_simplified[i].num * all_terms_den
+		all_terms_den = all_terms_den  * children_simplified[i].den
+
+		local div = gcd(all_terms_num , all_terms_den)
+		all_terms_num = all_terms_num / div
+		all_terms_den = all_terms_den / div
 	else
 		table.insert(new_children_simplified, children_simplified[i])
 	end
 end
 
-if all_terms ~= 0 then
-	local constant = create_constant()
-	constant.value = all_terms
-	table.insert(new_children_simplified, 1, constant)
+all_terms_num, all_terms_den = rational_simplify_neg(all_terms_num, all_terms_den)
+
+if all_terms_num ~= 0 and all_terms_den == 1 then
+	table.insert(new_children_simplified, 1, create_constant(all_terms_num ))
+elseif all_terms_num ~= 0 and all_terms_den ~= 1 then
+	table.insert(new_children_simplified, 1, create_rational(all_terms_num , all_terms_den))
 end
 
 children_simplified = new_children_simplified

@@ -19,7 +19,13 @@ function poly_mt:__add(other)
   for i, gen in ipairs(self.gens) do
     local j = other.gen_lookup[gen]
     if j then
-      coeffs[gen] = (self.coeffs[i] + other.coeffs[j]):simplify()
+      local result = (self.coeffs[i] + other.coeffs[j]):simplify()
+      coeffs[gen] = result
+      if result.children and #result.children == 0 then
+        coeffs[gen] = nil
+      elseif result.value and result.value == 0 then
+        coeffs[gen] = nil
+      end
       overlap[j] = true
     else
       coeffs[gen] = self.coeffs[i]
@@ -63,13 +69,13 @@ function poly_mt:__sub(other)
   local overlap = {}
   for i, gen in ipairs(self.gens) do
     local j = other.gen_lookup[gen]
-    local ok = true
     if j then
       local result = (self.coeffs[i] - other.coeffs[j]):simplify()
       coeffs[gen] = result
       if result.children and #result.children == 0 then
         coeffs[gen] = nil
-        ok = false
+      elseif result.value and result.value == 0 then
+        coeffs[gen] = nil
       end
       overlap[j] = true
     else

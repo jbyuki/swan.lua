@@ -5,4 +5,57 @@ function poly_methods:s_poly(other)
 
   local multideg_self = self:multideg()
   local multideg_other = other:multideg()
+
+  local multideg_lcm = self:lcm_multideg(other)
+
+  local mul_self = nil
+  ; create self multiply prefix
+  mul_self = mul_self or create_constant(1)
+
+  local mul_other = nil
+  ; create other multiply prefix
+  mul_other = mul_other or create_constant(1)
+
+  mul_self = M.poly(mul_self, self.ring)
+  mul_other = M.poly(mul_other, other.ring)
+
+  local lhs = mul_self * self
+  local rhs = mul_other * other
+  return lhs - rhs
+end
+
+;; create self multiply prefix
+for i=1,#multideg_self do
+  local diff = multideg_lcm[i] - multideg_self[i]
+  if diff > 0 then
+    if not mul_self then
+      mul_self = self.ring.vars[i] ^ diff
+    else
+      mul_self = mul_self * self.ring.vars[i] ^ diff
+    end
+  end
+end
+
+if not mul_self then
+  mul_self = create_constant(1) / self:lc() 
+else
+  mul_self = (create_constant(1) / self:lc()) * mul_self
+end
+
+;; create other multiply prefix
+for i=1,#multideg_other do
+  local diff = multideg_lcm[i] - multideg_other[i]
+  if diff > 0 then
+    if not mul_other then
+      mul_other = other.ring.vars[i] ^ diff
+    else
+      mul_other = mul_other * other.ring.vars[i] ^ diff
+    end
+  end
+end
+
+if not mul_other then
+  mul_other = create_constant(1) / other:lc() 
+else
+  mul_other = (create_constant(1) / other:lc()) * mul_other
 end
