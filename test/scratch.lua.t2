@@ -76,11 +76,10 @@ io.write(tostring(p))
 ; reload
 local x,y = swan.symbols "x y z"
 local k = swan.poly_ring("lex", x, y)
-local f = swan.poly(x^2*y+x*y^2+y^2, k)
-local f1 = swan.poly(x*y - 1, k)
-local f2 = swan.poly(y^2 - 1, k)
-local q,r = f:div(f1,f2)
-io.write(tostring(q[1]))
+local f = swan.poly(x^2*y +x*y^2 + y^2, k)
+local f1 = swan.poly(y^2 - 1, k)
+local f2 = swan.poly(x*y - 1, k)
+io.write(tostring(f1:lcm(f2)))
 
 ;; playground
 local a = {1,2,3,4}

@@ -126,6 +126,25 @@ function poly_methods:pop_lt()
   table.remove(self.gens)
 end
 
+function poly_methods:lcm(other)
+  assert(self.ring == other.ring)
+
+  local multideg_self = self:multideg()
+  local multideg_other = other:multideg()
+
+  local mono = nil
+  for i=1,#multideg_self do
+    local gamma = math.max(multideg_self[i], multideg_other[i])
+    if gamma > 0 then
+      if not mono then
+        mono = self.ring.vars[i]^gamma
+      else
+        mono = mono * self.ring.vars[i]^gamma
+      end
+    end
+  end
+  return mono or create_constant(1)
+end
 function poly_methods:multideg()
   return self.gens[#self.gens]
 end
@@ -135,20 +154,18 @@ function poly_methods:lc()
 end
 
 function poly_methods:lm()
-  local mono = create_mul_exp()
+  local mono = nil
   local last_gen = self.gens[#self.gens]
   for i=1,#last_gen do
     if last_gen[i] > 0 then
-      for j=1,last_gen[i] do
-        table.insert(mono.children, self.ring.vars[i])
+      if not mono then
+        mono = self.ring.vars[i]^last_gen[i]
+      else
+        mono = mono * self.ring.vars[i]^last_gen[i]
       end
     end
   end
-
-  if #mono.children == 0 then
-    table.insert(mono.children, create_constant(1))
-  end
-  return mono
+  return mono or create_constant(1)
 end
 
 function poly_methods:lt()

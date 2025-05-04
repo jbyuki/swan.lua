@@ -11,20 +11,18 @@ end
 
 ;; implement
 function poly_methods:lm()
-  local mono = create_mul_exp()
+  local mono = nil
   local last_gen = self.gens[#self.gens]
   for i=1,#last_gen do
     if last_gen[i] > 0 then
-      for j=1,last_gen[i] do
-        table.insert(mono.children, self.ring.vars[i])
+      if not mono then
+        mono = self.ring.vars[i]^last_gen[i]
+      else
+        mono = mono * self.ring.vars[i]^last_gen[i]
       end
     end
   end
-
-  if #mono.children == 0 then
-    table.insert(mono.children, create_constant(1))
-  end
-  return mono
+  return mono or create_constant(1)
 end
 
 ;; implement

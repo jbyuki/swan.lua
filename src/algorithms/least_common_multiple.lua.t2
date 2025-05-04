@@ -1,0 +1,21 @@
+;;; ../swan
+;; implement
+function poly_methods:lcm(other)
+  assert(self.ring == other.ring)
+
+  local multideg_self = self:multideg()
+  local multideg_other = other:multideg()
+
+  local mono = nil
+  for i=1,#multideg_self do
+    local gamma = math.max(multideg_self[i], multideg_other[i])
+    if gamma > 0 then
+      if not mono then
+        mono = self.ring.vars[i]^gamma
+      else
+        mono = mono * self.ring.vars[i]^gamma
+      end
+    end
+  end
+  return mono or create_constant(1)
+end
