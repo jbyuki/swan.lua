@@ -2,6 +2,7 @@
 ;; implement
 function M.buchberger(...)
   local G = { ... }
+  local first_i = 1
   while true do
     ; construct g prime
     ; process each pair of polynomial and augment groebner basis
@@ -23,11 +24,12 @@ end
 
 ;; process each pair of polynomial and augment groebner basis
 for i=1,#Gp do
-  for j=i+1,#Gp do
+  for j=math.max(i+1,first_i),#Gp do
     ; compute remainder of s polynomial
     ; if remainder non zero add it to basis
   end
 end
+first_i = #Gp+1
 
 ;; compute remainder of s polynomial
 local s_poly = Gp[i]:s_poly(Gp[j])

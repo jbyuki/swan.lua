@@ -62,6 +62,7 @@ local gcd
 
 function M.buchberger(...)
   local G = { ... }
+  local first_i = 1
   while true do
     local Gp = {}
     for i=1,#G do
@@ -69,7 +70,7 @@ function M.buchberger(...)
     end
 
     for i=1,#Gp do
-      for j=i+1,#Gp do
+      for j=math.max(i+1,first_i),#Gp do
         local s_poly = Gp[i]:s_poly(Gp[j])
         local _,r = s_poly:div(unpack(Gp))
         if r and r:num_mono() > 0 then
@@ -77,6 +78,7 @@ function M.buchberger(...)
         end
       end
     end
+    first_i = #Gp+1
 
     if #Gp == #G then
       break
