@@ -60,6 +60,32 @@ local create_constant
 
 local gcd
 
+function M.buchberger(...)
+  local G = { ... }
+  while true do
+    local Gp = {}
+    for i=1,#G do
+      table.insert(Gp,G[i])
+    end
+
+    for i=1,#Gp do
+      for j=i+1,#Gp do
+        local s_poly = Gp[i]:s_poly(Gp[j])
+        local _,r = s_poly:div(unpack(Gp))
+        if r and r:num_mono() > 0 then
+          table.insert(G, r)
+        end
+      end
+    end
+
+    if #Gp == #G then
+      break
+    end
+
+  end
+  return G
+end
+
 function poly_methods:div(...)
   local divisors = { ... }
 
@@ -83,7 +109,7 @@ function poly_methods:div(...)
 
       if divisible then
         has_divided = true
-        local qi = (dividend:lc() / divisors[i]:lc())
+        local qi = ((dividend:lc() / divisors[i]:lc())):simplify()
         local mono_q = nil
         for i=1,#gen1 do
           local diff_gen = gen1[i] - gen2[i]
@@ -1164,6 +1190,9 @@ function rational_methods:clone()
   return self
 end
 
+function rational_methods:is_monomial()
+	return true
+end
 function sym_mt:__add(other)
 	local exp = {}
 	exp.type = EXP_TYPE.ADD
@@ -1514,6 +1543,9 @@ rational_methods.expand = exp_methods.expand
 rational_methods.simplify = exp_methods.simplify
 
 rational_mt.__unm = sym_mt.__unm
+rational_mt.__add = sym_mt.__add
+rational_mt.__sub = sym_mt.__sub
+
 add_exp_mt.__add = sym_mt.__add 
 
 mul_exp_mt.__mul = sym_mt.__mul

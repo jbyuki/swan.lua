@@ -1,0 +1,37 @@
+;;; ../swan
+;; implement
+function M.buchberger(...)
+  local G = { ... }
+  while true do
+    ; construct g prime
+    ; process each pair of polynomial and augment groebner basis
+    ; if g equals g prime stop
+  end
+  return G
+end
+
+;; construct g prime
+local Gp = {}
+for i=1,#G do
+  table.insert(Gp,G[i])
+end
+
+;; if g equals g prime stop
+if #Gp == #G then
+  break
+end
+
+;; process each pair of polynomial and augment groebner basis
+for i=1,#Gp do
+  for j=i+1,#Gp do
+    ; compute remainder of s polynomial
+    ; if remainder non zero add it to basis
+  end
+end
+
+;; compute remainder of s polynomial
+local s_poly = Gp[i]:s_poly(Gp[j])
+local _,r = s_poly:div(unpack(Gp))
+if r and r:num_mono() > 0 then
+  table.insert(G, r)
+end

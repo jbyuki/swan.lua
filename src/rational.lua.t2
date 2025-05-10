@@ -119,3 +119,10 @@ elseif self.type == EXP_TYPE.RATIONAL then
 
 ;; copy metamethods
 rational_mt.__unm = sym_mt.__unm
+rational_mt.__add = sym_mt.__add
+rational_mt.__sub = sym_mt.__sub
+
+;; implement
+function rational_methods:is_monomial()
+	return true
+end

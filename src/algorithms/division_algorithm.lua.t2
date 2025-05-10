@@ -44,7 +44,7 @@ for i=1,#gen1 do
 end
 
 ;; update dividend and quotients
-local qi = (dividend:lc() / divisors[i]:lc())
+local qi = ((dividend:lc() / divisors[i]:lc())):simplify()
 ; create monomial of quotient
 if qi.value and qi.value == 1 then
   qi = mono_q or create_constant(1)
