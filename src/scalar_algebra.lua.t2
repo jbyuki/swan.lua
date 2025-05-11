@@ -191,3 +191,11 @@ end
 function M.constant(value)
 	return create_constant(value)
 end
+
+;; implement
+function mul_exp_mt:__div(other)
+	return self * (M.constant(1) / other)
+end
+
+;; copy metamethods
+add_exp_mt.__mul = mul_exp_mt.__mul

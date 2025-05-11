@@ -1164,16 +1164,6 @@ function rational_methods:normal_form()
   return result
 end
 
-function constant_mt:__div(other)
-	if other.type == EXP_TYPE.CONSTANT then
-		return create_rational(self.value, other.value):gcd()
-	elseif other.type == EXP_TYPE.RATIONAL then
-		return create_rational(self.value * self.den, other.num):gcd()
-	else
-		assert(false)
-	end
-end
-
 function rational_mt:__div(other)
 	if other.type == EXP_TYPE.CONSTANT then
 		return create_rational(self.num, self.den * other.value):gcd()
@@ -1339,6 +1329,11 @@ end
 function M.constant(value)
 	return create_constant(value)
 end
+
+function mul_exp_mt:__div(other)
+	return self * (M.constant(1) / other)
+end
+
 function exp_methods:simplify()
 	if self.type == EXP_TYPE.CONSTANT then
 		return self:clone()
@@ -1547,6 +1542,7 @@ rational_methods.simplify = exp_methods.simplify
 rational_mt.__unm = sym_mt.__unm
 rational_mt.__add = sym_mt.__add
 rational_mt.__sub = sym_mt.__sub
+rational_mt.__mul = sym_mt.__mul
 
 add_exp_mt.__add = sym_mt.__add 
 
@@ -1563,6 +1559,7 @@ constant_mt.__sub = sym_mt.__sub
 constant_mt.__add = sym_mt.__add
 constant_mt.__mul = sym_mt.__mul
 
+add_exp_mt.__mul = mul_exp_mt.__mul
 sym_methods.simplify = exp_methods.simplify
 constant_methods.simplify = exp_methods.simplify
 

@@ -69,17 +69,6 @@ function rational_methods:normal_form()
 end
 
 ;; implement
-function constant_mt:__div(other)
-	if other.type == EXP_TYPE.CONSTANT then
-		return create_rational(self.value, other.value):gcd()
-	elseif other.type == EXP_TYPE.RATIONAL then
-		return create_rational(self.value * self.den, other.num):gcd()
-	else
-		assert(false)
-	end
-end
-
-;; implement
 function rational_mt:__div(other)
 	if other.type == EXP_TYPE.CONSTANT then
 		return create_rational(self.num, self.den * other.value):gcd()
@@ -121,6 +110,7 @@ elseif self.type == EXP_TYPE.RATIONAL then
 rational_mt.__unm = sym_mt.__unm
 rational_mt.__add = sym_mt.__add
 rational_mt.__sub = sym_mt.__sub
+rational_mt.__mul = sym_mt.__mul
 
 ;; implement
 function rational_methods:is_monomial()

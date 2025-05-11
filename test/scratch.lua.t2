@@ -94,7 +94,7 @@ io.write(tostring(p))
 ; reload
 local a = swan.constant(4)
 local b = swan.constant(6)
-io.write(tostring((a/b + b/a):simplify()))
+io.write(tostring((a/b*a/b):simplify()))
 
 ;; playground
 ; reload
