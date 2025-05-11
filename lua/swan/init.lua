@@ -1330,7 +1330,7 @@ function constant_mt:__div(other)
 	if other.type == EXP_TYPE.CONSTANT then
 		return create_rational(self.value, other.value):gcd()
 	elseif other.type == EXP_TYPE.RATIONAL then
-		return create_rational(self.value * self.den, other.num):gcd()
+		return create_rational(self.value * other.den, other.num):gcd()
 	else
 		assert(false)
 	end

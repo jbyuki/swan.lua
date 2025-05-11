@@ -95,3 +95,14 @@ io.write(tostring(p))
 local a = swan.constant(4)
 local b = swan.constant(6)
 io.write(tostring((a/b + b/a):simplify()))
+
+;; playground
+; reload
+local x,y,z,l = swan.symbols "x y z l"
+local k = swan.poly_ring("grlex", x, y, z, l)
+local f1 = swan.poly(3*x^2 + 2*y*z - 2*x*l, k)
+local f2 = swan.poly(2*x*z - 2*y*l, k)
+local f3 = swan.poly(2*x*y - 2*z - 2*z*l, k)
+local f4 = swan.poly(x^2 + y^2 + z^2 - 1, k)
+local G = swan.buchberger(f1,f2,f3,f4)
+io.write(tostring(#G))
