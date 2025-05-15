@@ -29,6 +29,10 @@ local superscript = {
 	["0"] = "⁰", ["1"] = "¹", ["2"] = "²", ["3"] = "³", ["4"] = "⁴", ["5"] = "⁵", ["6"] = "⁶", ["7"] = "⁷", ["8"] = "⁸", ["9"] = "⁹"
 }
 
+local imag_mt = {}
+
+local imag_methods = {}
+
 local create_rational
 local rational_mt = {}
 local rational_methods = {}
@@ -43,6 +47,10 @@ local EXP_TYPE = {
 	ADD = 1,
 	SCALAR = 3,
 	ARRAY = 4,
+
+	IMAGINARY_i = 7,
+	IMAGINARY_j = 8,
+	IMAGINARY_k = 9,
 
 	RATIONAL = 6,
 
@@ -59,6 +67,52 @@ local mul_exp_mt = {}
 local create_constant
 
 local gcd
+
+local imag_i = {}
+imag_i.type = EXP_TYPE.IMAGINARY_i
+imag_i = setmetatable(imag_i, imag_mt)
+
+
+local imag_j = {}
+imag_j.type = EXP_TYPE.IMAGINARY_j
+imag_j = setmetatable(imag_j, imag_mt)
+
+
+local imag_k = {}
+imag_k.type = EXP_TYPE.IMAGINARY_k
+imag_k = setmetatable(imag_k, imag_mt)
+
+
+local imag_mul = {}
+imag_mul[1] = {}
+imag_mul[imag_i] = {}
+imag_mul[imag_j] = {}
+imag_mul[imag_k] = {}
+
+imag_mul[1][imag_i] = {1, imag_i}
+imag_mul[1][imag_j] = {1, imag_j}
+imag_mul[1][imag_k] = {1, imag_k}
+
+imag_mul[imag_i][1] = {1, imag_i}
+imag_mul[imag_j][1] = {1, imag_j}
+imag_mul[imag_k][1] = {1, imag_k}
+
+imag_mul[imag_i][imag_i] = {-1, 1}
+imag_mul[imag_j][imag_i] = {-1, imag_k}
+imag_mul[imag_k][imag_i] = {1, imag_j}
+
+imag_mul[imag_i][imag_j] = {1, imag_k}
+imag_mul[imag_j][imag_j] = {-1, 1}
+imag_mul[imag_k][imag_j] = {-1, imag_i}
+
+imag_mul[imag_i][imag_k] = {-1, imag_j}
+imag_mul[imag_j][imag_k] = {1, imag_i}
+imag_mul[imag_k][imag_k] = {-1, 1}
+
+local is_imag = {}
+is_imag[EXP_TYPE.IMAGINARY_i] = true
+is_imag[EXP_TYPE.IMAGINARY_j] = true
+is_imag[EXP_TYPE.IMAGINARY_k] = true
 
 function M.buchberger(...)
   local G = { ... }
@@ -513,6 +567,10 @@ function exp_methods:normal_form()
 		[EXP_TYPE.SCALAR] = 20,
 		[EXP_TYPE.MUL] = 30,
 		[EXP_TYPE.ADD] = 40,
+		[EXP_TYPE.IMAGINARY_i] = 15,
+		[EXP_TYPE.IMAGINARY_j] = 16,
+		[EXP_TYPE.IMAGINARY_k] = 17,
+
 		[EXP_TYPE.RATIONAL] = 10,
 
 	}
@@ -1120,6 +1178,32 @@ function constant_mt:__tostring()
 	return tostring(self.value)
 end
 
+function M.i()
+  return imag_i
+end
+
+function M.j()
+  return imag_j
+end
+
+function M.k()
+  return imag_k
+end
+
+function imag_mt:__tostring()
+  if self == imag_i then
+    return "i"
+  elseif self == imag_j then
+    return "j"
+  elseif self == imag_k then
+    return "k"
+  end
+end
+
+function imag_methods:normal_form()
+	return self
+end
+
 function create_rational(num, den)
   assert(den ~= 0)
 
@@ -1344,6 +1428,8 @@ function exp_methods:simplify()
 	elseif self.type == EXP_TYPE.SCALAR then
 		return self:clone()
 
+	elseif is_imag[self.type] then
+	    return self
 	elseif self.type == EXP_TYPE.ADD or self.type == EXP_TYPE.MUL then
 		local children_simplified = {}
 
@@ -1476,6 +1562,31 @@ function exp_methods:simplify()
 
 			children_simplified = new_children_simplified
 
+			local current_imag = 1
+			local current_imag_sign = 1
+
+			new_children_simplified = {}
+			for i=1,#children_simplified do
+			  if is_imag[children_simplified[i].type] then
+			    local sign, res = unpack(imag_mul[current_imag][children_simplified[i]])
+			    current_imag_sign = current_imag_sign * sign
+			    current_imag = res
+			  else
+			    table.insert(new_children_simplified, children_simplified[i])
+			  end
+			end
+
+			if current_imag ~= 1 or current_imag_sign ~= 1 then
+			  if current_imag_sign == -1 then
+			    table.insert(new_children_simplified, create_constant(-1))
+			  end
+			  if current_imag ~= 1 then
+			    table.insert(new_children_simplified, current_imag)
+			  end
+			end
+
+			children_simplified = new_children_simplified
+
 			if #children_simplified == 0 then
 				return create_constant(1)
 			end
@@ -1534,6 +1645,16 @@ poly_ring_mt.__index = poly_ring_methods
 
 mul_exp_mt.__pow = sym_mt.__pow
 add_exp_mt.__pow = sym_mt.__pow
+imag_mt.__pow = sym_mt.__pow
+imag_mt.__add = sym_mt.__add
+imag_mt.__sub = sym_mt.__sub
+imag_mt.__mul = sym_mt.__mul
+imag_mt.__div = sym_mt.__div
+
+imag_mt.__index = imag_methods
+
+imag_methods.simplify = exp_methods.simplify
+
 rational_mt.__index = rational_methods
 
 rational_methods.expand = exp_methods.expand

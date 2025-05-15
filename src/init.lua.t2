@@ -2,6 +2,8 @@
 :: ../lua/swan/init.lua
 local M = {}
 ; variables
+; singletons
+; lookups
 ; implement
 ; copy metamethods
 return M

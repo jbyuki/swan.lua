@@ -1,0 +1,11 @@
+:: ./scrach_quaternion.lua
+; reload
+; test quaternion
+
+;; reload
+package.loaded["swan"] = nil
+swan = require"swan"
+
+;; test quaternion
+; reload
+io.write(tostring((swan.j() * swan.i()):simplify()))
