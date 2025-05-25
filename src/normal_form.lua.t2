@@ -33,8 +33,7 @@ for i=1,#children_normal do
 	table.insert(sorted_idx, i)
 end
 
-;; determine each normal children type
-local order = {}
+;; lookups
 local order_lookup = {
 	[EXP_TYPE.CONSTANT] = 1,
 	[EXP_TYPE.SCALAR] = 20,
@@ -42,6 +41,9 @@ local order_lookup = {
 	[EXP_TYPE.ADD] = 40,
 	; order lookup
 }
+
+;; determine each normal children type
+local order = {}
 
 for i=1,#children_normal do
 	table.insert(order, order_lookup[children_normal[i].type])

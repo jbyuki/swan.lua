@@ -98,14 +98,17 @@ function create_constant(value)
 	return constant
 end
 
+M.create_constant = create_constant
+
 ;; create term with coefficient
-if coeffs[i] > 1 then
+coeffs[i] = coeffs[i]:simplify()
+if coeffs[i] ~= create_constant(1) then
 	local exp
 	if terms[i].type == EXP_TYPE.MUL then
 		; append coeff at beginning
 	else
 		exp = create_mul_exp()
-		exp.children = { create_constant(coeffs[i]), terms[i] }
+		exp.children = { coeffs[i], terms[i] }
 	end
 	table.insert(add_exp.children, exp:simplify())
 else
@@ -114,32 +117,76 @@ end
 
 ;; append coeff at beginning
 exp = terms[i]
-table.insert(exp.children, 1, create_constant(coeffs[i]))
+table.insert(exp.children, 1, coeffs[i])
+
+;; implement
+function split_term(exp)
+	if exp.type == EXP_TYPE.MUL then
+		local left = {}
+		local right = {}
+		local i = 1
+		while i <= #exp.children do
+			if exp.type == EXP_TYPE.CONSTANT or exp.type == EXP_TYPE.RATIONAL then
+				table.insert(left, exp.children[i])
+				i = i + 1
+			else
+				break
+			end
+		end
+
+		while i <= #exp.children do
+			table.insert(right, exp.children[i])
+		end
+
+		if #left == 0 then
+			return nil, exp
+		elseif #right == 0 then
+			return exp, nil
+		else
+			return create_mul_or_single(left), create_mul_or_single(right)
+		end
+	else
+		return nil, exp
+	end
+end
+
+;; implement
+function create_mul_or_single(children)
+	if #children == 1 then
+		return children[1]
+	else
+		local exp = create_mul_exp()
+		exp.children = children
+	end
+end
 
 ;; check if any existing term is equal
 local candidate = children_simplified[i]
 ; put candidate in normal form
+local candidate_coeff, candidate_term = split_term(candidate)
 
 local found = false
-for j=1,#terms do
-	; compare candidate against term
-	; if equal add coefficient
+if candidate_term then
+	for j=1,#terms do
+		; compare candidate against term
+		; if equal add coefficient
+	end
 end
 
 ;; otherwise add new term
 if not found then
-	table.insert(terms, candidate)
-	table.insert(coeffs, 1)
+	table.insert(terms, candidate_term or create_constant(1))
+	table.insert(coeffs, candidate_coeff or create_constant(1))
 end
 
 ;; compare candidate against term
 local equal = false
 local term = terms[j]
-equal = term == candidate
+equal = term == candidate_term
 
 ;; if equal add coefficient
 if equal then
-	coeffs[j] = coeffs[j] + 1
+	coeffs[j] = coeffs[j] + (candidate_coeff or create_constant(1))
 	found = true
 	break
 end

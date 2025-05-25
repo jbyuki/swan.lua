@@ -46,21 +46,21 @@ imag_mt.__mul = sym_mt.__mul
 imag_mt.__div = sym_mt.__div
 
 ;; set metatable imaginary i
-imag_i = setmetatable(imag_i, imag_mt)
+setmetatable(imag_i, imag_mt)
 
 ;; set metatable imaginary j
-imag_j = setmetatable(imag_j, imag_mt)
+setmetatable(imag_j, imag_mt)
 
 ;; set metatable imaginary k
-imag_k = setmetatable(imag_k, imag_mt)
+setmetatable(imag_k, imag_mt)
 
 ;; implement
 function imag_mt:__tostring()
-  if self == imag_i then
+  if self.type == imag_i.type then
     return "i"
-  elseif self == imag_j then
+  elseif self.type == imag_j.type then
     return "j"
-  elseif self == imag_k then
+  elseif self.type == imag_k.type then
     return "k"
   end
 end
@@ -136,7 +136,13 @@ children_simplified = new_children_simplified
 
 ;; copy metamethods
 imag_methods.simplify = exp_methods.simplify
+imag_methods.expand = exp_methods.expand
 
 ;; if imaginary return as is
 elseif is_imag[self.type] then
     return self
+
+;; if imaginary then clone
+if is_imag[self.type] then
+    return self
+end

@@ -29,3 +29,13 @@ end
 
 ;; copy metamethods
 mul_exp_mt.__lt = add_exp_mt.__lt
+
+;; implement
+function imag_mt:__lt(other)
+	assert(is_imag[self.type] and is_imag[other.type])
+	return order_lookup[self.type] < order_lookup[self.type]
+end
+
+function imag_mt:__eq(other)
+	return is_imag[self.type] and is_imag[other.type] and order_lookup[self.type] == order_lookup[self.type]
+end

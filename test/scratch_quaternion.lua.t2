@@ -1,6 +1,14 @@
-:: ./scrach_quaternion.lua
+:: scrach_quaternion.lua
 ; reload
+; start debugger
+; stop debugger
 ; test quaternion
+
+;; start debugger
+require"osv".launch { port = 8086 }
+
+;; stop debugger
+require"osv".stop()
 
 ;; reload
 package.loaded["swan"] = nil
@@ -8,4 +16,7 @@ swan = require"swan"
 
 ;; test quaternion
 ; reload
-io.write(tostring((swan.j() * swan.i()):simplify()))
+x = swan.symbols "x"
+q = x + x
+
+io.write(tostring(q:simplify()))

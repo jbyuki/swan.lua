@@ -70,18 +70,31 @@ local gcd
 
 local imag_i = {}
 imag_i.type = EXP_TYPE.IMAGINARY_i
-imag_i = setmetatable(imag_i, imag_mt)
+setmetatable(imag_i, imag_mt)
 
 
 local imag_j = {}
 imag_j.type = EXP_TYPE.IMAGINARY_j
-imag_j = setmetatable(imag_j, imag_mt)
+setmetatable(imag_j, imag_mt)
 
 
 local imag_k = {}
 imag_k.type = EXP_TYPE.IMAGINARY_k
-imag_k = setmetatable(imag_k, imag_mt)
+setmetatable(imag_k, imag_mt)
 
+
+local order_lookup = {
+	[EXP_TYPE.CONSTANT] = 1,
+	[EXP_TYPE.SCALAR] = 20,
+	[EXP_TYPE.MUL] = 30,
+	[EXP_TYPE.ADD] = 40,
+	[EXP_TYPE.IMAGINARY_i] = 15,
+	[EXP_TYPE.IMAGINARY_j] = 16,
+	[EXP_TYPE.IMAGINARY_k] = 17,
+
+	[EXP_TYPE.RATIONAL] = 10,
+
+}
 
 local imag_mul = {}
 imag_mul[1] = {}
@@ -364,6 +377,14 @@ function add_exp_mt:__lt(other)
 end
 
 
+function imag_mt:__lt(other)
+	assert(is_imag[self.type] and is_imag[other.type])
+	return order_lookup[self.type] < order_lookup[self.type]
+end
+
+function imag_mt:__eq(other)
+	return is_imag[self.type] and is_imag[other.type] and order_lookup[self.type] == order_lookup[self.type]
+end
 function constant_mt:__eq(other)
 	return other.type == EXP_TYPE.CONSTANT and self.value == other.value
 end
@@ -402,6 +423,9 @@ function exp_methods:expand()
 	  return self:clone()
 	end
 
+	if is_imag[self.type] then
+	    return self
+	end
 	local expanded_children = {}
 	for _, child in ipairs(self.children) do
 		table.insert(expanded_children, child:expand())
@@ -562,18 +586,6 @@ function exp_methods:normal_form()
 	end
 
 	local order = {}
-	local order_lookup = {
-		[EXP_TYPE.CONSTANT] = 1,
-		[EXP_TYPE.SCALAR] = 20,
-		[EXP_TYPE.MUL] = 30,
-		[EXP_TYPE.ADD] = 40,
-		[EXP_TYPE.IMAGINARY_i] = 15,
-		[EXP_TYPE.IMAGINARY_j] = 16,
-		[EXP_TYPE.IMAGINARY_k] = 17,
-
-		[EXP_TYPE.RATIONAL] = 10,
-
-	}
 
 	for i=1,#children_normal do
 		table.insert(order, order_lookup[children_normal[i].type])
@@ -1191,11 +1203,11 @@ function M.k()
 end
 
 function imag_mt:__tostring()
-  if self == imag_i then
+  if self.type == imag_i.type then
     return "i"
-  elseif self == imag_j then
+  elseif self.type == imag_j.type then
     return "j"
-  elseif self == imag_k then
+  elseif self.type == imag_k.type then
     return "k"
   end
 end
@@ -1430,6 +1442,7 @@ function exp_methods:simplify()
 
 	elseif is_imag[self.type] then
 	    return self
+
 	elseif self.type == EXP_TYPE.ADD or self.type == EXP_TYPE.MUL then
 		local children_simplified = {}
 
@@ -1479,39 +1492,43 @@ function exp_methods:simplify()
 				local candidate = children_simplified[i]
 				candidate = candidate:normal_form()
 
+				local candidate_coeff, candidate_term = split_term(candidate)
 
 				local found = false
-				for j=1,#terms do
-					local equal = false
-					local term = terms[j]
-					equal = term == candidate
+				if candidate_term then
+					for j=1,#terms do
+						local equal = false
+						local term = terms[j]
+						equal = term == candidate_term
 
-					if equal then
-						coeffs[j] = coeffs[j] + 1
-						found = true
-						break
+						if equal then
+							coeffs[j] = coeffs[j] + (candidate_coeff or create_constant(1))
+							found = true
+							break
+						end
+
 					end
-
 				end
 
 				if not found then
-					table.insert(terms, candidate)
-					table.insert(coeffs, 1)
+					table.insert(terms, candidate_term or create_constant(1))
+					table.insert(coeffs, candidate_coeff or create_constant(1))
 				end
 
 			end
 
 			local add_exp = exp
 			for i=1,#terms do
-				if coeffs[i] > 1 then
+				coeffs[i] = coeffs[i]:simplify()
+				if coeffs[i] ~= create_constant(1) then
 					local exp
 					if terms[i].type == EXP_TYPE.MUL then
 						exp = terms[i]
-						table.insert(exp.children, 1, create_constant(coeffs[i]))
+						table.insert(exp.children, 1, coeffs[i])
 
 					else
 						exp = create_mul_exp()
-						exp.children = { create_constant(coeffs[i]), terms[i] }
+						exp.children = { coeffs[i], terms[i] }
 					end
 					table.insert(add_exp.children, exp:simplify())
 				else
@@ -1613,6 +1630,47 @@ function create_constant(value)
 	return constant
 end
 
+M.create_constant = create_constant
+
+function split_term(exp)
+	if exp.type == EXP_TYPE.MUL then
+		local left = {}
+		local right = {}
+		local i = 1
+		while i <= #exp.children do
+			if exp.type == EXP_TYPE.CONSTANT or exp.type == EXP_TYPE.RATIONAL then
+				table.insert(left, exp.children[i])
+				i = i + 1
+			else
+				break
+			end
+		end
+
+		while i <= #exp.children do
+			table.insert(right, exp.children[i])
+		end
+
+		if #left == 0 then
+			return nil, exp
+		elseif #right == 0 then
+			return exp, nil
+		else
+			return create_mul_or_single(left), create_mul_or_single(right)
+		end
+	else
+		return nil, exp
+	end
+end
+
+function create_mul_or_single(children)
+	if #children == 1 then
+		return children[1]
+	else
+		local exp = create_mul_exp()
+		exp.children = children
+	end
+end
+
 function gcd(a,b)
   assert(isint(a))
   assert(isint(b))
@@ -1631,6 +1689,7 @@ end
 poly_mt.__index = poly_methods
 
 mul_exp_mt.__lt = add_exp_mt.__lt
+
 mul_exp_mt.__eq = add_exp_mt.__eq
 mul_exp_mt.__index = exp_methods
 add_exp_mt.__index = exp_methods
@@ -1654,6 +1713,7 @@ imag_mt.__div = sym_mt.__div
 imag_mt.__index = imag_methods
 
 imag_methods.simplify = exp_methods.simplify
+imag_methods.expand = exp_methods.expand
 
 rational_mt.__index = rational_methods
 
