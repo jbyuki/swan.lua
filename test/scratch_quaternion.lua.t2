@@ -17,6 +17,7 @@ swan = require"swan"
 ;; test quaternion
 ; reload
 x = swan.symbols "x"
-q = x + x
+i,j,k = swan.i(), swan.j(), swan.k()
+q = i + 2*i
 
 io.write(tostring(q:simplify()))

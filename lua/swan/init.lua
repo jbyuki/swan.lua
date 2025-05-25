@@ -1638,8 +1638,9 @@ function split_term(exp)
 		local right = {}
 		local i = 1
 		while i <= #exp.children do
-			if exp.type == EXP_TYPE.CONSTANT or exp.type == EXP_TYPE.RATIONAL then
-				table.insert(left, exp.children[i])
+			local child = exp.children[i]
+			if child.type == EXP_TYPE.CONSTANT or child.type == EXP_TYPE.RATIONAL then
+				table.insert(left, child)
 				i = i + 1
 			else
 				break
@@ -1648,6 +1649,7 @@ function split_term(exp)
 
 		while i <= #exp.children do
 			table.insert(right, exp.children[i])
+			i = i + 1
 		end
 
 		if #left == 0 then
