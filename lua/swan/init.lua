@@ -33,6 +33,17 @@ local imag_mt = {}
 
 local imag_methods = {}
 
+local FUNCTION_TYPE = {
+  UNDEFINED = 1,
+  EXP = 2,
+
+}
+
+local create_fun_exp
+local fun_methods = {}
+local fun_mt = {}
+fun_mt.__index = fun_methods
+
 local create_rational
 local rational_mt = {}
 local rational_methods = {}
@@ -51,6 +62,8 @@ local EXP_TYPE = {
 	IMAGINARY_i = 7,
 	IMAGINARY_j = 8,
 	IMAGINARY_k = 9,
+
+	FUNCTION = 10,
 
 	RATIONAL = 6,
 
@@ -426,6 +439,7 @@ function exp_methods:expand()
 	if is_imag[self.type] then
 	    return self
 	end
+
 	local expanded_children = {}
 	for _, child in ipairs(self.children) do
 		table.insert(expanded_children, child:expand())
@@ -1225,6 +1239,40 @@ end
 
 function imag_methods:normal_form()
 	return self
+end
+
+function create_fun_exp()
+  local exp = {}
+  exp.type = EXP_TYPE.FUNCTION
+  exp.args = {}
+  exp.fun_type = FUNCTION_TYPE.UNDEFINED
+  setmetatable(exp, fun_mt)
+  return exp
+end
+
+function fun_mt:__tostring()
+  local fun_name = "unknown"
+  local args_str = {}
+  for i=1,#self.args do
+    table.insert(args_str, tostring(self.args[i]))
+  end
+  args_str = table.concat(args_str, ",")
+
+  if self.fun_type == FUNCTION_TYPE.UNDEFINED then
+    fun_name = "undefined"
+  elseif self.fun_type == FUNCTION_TYPE.EXP then
+    fun_name = "exp"
+
+  end
+
+  return fun_name .. "(" .. args_str .. ")"
+end
+
+function M.exp(x)
+  local fn_exp = create_fun_exp()
+  fn_exp.fun_type = FUNCTION_TYPE.EXP
+  table.insert(fn_exp.args, x)
+  return fn_exp
 end
 
 function create_rational(num, den)

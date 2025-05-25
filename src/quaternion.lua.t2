@@ -146,3 +146,63 @@ elseif is_imag[self.type] then
 if is_imag[self.type] then
     return self
 end
+
+;; exp types
+FUNCTION = 10,
+
+;; variables
+local FUNCTION_TYPE = {
+  UNDEFINED = 1,
+  ; function types
+}
+
+;; variables
+local create_fun_exp
+local fun_methods = {}
+local fun_mt = {}
+fun_mt.__index = fun_methods
+
+;; implement
+function create_fun_exp()
+  local exp = {}
+  exp.type = EXP_TYPE.FUNCTION
+  exp.args = {}
+  exp.fun_type = FUNCTION_TYPE.UNDEFINED
+  setmetatable(exp, fun_mt)
+  return exp
+end
+
+;; implement
+function fun_mt:__tostring()
+  local fun_name = "unknown"
+  ; args to string
+  if self.fun_type == FUNCTION_TYPE.UNDEFINED then
+    fun_name = "undefined"
+  ; convert function type to function name
+  end
+
+  return fun_name .. "(" .. args_str .. ")"
+end
+
+;; function types
+EXP = 2,
+
+;; convert function type to function name
+elseif self.fun_type == FUNCTION_TYPE.EXP then
+  fun_name = "exp"
+
+;; args to string
+local args_str = {}
+for i=1,#self.args do
+  table.insert(args_str, tostring(self.args[i]))
+end
+args_str = table.concat(args_str, ",")
+
+;; implement
+function M.exp(x)
+  local fn_exp = create_fun_exp()
+  fn_exp.fun_type = FUNCTION_TYPE.EXP
+  table.insert(fn_exp.args, x)
+  return fn_exp
+end
+

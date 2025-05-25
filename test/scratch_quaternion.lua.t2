@@ -18,6 +18,13 @@ swan = require"swan"
 ; reload
 x = swan.symbols "x"
 i,j,k = swan.i(), swan.j(), swan.k()
-q = (k+i)*(k+i)
+q = (1+2*k+i-2*j)*(10+3*k+i+j)
 
 io.write(tostring(q:expand():simplify()))
+
+;; test quaternion
+; reload
+x = swan.symbols "x"
+f = swan.exp(x*x)
+
+io.write(tostring(f))
