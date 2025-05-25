@@ -1531,7 +1531,8 @@ function exp_methods:simplify()
 			local add_exp = exp
 			for i=1,#terms do
 				coeffs[i] = coeffs[i]:simplify()
-				if coeffs[i] ~= create_constant(1) then
+				if coeffs[i] == create_constant(0) then
+				elseif coeffs[i] ~= create_constant(1) then
 					local exp
 					if terms[i].type == EXP_TYPE.MUL then
 						exp = terms[i]

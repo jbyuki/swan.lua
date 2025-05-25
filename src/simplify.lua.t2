@@ -102,7 +102,8 @@ M.create_constant = create_constant
 
 ;; create term with coefficient
 coeffs[i] = coeffs[i]:simplify()
-if coeffs[i] ~= create_constant(1) then
+if coeffs[i] == create_constant(0) then
+elseif coeffs[i] ~= create_constant(1) then
 	local exp
 	if terms[i].type == EXP_TYPE.MUL then
 		; append coeff at beginning
