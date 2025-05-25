@@ -37,6 +37,9 @@ local FUNCTION_TYPE = {
   UNDEFINED = 1,
   EXP = 2,
 
+  SIN = 3,
+  COS = 4,
+
 }
 
 local create_fun_exp
@@ -1241,11 +1244,11 @@ function imag_methods:normal_form()
 	return self
 end
 
-function create_fun_exp()
+function create_fun_exp(fun_type)
   local exp = {}
   exp.type = EXP_TYPE.FUNCTION
   exp.args = {}
-  exp.fun_type = FUNCTION_TYPE.UNDEFINED
+  exp.fun_type = fun_type or FUNCTION_TYPE.UNDEFINED
   setmetatable(exp, fun_mt)
   return exp
 end
@@ -1262,6 +1265,11 @@ function fun_mt:__tostring()
     fun_name = "undefined"
   elseif self.fun_type == FUNCTION_TYPE.EXP then
     fun_name = "exp"
+
+  elseif self.fun_type == FUNCTION_TYPE.SIN then
+    fun_name = "sin"
+  elseif self.fun_type == FUNCTION_TYPE.COS then
+    fun_name = "cos"
 
   end
 
@@ -1748,6 +1756,17 @@ function gcd(a,b)
 	return a
 end
 
+function M.sin(x)
+  local fn_exp = create_fun_exp(FUNCTION_TYPE.SIN)
+  table.insert(fn_exp.args, x)
+  return fn_exp
+end
+
+function M.cos(x)
+  local fn_exp = create_fun_exp(FUNCTION_TYPE.COS)
+  table.insert(fn_exp.args, x)
+  return fn_exp
+end
 poly_mt.__index = poly_methods
 
 mul_exp_mt.__lt = add_exp_mt.__lt

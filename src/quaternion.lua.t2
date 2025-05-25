@@ -163,11 +163,11 @@ local fun_mt = {}
 fun_mt.__index = fun_methods
 
 ;; implement
-function create_fun_exp()
+function create_fun_exp(fun_type)
   local exp = {}
   exp.type = EXP_TYPE.FUNCTION
   exp.args = {}
-  exp.fun_type = FUNCTION_TYPE.UNDEFINED
+  exp.fun_type = fun_type or FUNCTION_TYPE.UNDEFINED
   setmetatable(exp, fun_mt)
   return exp
 end

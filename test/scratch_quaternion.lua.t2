@@ -25,6 +25,6 @@ io.write(tostring(q:expand():simplify()))
 ;; test quaternion
 ; reload
 x = swan.symbols "x"
-f = swan.exp(x*x)
+f = swan.sin(x*x)
 
 io.write(tostring(f))

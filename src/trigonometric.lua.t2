@@ -1,0 +1,23 @@
+;;; swan
+;; function types
+SIN = 3,
+COS = 4,
+
+;; convert function type to function name
+elseif self.fun_type == FUNCTION_TYPE.SIN then
+  fun_name = "sin"
+elseif self.fun_type == FUNCTION_TYPE.COS then
+  fun_name = "cos"
+
+;; implement
+function M.sin(x)
+  local fn_exp = create_fun_exp(FUNCTION_TYPE.SIN)
+  table.insert(fn_exp.args, x)
+  return fn_exp
+end
+
+function M.cos(x)
+  local fn_exp = create_fun_exp(FUNCTION_TYPE.COS)
+  table.insert(fn_exp.args, x)
+  return fn_exp
+end
