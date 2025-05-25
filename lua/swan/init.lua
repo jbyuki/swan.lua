@@ -442,11 +442,22 @@ function exp_methods:expand()
 			local exp = create_mul_exp()
 
 			for i=1,#expanded_children do
+				local child = nil
 				if expanded_children[i].type == EXP_TYPE.ADD then
-					table.insert(exp.children, expanded_children[i].children[idx[i]])
+					child = expanded_children[i].children[idx[i]]
 				else
-					table.insert(exp.children, expanded_children[i])
+					child = expanded_children[i]
 				end
+
+				if child.type == EXP_TYPE.MUL then
+					for _,grandchild in ipairs(child.children) do
+						table.insert(exp.children, grandchild)
+					end
+
+				else
+					table.insert(exp.children, child)
+				end
+
 			end
 
 			table.insert(new_children, exp)
@@ -1550,6 +1561,31 @@ function exp_methods:simplify()
 		end
 
 		if self.type == EXP_TYPE.MUL then
+			local current_imag = 1
+			local current_imag_sign = 1
+
+			new_children_simplified = {}
+			for i=1,#children_simplified do
+			  if is_imag[children_simplified[i].type] then
+			    local sign, res = unpack(imag_mul[current_imag][children_simplified[i]])
+			    current_imag_sign = current_imag_sign * sign
+			    current_imag = res
+			  else
+			    table.insert(new_children_simplified, children_simplified[i])
+			  end
+			end
+
+			if current_imag ~= 1 or current_imag_sign ~= 1 then
+			  if current_imag_sign == -1 then
+			    table.insert(new_children_simplified, create_constant(-1))
+			  end
+			  if current_imag ~= 1 then
+			    table.insert(new_children_simplified, current_imag)
+			  end
+			end
+
+			children_simplified = new_children_simplified
+
 			local all_factor_num = 1
 			local all_factor_den = 1
 
@@ -1575,31 +1611,6 @@ function exp_methods:simplify()
 				table.insert(new_children_simplified, 1, create_constant(all_factor_num ))
 			elseif all_factor_den ~= 1 then
 				table.insert(new_children_simplified, 1, create_rational(all_factor_num , all_factor_den))
-			end
-
-			children_simplified = new_children_simplified
-
-			local current_imag = 1
-			local current_imag_sign = 1
-
-			new_children_simplified = {}
-			for i=1,#children_simplified do
-			  if is_imag[children_simplified[i].type] then
-			    local sign, res = unpack(imag_mul[current_imag][children_simplified[i]])
-			    current_imag_sign = current_imag_sign * sign
-			    current_imag = res
-			  else
-			    table.insert(new_children_simplified, children_simplified[i])
-			  end
-			end
-
-			if current_imag ~= 1 or current_imag_sign ~= 1 then
-			  if current_imag_sign == -1 then
-			    table.insert(new_children_simplified, create_constant(-1))
-			  end
-			  if current_imag ~= 1 then
-			    table.insert(new_children_simplified, current_imag)
-			  end
 			end
 
 			children_simplified = new_children_simplified

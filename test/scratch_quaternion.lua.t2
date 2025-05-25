@@ -18,6 +18,6 @@ swan = require"swan"
 ; reload
 x = swan.symbols "x"
 i,j,k = swan.i(), swan.j(), swan.k()
-q = 3*i+i+3*j
+q = (k+i)*(k+i)
 
-io.write(tostring(q:simplify()))
+io.write(tostring(q:expand():simplify()))

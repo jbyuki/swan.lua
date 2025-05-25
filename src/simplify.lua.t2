@@ -34,8 +34,8 @@ end
 
 ;; if mul exp leave children as is
 if self.type == EXP_TYPE.MUL then
-	; combine constant and rational factor mul
 	; combine imaginary factor mul
+	; combine constant and rational factor mul
 	; if only constant factors return as constant
 	; if only one return child as is
 	local exp = create_mul_exp()

@@ -95,14 +95,29 @@ end
 local exp = create_mul_exp()
 
 for i=1,#expanded_children do
+	local child = nil
 	if expanded_children[i].type == EXP_TYPE.ADD then
-		table.insert(exp.children, expanded_children[i].children[idx[i]])
+		child = expanded_children[i].children[idx[i]]
 	else
-		table.insert(exp.children, expanded_children[i])
+		child = expanded_children[i]
 	end
+
+	; if child is multiplication flatten structure
+	; otherwise just add child
 end
 
 table.insert(new_children, exp)
+
+;; if child is multiplication flatten structure
+if child.type == EXP_TYPE.MUL then
+	for _,grandchild in ipairs(child.children) do
+		table.insert(exp.children, grandchild)
+	end
+
+;; otherwise just add child
+else
+	table.insert(exp.children, child)
+end
 
 ;; increment idx
 local good = false
