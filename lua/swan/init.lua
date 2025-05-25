@@ -383,7 +383,7 @@ function imag_mt:__lt(other)
 end
 
 function imag_mt:__eq(other)
-	return is_imag[self.type] and is_imag[other.type] and order_lookup[self.type] == order_lookup[self.type]
+	return is_imag[self.type] and is_imag[other.type] and self.type == other.type
 end
 function constant_mt:__eq(other)
 	return other.type == EXP_TYPE.CONSTANT and self.value == other.value
