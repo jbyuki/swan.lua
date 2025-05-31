@@ -1,5 +1,5 @@
 ;;; ../swan
 ;; implement
 function dist_methods:Var()
-
+  return ((self^2):E() - (self:E())^2):simplify()
 end

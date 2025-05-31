@@ -160,6 +160,7 @@ function create_mul_or_single(children)
 	else
 		local exp = create_mul_exp()
 		exp.children = children
+		return exp
 	end
 end
 

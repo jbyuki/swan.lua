@@ -72,6 +72,7 @@ local mul_disp_mt = {}
 function create_add_disp_exp()
   local exp = {}
   exp.type = EXP_TYPE.ADD_DIST
+  exp.children = {}
   setmetatable(exp, add_disp_mt)
   return exp
 end
@@ -79,6 +80,7 @@ end
 function create_mul_disp_exp()
   local exp = {}
   exp.type = EXP_TYPE.MUL_DIST
+  exp.children = {}
   setmetatable(exp, mul_disp_mt)
   return exp
 end

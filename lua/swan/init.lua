@@ -1869,6 +1869,7 @@ function create_mul_or_single(children)
 	else
 		local exp = create_mul_exp()
 		exp.children = children
+		return exp
 	end
 end
 
@@ -1974,10 +1975,28 @@ end
 function dist_methods:E()
   if self.dist_type == DIST_TYPE.NORMAL then
     return self.mu
-  else
-    assert(false)
+  elseif self.dist_type == DIST_TYPE.MUL then
+    if #self.children == 2 and self.children[1] == self.children[2] then
+      local child = self.children[1]
+      if child.type == EXP_TYPE.DIST and child.dist_type == DIST_TYPE.NORMAL then
+        return child.mu ^2 + child.var
+      end
+    end
   end
+  assert(false)
 end
+
+function dist_mt:__pow(sup)
+	assert(type(sup) == "number", "exponent must be a constant number")
+	assert(is_integer(sup), "exponent must be a constant integer number")
+
+  local exp = create_mul_disp_exp()
+  for i=1,sup do
+    table.insert(exp.children, self)
+  end
+  return exp
+end
+
 function create_dist_exp(dist_type)
   local exp = {}
   exp.type = EXP_TYPE.DIST
@@ -2007,6 +2026,7 @@ end
 function create_add_disp_exp()
   local exp = {}
   exp.type = EXP_TYPE.ADD_DIST
+  exp.children = {}
   setmetatable(exp, add_disp_mt)
   return exp
 end
@@ -2014,6 +2034,7 @@ end
 function create_mul_disp_exp()
   local exp = {}
   exp.type = EXP_TYPE.MUL_DIST
+  exp.children = {}
   setmetatable(exp, mul_disp_mt)
   return exp
 end
@@ -2105,7 +2126,7 @@ function mul_disp_mt:__tostring()
 end
 
 function dist_methods:Var()
-
+  return ((self^2):E() - (self:E())^2):simplify()
 end
 function M.sin(x)
   local fn_exp = create_fun_exp(FUNCTION_TYPE.SIN)
@@ -2182,6 +2203,8 @@ add_disp_methods.simplify = dist_methods.simplify
 mul_disp_methods.simplify = dist_methods.simplify
 add_disp_mt.__index = add_disp_methods
 mul_disp_mt.__index = mul_disp_methods
+add_disp_methods.E = dist_methods.E
+mul_disp_methods.E = dist_methods.E
 add_disp_mt.__add = dist_mt.__add
 mul_disp_mt.__add = dist_mt.__add
 
