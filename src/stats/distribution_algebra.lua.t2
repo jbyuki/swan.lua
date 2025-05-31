@@ -2,8 +2,27 @@
 ;; implement
 function dist_methods:simplify()
   if self.type == EXP_TYPE.ADD_DIST then
+    ; simplify children
+    ; collect all normal distribution and add them
+    ; create result add dist expression
+    return result
   elseif self.type == EXP_TYPE.MUL_DIST then
+    ; simplify children
+    ; collect all normal distribution and constants mul them
+    ; create result mul dist expression
+    return result
   else
     return self
   end
+end
+
+;; simplify children
+local new_children = {}
+for _, child in pairs(self.children) do
+  table.insert(new_children, child:simplify())
+end
+
+;; collect all normal distribution and add them
+local normal_add = {}
+for _, child in pairs(self.children) do
 end

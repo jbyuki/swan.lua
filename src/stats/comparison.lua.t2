@@ -1,0 +1,28 @@
+;;; ../swan
+;; implement
+function dist_mt:__eq(other)
+  if self.type ~= other.type then
+    return false
+  end
+
+  if self.type == EXP_TYPE.DIST then
+    if self.dist_type == DIST_TYPE.NORMAL then
+      return self.mu == other.mu and self.sigma == other.sigma
+    end
+  elseif self.type == EXP_TYPE.ADD_DIST or self.type == EXP_TYPE.MUL_DIST then
+    if #self.children ~= #other.children then
+      return false
+    end
+    for i=1,#self.children do
+      if self.children[i] ~= other.children[i] then
+        return false
+      end
+    end
+    return true
+  end
+  return false
+end
+
+;; copy metamethods
+add_disp_mt.__eq = dist_mt.__eq
+mul_disp_mt.__eq = dist_mt.__eq

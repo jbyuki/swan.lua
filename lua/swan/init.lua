@@ -85,7 +85,7 @@ local EXP_TYPE = {
 	DIST = 11,
 
 	ADD_DIST = 12,
-	MUL_DIST = 12,
+	MUL_DIST = 13,
 
 }
 
@@ -206,6 +206,8 @@ local mulable_with_sym = {
 
 local addable_with_dist = {
   [EXP_TYPE.DIST] = true,
+  [EXP_TYPE.SCALAR] = true,
+  [EXP_TYPE.CONSTANT] = true,
   [EXP_TYPE.ADD_DIST] = true,
   [EXP_TYPE.MUL_DIST] = true,
 }
@@ -1882,13 +1884,52 @@ function gcd(a,b)
 	return a
 end
 
+function dist_mt:__eq(other)
+  if self.type ~= other.type then
+    return false
+  end
+
+  if self.type == EXP_TYPE.DIST then
+    if self.dist_type == DIST_TYPE.NORMAL then
+      return self.mu == other.mu and self.sigma == other.sigma
+    end
+  elseif self.type == EXP_TYPE.ADD_DIST or self.type == EXP_TYPE.MUL_DIST then
+    if #self.children ~= #other.children then
+      return false
+    end
+    for i=1,#self.children do
+      if self.children[i] ~= other.children[i] then
+        return false
+      end
+    end
+    return true
+  end
+  return false
+end
+
 function dist_methods:simplify()
   if self.type == EXP_TYPE.ADD_DIST then
+    local new_children = {}
+    for _, child in pairs(self.children) do
+      table.insert(new_children, child:simplify())
+    end
+
+    local normal_add = {}
+    for _, child in pairs(self.children) do
+    end
+    return result
   elseif self.type == EXP_TYPE.MUL_DIST then
+    local new_children = {}
+    for _, child in pairs(self.children) do
+      table.insert(new_children, child:simplify())
+    end
+
+    return result
   else
     return self
   end
 end
+
 function dist_methods:E()
   if self.dist_type == DIST_TYPE.NORMAL then
     return self.mu
@@ -1937,52 +1978,38 @@ function create_mul_disp_exp()
 end
 
 function dist_mt:__add(other)
-  assert(addable_with_dist[other.type])
-  assert(addable_with_dist[self.type])
-
   local exp = create_add_disp_exp()
   exp.children = {}
 
-  if self.type == EXP_TYPE.ADD_DIST then
-    for _, child in self.children do
-      table.insert(exp, child)
+  for _, term in ipairs({self, other}) do
+    if type(term) == "number" then
+      term = create_constant(term)
     end
-  else
-    table.insert(exp.children, self)
-  end
-
-  if other.type == EXP_TYPE.ADD_DIST then
-    for _, child in other.children do
-      table.insert(exp, child)
+    assert(addable_with_dist[term.type])
+    if term.type == EXP_TYPE.ADD_DIST then
+      for _, child in term.children do
+        table.insert(exp, term)
+      end
+    else
+      table.insert(exp.children, term)
     end
-  else
-    table.insert(exp.children, other)
   end
 
   return exp
 end
 
 function dist_mt:__mul(other)
-  local lhs = self
-  local rhs = other
-  if type(lhs) == "number" then
-    lhs = create_constant(lhs)
-  end
-
-  if type(rhs) == "number" then
-    rhs = create_constant(rhs)
-  end
-
-  assert(mulable_with_dist[lhs.type])
-  assert(mulable_with_dist[rhs.type])
-
   local exp = create_mul_disp_exp()
   exp.children = {}
 
-  for _, fac in ipairs({lhs, rhs}) do
+  for _, fac in ipairs({self, other}) do
+    if type(fac) == "number" then
+      fac = create_constant(fac)
+    end
+    assert(mulable_with_dist[fac.type])
     if fac.type == EXP_TYPE.MUL_DIST then
       for _, child in fac.children do
-        table.insert(exp, child)
+        table.insert(exp, fac)
       end
     else
       table.insert(exp.children, fac)
@@ -1992,20 +2019,52 @@ function dist_mt:__mul(other)
   return exp
 end
 
-function add_disp_mt:__tostring()
-  local elems = {}
-  for _, child in ipairs(self.children) do
-    table.insert(elems, tostring(child))
-  end
-  return table.concat(elems, " + ")
+function mul_disp_mt:__tostring()
+	local children_str = {}
+	for i=1,#self.children do
+		local child_str = tostring(self.children[i])
+		if self.children[i].type == EXP_TYPE.ADD_DIST then
+			table.insert(children_str, ("(%s)"):format(child_str))
+		else
+			table.insert(children_str, child_str)
+		end
+	end
+	local power = {}
+	local factors = {}
+	local last_child
+
+	for i=1,#children_str do
+		local child = children_str[i]
+		if last_child == child then
+			power[#power] = power[#power] + 1
+		else
+			table.insert(power, 1)
+			table.insert(factors, child)
+		end
+		last_child = factors[#factors]
+	end
+
+	local elems = {}
+	for i=1,#factors do
+		if power[i] == 1 then
+			table.insert(elems, factors[i])
+		else
+			local sup = tostring(power[i])
+			local new_sup = ""
+			for j=1,#sup do
+				new_sup = new_sup .. superscript[sup:sub(j,j)]
+			end
+			sup = new_sup
+			table.insert(elems, factors[i] .. sup)
+		end
+	end
+
+	return table.concat(elems,"")
+
 end
 
-function mul_disp_mt:__tostring()
-  local elems = {}
-  for _, child in ipairs(self.children) do
-    table.insert(elems, tostring(child))
-  end
-  return table.concat(elems, "")
+function dist_methods:Var()
+
 end
 function M.sin(x)
   local fn_exp = create_fun_exp(FUNCTION_TYPE.SIN)
@@ -2076,11 +2135,15 @@ add_exp_mt.__mul = mul_exp_mt.__mul
 sym_methods.simplify = exp_methods.simplify
 constant_methods.simplify = exp_methods.simplify
 
+add_disp_mt.__eq = dist_mt.__eq
+mul_disp_mt.__eq = dist_mt.__eq
 add_disp_mt.__add = dist_mt.__add
 mul_disp_mt.__add = dist_mt.__add
 
 add_disp_mt.__mul = dist_mt.__mul
 mul_disp_mt.__mul = dist_mt.__mul
+
+add_disp_mt.__tostring = add_exp_mt.__tostring
 
 return M
 

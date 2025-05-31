@@ -1,0 +1,20 @@
+;;; ../swan
+;; copy metamethods
+add_disp_mt.__tostring = add_exp_mt.__tostring
+
+;; implement
+function mul_disp_mt:__tostring()
+	local children_str = {}
+	; transform dist children to string mul
+	; transform same children to power of children
+end
+
+;; transform dist children to string mul
+for i=1,#self.children do
+	local child_str = tostring(self.children[i])
+	if self.children[i].type == EXP_TYPE.ADD_DIST then
+		table.insert(children_str, ("(%s)"):format(child_str))
+	else
+		table.insert(children_str, child_str)
+	end
+end
