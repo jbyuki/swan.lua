@@ -1,0 +1,9 @@
+;;; ../swan
+;; implement
+function dist_methods:E()
+  if self.dist_type == DIST_TYPE.NORMAL then
+    return self.mu
+  else
+    assert(false)
+  end
+end

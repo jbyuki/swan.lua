@@ -1,0 +1,9 @@
+;;; ../swan
+;; implement
+function dist_methods:simplify()
+  if self.type == EXP_TYPE.ADD_DIST then
+  elseif self.type == EXP_TYPE.MUL_DIST then
+  else
+    return self
+  end
+end

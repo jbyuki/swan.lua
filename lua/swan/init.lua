@@ -1882,6 +1882,20 @@ function gcd(a,b)
 	return a
 end
 
+function dist_methods:simplify()
+  if self.type == EXP_TYPE.ADD_DIST then
+  elseif self.type == EXP_TYPE.MUL_DIST then
+  else
+    return self
+  end
+end
+function dist_methods:E()
+  if self.dist_type == DIST_TYPE.NORMAL then
+    return self.mu
+  else
+    assert(false)
+  end
+end
 function create_dist_exp(dist_type)
   local exp = {}
   exp.type = EXP_TYPE.DIST
