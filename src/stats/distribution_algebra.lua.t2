@@ -77,7 +77,7 @@ mul_disp_methods.simplify = dist_methods.simplify
 add_disp_mt.__index = add_disp_methods
 mul_disp_mt.__index = mul_disp_methods
 
-;; collect all normal distribution and constants mul them
+;; collect all normal distribution and constants
 local normal_mul = nil
 local constants_mul = nil
 
@@ -99,6 +99,9 @@ for _, child in pairs(new_children) do
     table.insert(new_children_simplified, child)
   end
 end
+
+;; collect all normal distribution and constants mul them
+; collect all normal distribution and constants
 
 if normal_mul and constants_mul then
   normal_mul.mu = (constants_mul * normal_mul.mu):simplify()

@@ -1,17 +1,18 @@
 ;;; ../swan
 ;; implement
 function dist_methods:E()
-  if self.dist_type == DIST_TYPE.NORMAL then
+  if self.type == EXP_TYPE.DIST and self.dist_type == DIST_TYPE.NORMAL then
     return self.mu
-  elseif self.dist_type == DIST_TYPE.ADD then
+  elseif self.type == EXP_TYPE.ADD_DIST then
     ; return sum of expected values
-  elseif self.dist_type == DIST_TYPE.MUL then
+  elseif self.type == EXP_TYPE.MUL_DIST then
     if #self.children == 2 and self.children[1] == self.children[2] then
       local child = self.children[1]
       if child.type == EXP_TYPE.DIST and child.dist_type == DIST_TYPE.NORMAL then
         return child.mu ^2 + child.var
       end
     end
+    ; return if constant times distribution
   end
   assert(false)
 end
@@ -45,4 +46,22 @@ else
   local exp = create_add_disp_exp()
   exp.children = sum_e
   return exp
+end
+
+;; return if constant times distribution
+local new_children = self.children
+; collect all normal distribution and constants
+if #new_children_simplified == 0 then
+  if constants_mul and normal_mul then
+    return constants_mul * normal_mul.mu
+  elseif constants_mul then
+    return constants_mul
+  else
+    return normal_mul.mu
+  end
+end
+
+;; implement
+function constant_methods:E()
+  return self.value
 end

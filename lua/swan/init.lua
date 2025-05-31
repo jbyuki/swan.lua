@@ -1993,6 +1993,7 @@ function dist_methods:simplify()
       end
     end
 
+
     if normal_mul and constants_mul then
       normal_mul.mu = (constants_mul * normal_mul.mu):simplify()
       normal_mul.var = (constants_mul^2 * normal_mul.var):simplify()
@@ -2020,9 +2021,9 @@ function dist_methods:simplify()
 end
 
 function dist_methods:E()
-  if self.dist_type == DIST_TYPE.NORMAL then
+  if self.type == EXP_TYPE.DIST and self.dist_type == DIST_TYPE.NORMAL then
     return self.mu
-  elseif self.dist_type == DIST_TYPE.ADD then
+  elseif self.type == EXP_TYPE.ADD_DIST then
     local sum_e = {}
     for _, child in ipairs(self.children) do
       table.insert(sum_e, child:E())
@@ -2036,13 +2037,47 @@ function dist_methods:E()
       exp.children = sum_e
       return exp
     end
-  elseif self.dist_type == DIST_TYPE.MUL then
+
+  elseif self.type == EXP_TYPE.MUL_DIST then
     if #self.children == 2 and self.children[1] == self.children[2] then
       local child = self.children[1]
       if child.type == EXP_TYPE.DIST and child.dist_type == DIST_TYPE.NORMAL then
         return child.mu ^2 + child.var
       end
     end
+    local new_children = self.children
+    local normal_mul = nil
+    local constants_mul = nil
+
+    local new_children_simplified = {}
+    for _, child in pairs(new_children) do
+      if child.type == EXP_TYPE.CONSTANT or child.type == EXP_TYPE.SCALAR then
+        if not constants_mul then
+          constants_mul = child
+        else
+          constants_mul = (constants_mul * child):simplify()
+        end
+      elseif child.type == EXP_TYPE.DIST and child.dist_type == DIST_TYPE.NORMAL then
+        if not normal_mul then
+          normal_mul = child
+        else
+          table.insert(new_children_simplified, child)
+        end
+      else
+        table.insert(new_children_simplified, child)
+      end
+    end
+
+    if #new_children_simplified == 0 then
+      if constants_mul and normal_mul then
+        return constants_mul * normal_mul.mu
+      elseif constants_mul then
+        return constants_mul
+      else
+        return normal_mul.mu
+      end
+    end
+
   end
   assert(false)
 end
@@ -2058,6 +2093,9 @@ function dist_mt:__pow(sup)
   return exp
 end
 
+function constant_methods:E()
+  return self.value
+end
 function create_dist_exp(dist_type)
   local exp = {}
   exp.type = EXP_TYPE.DIST
