@@ -16,6 +16,6 @@ swan = require"swan"
 
 ;; test stats
 ; reload
-m, s = swan.symbols "m s"
+m, s = swan.symbols "\\mu \\sigma"
 n1 = swan.normal(m,s)
 io.write(tostring(n1))

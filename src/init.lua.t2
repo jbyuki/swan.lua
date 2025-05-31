@@ -36,6 +36,7 @@ if elem:match(".+%d+:%d+$") then
 ;; otherwise create scalar symbols
 else
 	local name = vim.trim(elem)
+	; convert name to greek if necessary
 	sym.name = name
 	; set type sym
 	; register scalar sym metamethods
