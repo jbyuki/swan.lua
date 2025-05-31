@@ -29,3 +29,8 @@ end
 ;; copy metamethods
 mul_exp_mt.__pow = sym_mt.__pow
 add_exp_mt.__pow = sym_mt.__pow
+
+;; implement
+function constant_mt:__pow(sup)
+	return create_constant(self.value ^ sup)
+end

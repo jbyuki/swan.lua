@@ -1282,6 +1282,9 @@ function is_integer(x)
 	return math.floor(x) == x
 end
 
+function constant_mt:__pow(sup)
+	return create_constant(self.value ^ sup)
+end
 function sym_mt:__tostring()
 	return self.name
 end
@@ -1922,12 +1925,12 @@ function dist_methods:simplify()
     local constants_add = nil
 
     local new_children_simplified = {}
-    for _, child in pairs(self.children) do
+    for _, child in pairs(new_children) do
       if child.type == EXP_TYPE.CONSTANT or child.type == EXP_TYPE.SCALAR then
         if not constants_add then
           constants_add = child
         else
-          constants_add = constants_add + child
+          constants_add = (constants_add + child):simplify()
         end
       elseif child.type == EXP_TYPE.DIST and child.dist_type == DIST_TYPE.NORMAL then
         if not normal_add then
@@ -1950,12 +1953,14 @@ function dist_methods:simplify()
       table.insert(new_children_simplified, constants_add)
     end
 
-    assert(#new_children_simplified > 0)
-    if #new_children_simplified == 1 then
-      return new_children_simplified[1]
+    new_children = new_children_simplified
+
+    assert(#new_children > 0)
+    if #new_children == 1 then
+      return new_children[1]
     else
       local exp = create_add_disp_exp()
-      exp.children = new_children_simplified
+      exp.children = new_children
       return exp
     end
 
@@ -1966,6 +1971,48 @@ function dist_methods:simplify()
       table.insert(new_children, child:simplify())
     end
 
+    local normal_mul = nil
+    local constants_mul = nil
+
+    local new_children_simplified = {}
+    for _, child in pairs(new_children) do
+      if child.type == EXP_TYPE.CONSTANT or child.type == EXP_TYPE.SCALAR then
+        if not constants_mul then
+          constants_mul = child
+        else
+          constants_mul = (constants_mul * child):simplify()
+        end
+      elseif child.type == EXP_TYPE.DIST and child.dist_type == DIST_TYPE.NORMAL then
+        if not normal_mul then
+          normal_mul = child
+        else
+          table.insert(new_children_simplified, child)
+        end
+      else
+        table.insert(new_children_simplified, child)
+      end
+    end
+
+    if normal_mul and constants_mul then
+      normal_mul.mu = (constants_mul * normal_mul.mu):simplify()
+      normal_mul.var = (constants_mul^2 * normal_mul.var):simplify()
+      table.insert(new_children_simplified, normal_mul)
+    elseif normal_mul then
+      table.insert(new_children_simplified, normal_mul)
+    elseif constants_mul then
+      table.insert(new_children_simplified, constants_mul)
+    end
+
+    new_children = new_children_simplified
+
+    assert(#new_children > 0)
+    if #new_children == 1 then
+      return new_children[1]
+    else
+      local exp = create_mul_disp_exp()
+      exp.children = new_children
+      return exp
+    end
     return result
   else
     return self
@@ -2157,6 +2204,7 @@ poly_ring_mt.__index = poly_ring_methods
 
 mul_exp_mt.__pow = sym_mt.__pow
 add_exp_mt.__pow = sym_mt.__pow
+
 imag_mt.__pow = sym_mt.__pow
 imag_mt.__add = sym_mt.__add
 imag_mt.__sub = sym_mt.__sub
@@ -2203,6 +2251,7 @@ add_disp_methods.simplify = dist_methods.simplify
 mul_disp_methods.simplify = dist_methods.simplify
 add_disp_mt.__index = add_disp_methods
 mul_disp_mt.__index = mul_disp_methods
+
 add_disp_methods.E = dist_methods.E
 mul_disp_methods.E = dist_methods.E
 add_disp_mt.__add = dist_mt.__add
