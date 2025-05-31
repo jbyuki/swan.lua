@@ -228,8 +228,21 @@ end
 
 ;; implement
 function mul_exp_mt:__div(other)
-	return self * (M.constant(1) / other)
+	if other.type == EXP_TYPE.CONSTANT then
+		return self * (M.constant(1) / other)
+	else
+		return self * (other^(-1))
+	end
 end
 
 ;; copy metamethods
 add_exp_mt.__div = mul_exp_mt.__div
+
+;; implement
+function sym_mt:__div(other)
+	if other.type == EXP_TYPE.CONSTANT then
+		return self * (M.constant(1) / other)
+	else
+		return self * (other^(-1))
+	end
+end

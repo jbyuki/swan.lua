@@ -18,7 +18,7 @@ swan = require"swan"
 ; reload
 m1, s1 = swan.symbols "\\mu_1 \\sigma_1"
 m2, s2 = swan.symbols "\\mu_2 \\sigma_2"
-io.write(tostring(s1^(-1)))
+io.write(tostring(s1/s2))
 
 ;; test stats
 ; reload

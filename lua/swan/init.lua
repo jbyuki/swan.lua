@@ -205,6 +205,7 @@ local addable_with_sym = {
 	[EXP_TYPE.RATIONAL] = true,
 	[EXP_TYPE.CONSTANT] = true,
 	[EXP_TYPE.MUL] = true,
+	[EXP_TYPE.POW] = true,
 }
 
 local mulable_with_sym = {
@@ -218,6 +219,8 @@ local mulable_with_sym = {
 	[EXP_TYPE.RATIONAL] = true,
 	[EXP_TYPE.CONSTANT] = true,
 	[EXP_TYPE.MUL] = true,
+	[EXP_TYPE.POW] = true,
+
 }
 
 local addable_with_dist = {
@@ -1346,6 +1349,7 @@ function pow_exp_mt:__tostring()
 
 	return base_str .. sup_str
 end
+
 function sym_mt:__tostring()
 	return self.name
 end
@@ -1691,9 +1695,20 @@ function M.constant(value)
 end
 
 function mul_exp_mt:__div(other)
-	return self * (M.constant(1) / other)
+	if other.type == EXP_TYPE.CONSTANT then
+		return self * (M.constant(1) / other)
+	else
+		return self * (other^(-1))
+	end
 end
 
+function sym_mt:__div(other)
+	if other.type == EXP_TYPE.CONSTANT then
+		return self * (M.constant(1) / other)
+	else
+		return self * (other^(-1))
+	end
+end
 function exp_methods:simplify()
 	if self.type == EXP_TYPE.CONSTANT then
 		return self:clone()
@@ -2361,6 +2376,7 @@ constant_mt.__add = sym_mt.__add
 constant_mt.__mul = sym_mt.__mul
 
 add_exp_mt.__div = mul_exp_mt.__div
+
 sym_methods.simplify = exp_methods.simplify
 constant_methods.simplify = exp_methods.simplify
 

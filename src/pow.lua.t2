@@ -95,3 +95,9 @@ function pow_exp_mt:__tostring()
 
 	return base_str .. sup_str
 end
+
+;; mulable with sym
+[EXP_TYPE.POW] = true,
+
+;; addable with sym
+[EXP_TYPE.POW] = true,
