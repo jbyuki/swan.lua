@@ -97,6 +97,9 @@ local create_constant
 
 local gcd
 
+local add_disp_methods = {}
+local mul_disp_methods = {}
+
 local DIST_TYPE = {
   UNDEFINED = 0,
   NORMAL = 1,
@@ -1891,7 +1894,7 @@ function dist_mt:__eq(other)
 
   if self.type == EXP_TYPE.DIST then
     if self.dist_type == DIST_TYPE.NORMAL then
-      return self.mu == other.mu and self.sigma == other.sigma
+      return self.mu == other.mu and self.var == other.var
     end
   elseif self.type == EXP_TYPE.ADD_DIST or self.type == EXP_TYPE.MUL_DIST then
     if #self.children ~= #other.children then
@@ -1914,9 +1917,47 @@ function dist_methods:simplify()
       table.insert(new_children, child:simplify())
     end
 
-    local normal_add = {}
+    local normal_add = nil
+    local constants_add = nil
+
+    local new_children_simplified = {}
     for _, child in pairs(self.children) do
+      if child.type == EXP_TYPE.CONSTANT or child.type == EXP_TYPE.SCALAR then
+        if not constants_add then
+          constants_add = child
+        else
+          constants_add = constants_add + child
+        end
+      elseif child.type == EXP_TYPE.DIST and child.dist_type == DIST_TYPE.NORMAL then
+        if not normal_add then
+          normal_add = child
+        else
+          normal_add.mu = (normal_add.mu + child.mu):simplify()
+          normal_add.var = (normal_add.var + child.var):simplify()
+        end
+      else
+        table.insert(new_children_simplified, child)
+      end
     end
+
+    if normal_add and constants_add then
+      normal_add.mu = (normal_add.mu + constants_add):simplify()
+      table.insert(new_children_simplified, normal_add)
+    elseif normal_add then
+      table.insert(new_children_simplified, normal_add)
+    elseif constants_add then
+      table.insert(new_children_simplified, constants_add)
+    end
+
+    assert(#new_children_simplified > 0)
+    if #new_children_simplified == 1 then
+      return new_children_simplified[1]
+    else
+      local exp = create_add_disp_exp()
+      exp.children = new_children_simplified
+      return exp
+    end
+
     return result
   elseif self.type == EXP_TYPE.MUL_DIST then
     local new_children = {}
@@ -1950,7 +1991,7 @@ function dist_mt:__tostring()
   if self.dist_type == DIST_TYPE.UNDEFINED then
     return "undefined"
   elseif self.dist_type == DIST_TYPE.NORMAL then
-    return "N(" .. tostring(self.mu) .. "," .. tostring(self.sigma) .. ")"
+    return "N(" .. tostring(self.mu) .. "," .. tostring(self.var) .. ")"
 
   end
   return "undefined"
@@ -1959,7 +2000,7 @@ end
 function M.normal(mu, sigma)
   local exp = create_dist_exp(DIST_TYPE.NORMAL)
   exp.mu = mu
-  exp.sigma = sigma
+  exp.var = sigma^2
   return exp
 end
 
@@ -2137,6 +2178,10 @@ constant_methods.simplify = exp_methods.simplify
 
 add_disp_mt.__eq = dist_mt.__eq
 mul_disp_mt.__eq = dist_mt.__eq
+add_disp_methods.simplify = dist_methods.simplify
+mul_disp_methods.simplify = dist_methods.simplify
+add_disp_mt.__index = add_disp_methods
+mul_disp_mt.__index = mul_disp_methods
 add_disp_mt.__add = dist_mt.__add
 mul_disp_mt.__add = dist_mt.__add
 

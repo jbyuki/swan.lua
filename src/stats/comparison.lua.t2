@@ -7,7 +7,7 @@ function dist_mt:__eq(other)
 
   if self.type == EXP_TYPE.DIST then
     if self.dist_type == DIST_TYPE.NORMAL then
-      return self.mu == other.mu and self.sigma == other.sigma
+      return self.mu == other.mu and self.var == other.var
     end
   elseif self.type == EXP_TYPE.ADD_DIST or self.type == EXP_TYPE.MUL_DIST then
     if #self.children ~= #other.children then

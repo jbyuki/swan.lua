@@ -40,13 +40,13 @@ end
 function M.normal(mu, sigma)
   local exp = create_dist_exp(DIST_TYPE.NORMAL)
   exp.mu = mu
-  exp.sigma = sigma
+  exp.var = sigma^2
   return exp
 end
 
 ;; print out distribution
 elseif self.dist_type == DIST_TYPE.NORMAL then
-  return "N(" .. tostring(self.mu) .. "," .. tostring(self.sigma) .. ")"
+  return "N(" .. tostring(self.mu) .. "," .. tostring(self.var) .. ")"
 
 ;; exp types
 ADD_DIST = 12,

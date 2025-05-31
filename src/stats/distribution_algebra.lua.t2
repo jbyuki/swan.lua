@@ -3,7 +3,7 @@
 function dist_methods:simplify()
   if self.type == EXP_TYPE.ADD_DIST then
     ; simplify children
-    ; collect all normal distribution and add them
+    ; collect all normal distribution and constants add them
     ; create result add dist expression
     return result
   elseif self.type == EXP_TYPE.MUL_DIST then
@@ -22,7 +22,55 @@ for _, child in pairs(self.children) do
   table.insert(new_children, child:simplify())
 end
 
-;; collect all normal distribution and add them
-local normal_add = {}
+;; collect all normal distribution and constants add them
+local normal_add = nil
+local constants_add = nil
+
+local new_children_simplified = {}
 for _, child in pairs(self.children) do
+  if child.type == EXP_TYPE.CONSTANT or child.type == EXP_TYPE.SCALAR then
+    if not constants_add then
+      constants_add = child
+    else
+      constants_add = constants_add + child
+    end
+  elseif child.type == EXP_TYPE.DIST and child.dist_type == DIST_TYPE.NORMAL then
+    if not normal_add then
+      normal_add = child
+    else
+      normal_add.mu = (normal_add.mu + child.mu):simplify()
+      normal_add.var = (normal_add.var + child.var):simplify()
+    end
+  else
+    table.insert(new_children_simplified, child)
+  end
 end
+
+if normal_add and constants_add then
+  normal_add.mu = (normal_add.mu + constants_add):simplify()
+  table.insert(new_children_simplified, normal_add)
+elseif normal_add then
+  table.insert(new_children_simplified, normal_add)
+elseif constants_add then
+  table.insert(new_children_simplified, constants_add)
+end
+
+;; create result add dist expression
+assert(#new_children_simplified > 0)
+if #new_children_simplified == 1 then
+  return new_children_simplified[1]
+else
+  local exp = create_add_disp_exp()
+  exp.children = new_children_simplified
+  return exp
+end
+
+;; variables
+local add_disp_methods = {}
+local mul_disp_methods = {}
+
+;; copy metamethods
+add_disp_methods.simplify = dist_methods.simplify
+mul_disp_methods.simplify = dist_methods.simplify
+add_disp_mt.__index = add_disp_methods
+mul_disp_mt.__index = mul_disp_methods

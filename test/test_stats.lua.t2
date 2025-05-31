@@ -19,7 +19,7 @@ swan = require"swan"
 m1, s1 = swan.symbols "\\mu_1 \\sigma_1"
 m2, s2 = swan.symbols "\\mu_2 \\sigma_2"
 n1 = swan.normal(m1,s1)
-io.write(tostring(((n1 + m1)*(n1 + m1))))
+io.write(tostring(((n1 + m1):simplify())))
 
 ;; test stats
 ; reload
