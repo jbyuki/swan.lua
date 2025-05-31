@@ -1,0 +1,10 @@
+;;; ../swan
+;; implement
+function dist_methods:kl_div(other)
+  if self.dist_type == DIST_TYPE.NORMAL and other.type == EXP_TYPE.DIST and other.dist_type == DIST_TYPE.NORMAL then
+    ; compute kl divergence for two normal variables
+  end
+end
+
+;; compute kl divergence for two normal variables
+

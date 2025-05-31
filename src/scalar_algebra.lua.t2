@@ -232,4 +232,4 @@ function mul_exp_mt:__div(other)
 end
 
 ;; copy metamethods
-add_exp_mt.__mul = mul_exp_mt.__mul
+add_exp_mt.__div = mul_exp_mt.__div

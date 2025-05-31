@@ -1,0 +1,15 @@
+;;; swan
+;; implement
+function M.log(x)
+  local fn_exp = create_fun_exp()
+  fn_exp.fun_type = FUNCTION_TYPE.LOG
+  table.insert(fn_exp.args, x)
+  return fn_exp
+end
+
+;; function types
+LOG = 5,
+
+;; convert function type to function name
+elseif self.fun_type == FUNCTION_TYPE.LOG then
+  fun_name = "log"

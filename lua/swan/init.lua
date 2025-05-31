@@ -31,10 +31,19 @@ local poly_mt = {}
 
 local is_integer
 
+local create_pow_exp
+local pow_exp_mt = {}
+local pow_exp_methods = {}
+pow_exp_mt.__index = pow_exp_methods
+
 local constant_mt = {}
 
-local superscript = {
-	["0"] = "⁰", ["1"] = "¹", ["2"] = "²", ["3"] = "³", ["4"] = "⁴", ["5"] = "⁵", ["6"] = "⁶", ["7"] = "⁷", ["8"] = "⁸", ["9"] = "⁹"
+local superscript = { 
+	["+"] = "⁺", ["-"] = "⁻", ["="] = "⁼", ["("] = "⁽", [")"] = "⁾",
+	["n"] = "ⁿ",
+	["0"] = "⁰", ["1"] = "¹", ["2"] = "²", ["3"] = "³", ["4"] = "⁴", ["5"] = "⁵", ["6"] = "⁶", ["7"] = "⁷", ["8"] = "⁸", ["9"] = "⁹",
+	["i"] = "ⁱ", ["j"] = "ʲ", ["w"] = "ʷ",
+  ["T"] = "ᵀ", ["A"] = "ᴬ", ["B"] = "ᴮ", ["D"] = "ᴰ", ["E"] = "ᴱ", ["G"] = "ᴳ", ["H"] = "ᴴ", ["I"] = "ᴵ", ["J"] = "ᴶ", ["K"] = "ᴷ", ["L"] = "ᴸ", ["M"] = "ᴹ", ["N"] = "ᴺ", ["O"] = "ᴼ", ["P"] = "ᴾ", ["R"] = "ᴿ", ["U"] = "ᵁ", ["V"] = "ⱽ", ["W"] = "ᵂ",
 }
 
 local imag_mt = {}
@@ -43,6 +52,8 @@ local imag_methods = {}
 
 local FUNCTION_TYPE = {
   UNDEFINED = 1,
+  LOG = 5,
+
   EXP = 2,
 
   SIN = 3,
@@ -69,6 +80,8 @@ local EXP_TYPE = {
 	ADD = 1,
 	SCALAR = 3,
 	ARRAY = 4,
+
+	POW = 14,
 
 	IMAGINARY_i = 7,
 	IMAGINARY_j = 8,
@@ -705,6 +718,13 @@ function sym_array_mt:__index(index)
 	return self.syms[index]
 end
 
+function M.log(x)
+  local fn_exp = create_fun_exp()
+  fn_exp.fun_type = FUNCTION_TYPE.LOG
+  table.insert(fn_exp.args, x)
+  return fn_exp
+end
+
 function M.matrix(arr)
 	assert(type(arr) == "table")
 	local N = #arr
@@ -1263,19 +1283,29 @@ end
 
 function sym_mt:__pow(sup)
 	assert(type(sup) == "number", "exponent must be a constant number")
-	assert(is_integer(sup), "exponent must be a constant integer number")
+	if is_integer(sup) then
+		if sup >= 1 then
+			local exp = {}
+			exp.type = EXP_TYPE.MUL
+			exp.children = {}
+			exp = setmetatable(exp, mul_exp_mt)
 
-	local exp = {}
-	exp.type = EXP_TYPE.MUL
-	exp.children = {}
-	exp = setmetatable(exp, mul_exp_mt)
 
+			for i=1,sup do
+				table.insert(exp.children, self)
+			end
+			return exp
 
-	for i=1,sup do
-		table.insert(exp.children, self)
+		else
+			local exp = create_pow_exp()
+			exp.base = self
+			exp.sup = sup
+			return exp
+
+		end
+	else
 	end
-
-	return exp
+	assert(false)
 end
 
 function is_integer(x)
@@ -1284,6 +1314,37 @@ end
 
 function constant_mt:__pow(sup)
 	return create_constant(self.value ^ sup)
+end
+
+function create_pow_exp()
+	local exp = {}
+	exp.type = EXP_TYPE.POW
+	return setmetatable(exp, pow_exp_mt)
+end
+
+function pow_exp_mt:__tostring()
+	local base_str = tostring(self.base)
+	if self.base.type == EXP_TYPE.ADD or self.base.type == EXP_TYPE.MUL then
+		base_str = "(" .. base_str .. ")"
+	end
+
+	local sup_str = tostring(self.sup)
+	local new_sup_str = ""
+	local ok = true
+	for i=1,#sup_str do
+		if not superscript[sup_str:sub(i,i)] then
+			ok = false
+		end
+		new_sup_str = new_sup_str .. superscript[sup_str:sub(i,i)]
+	end
+
+	if ok then
+		sup_str = new_sup_str
+	else
+		sup_str = "^(" .. new_sup_str .. ")"
+	end
+
+	return base_str .. sup_str
 end
 function sym_mt:__tostring()
 	return self.name
@@ -1392,6 +1453,8 @@ function fun_mt:__tostring()
 
   if self.fun_type == FUNCTION_TYPE.UNDEFINED then
     fun_name = "undefined"
+  elseif self.fun_type == FUNCTION_TYPE.LOG then
+    fun_name = "log"
   elseif self.fun_type == FUNCTION_TYPE.EXP then
     fun_name = "exp"
 
@@ -2089,6 +2152,12 @@ end
 function constant_methods:E()
   return self.value
 end
+function dist_methods:kl_div(other)
+  if self.dist_type == DIST_TYPE.NORMAL and other.type == EXP_TYPE.DIST and other.dist_type == DIST_TYPE.NORMAL then
+
+  end
+end
+
 function create_dist_exp(dist_type)
   local exp = {}
   exp.type = EXP_TYPE.DIST
@@ -2250,6 +2319,11 @@ poly_ring_mt.__index = poly_ring_methods
 mul_exp_mt.__pow = sym_mt.__pow
 add_exp_mt.__pow = sym_mt.__pow
 
+pow_exp_mt.__unm = sym_mt.__unm
+pow_exp_mt.__add = sym_mt.__add
+pow_exp_mt.__sub = sym_mt.__sub
+pow_exp_mt.__mul = sym_mt.__mul
+
 imag_mt.__pow = sym_mt.__pow
 imag_mt.__add = sym_mt.__add
 imag_mt.__sub = sym_mt.__sub
@@ -2286,7 +2360,7 @@ constant_mt.__sub = sym_mt.__sub
 constant_mt.__add = sym_mt.__add
 constant_mt.__mul = sym_mt.__mul
 
-add_exp_mt.__mul = mul_exp_mt.__mul
+add_exp_mt.__div = mul_exp_mt.__div
 sym_methods.simplify = exp_methods.simplify
 constant_methods.simplify = exp_methods.simplify
 

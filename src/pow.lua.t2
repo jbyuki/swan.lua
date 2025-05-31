@@ -2,10 +2,16 @@
 ;; implement
 function sym_mt:__pow(sup)
 	assert(type(sup) == "number", "exponent must be a constant number")
-	assert(is_integer(sup), "exponent must be a constant integer number")
-
-	; pow current expression with exp
-	return exp
+	if is_integer(sup) then
+		if sup >= 1 then
+			; pow positive integer
+		else
+			; pow negative or zero integer
+		end
+	else
+			; pow non integer
+	end
+	assert(false)
 end
 
 ;; variables
@@ -16,7 +22,7 @@ function is_integer(x)
 	return math.floor(x) == x
 end
 
-;; pow current expression with exp
+;; pow positive integer
 local exp = {}
 exp.type = EXP_TYPE.MUL
 exp.children = {}
@@ -25,6 +31,7 @@ exp.children = {}
 for i=1,sup do
 	table.insert(exp.children, self)
 end
+return exp
 
 ;; copy metamethods
 mul_exp_mt.__pow = sym_mt.__pow
@@ -33,4 +40,58 @@ add_exp_mt.__pow = sym_mt.__pow
 ;; implement
 function constant_mt:__pow(sup)
 	return create_constant(self.value ^ sup)
+end
+
+;; exp types
+POW = 14,
+
+;; variables
+local create_pow_exp
+local pow_exp_mt = {}
+local pow_exp_methods = {}
+pow_exp_mt.__index = pow_exp_methods
+
+;; implement
+function create_pow_exp()
+	local exp = {}
+	exp.type = EXP_TYPE.POW
+	return setmetatable(exp, pow_exp_mt)
+end
+
+;; pow negative or zero integer
+local exp = create_pow_exp()
+exp.base = self
+exp.sup = sup
+return exp
+
+;; copy metamethods
+pow_exp_mt.__unm = sym_mt.__unm
+pow_exp_mt.__add = sym_mt.__add
+pow_exp_mt.__sub = sym_mt.__sub
+pow_exp_mt.__mul = sym_mt.__mul
+
+;; implement
+function pow_exp_mt:__tostring()
+	local base_str = tostring(self.base)
+	if self.base.type == EXP_TYPE.ADD or self.base.type == EXP_TYPE.MUL then
+		base_str = "(" .. base_str .. ")"
+	end
+
+	local sup_str = tostring(self.sup)
+	local new_sup_str = ""
+	local ok = true
+	for i=1,#sup_str do
+		if not superscript[sup_str:sub(i,i)] then
+			ok = false
+		end
+		new_sup_str = new_sup_str .. superscript[sup_str:sub(i,i)]
+	end
+
+	if ok then
+		sup_str = new_sup_str
+	else
+		sup_str = "^(" .. new_sup_str .. ")"
+	end
+
+	return base_str .. sup_str
 end
