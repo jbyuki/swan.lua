@@ -2024,19 +2024,12 @@ function dist_methods:E()
   if self.type == EXP_TYPE.DIST and self.dist_type == DIST_TYPE.NORMAL then
     return self.mu
   elseif self.type == EXP_TYPE.ADD_DIST then
-    local sum_e = {}
+    local sum_e = M.constant(0)
     for _, child in ipairs(self.children) do
-      table.insert(sum_e, child:E())
+      sum_e = sum_e +  child:E()
     end
 
-    assert(#sum_e > 0)
-    if #sum_e == 1 then
-      return sum_e[1]
-    else
-      local exp = create_add_disp_exp()
-      exp.children = sum_e
-      return exp
-    end
+    return sum_e:simplify()
 
   elseif self.type == EXP_TYPE.MUL_DIST then
     if #self.children == 2 and self.children[1] == self.children[2] then
@@ -2148,8 +2141,8 @@ function dist_mt:__add(other)
     end
     assert(addable_with_dist[term.type])
     if term.type == EXP_TYPE.ADD_DIST then
-      for _, child in term.children do
-        table.insert(exp, term)
+      for _, child in ipairs(term.children) do
+        table.insert(exp.children, child)
       end
     else
       table.insert(exp.children, term)
@@ -2169,8 +2162,8 @@ function dist_mt:__mul(other)
     end
     assert(mulable_with_dist[fac.type])
     if fac.type == EXP_TYPE.MUL_DIST then
-      for _, child in fac.children do
-        table.insert(exp, fac)
+      for _, child in ipairs(fac.children) do
+        table.insert(exp.children, child)
       end
     else
       table.insert(exp.children, fac)

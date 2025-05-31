@@ -96,8 +96,8 @@ function dist_mt:__add(other)
     end
     assert(addable_with_dist[term.type])
     if term.type == EXP_TYPE.ADD_DIST then
-      for _, child in term.children do
-        table.insert(exp, term)
+      for _, child in ipairs(term.children) do
+        table.insert(exp.children, child)
       end
     else
       table.insert(exp.children, term)
@@ -132,8 +132,8 @@ function dist_mt:__mul(other)
     end
     assert(mulable_with_dist[fac.type])
     if fac.type == EXP_TYPE.MUL_DIST then
-      for _, child in fac.children do
-        table.insert(exp, fac)
+      for _, child in ipairs(fac.children) do
+        table.insert(exp.children, child)
       end
     else
       table.insert(exp.children, fac)

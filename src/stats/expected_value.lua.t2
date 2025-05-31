@@ -34,19 +34,12 @@ add_disp_methods.E = dist_methods.E
 mul_disp_methods.E = dist_methods.E
 
 ;; return sum of expected values
-local sum_e = {}
+local sum_e = M.constant(0)
 for _, child in ipairs(self.children) do
-  table.insert(sum_e, child:E())
+  sum_e = sum_e +  child:E()
 end
 
-assert(#sum_e > 0)
-if #sum_e == 1 then
-  return sum_e[1]
-else
-  local exp = create_add_disp_exp()
-  exp.children = sum_e
-  return exp
-end
+return sum_e:simplify()
 
 ;; return if constant times distribution
 local new_children = self.children
