@@ -1,0 +1,45 @@
+;;; swan
+;; variables
+local sub_letters = { 
+	["+"] = "₊", ["-"] = "₋", ["="] = "₌", ["("] = "₍", [")"] = "₎",
+	["a"] = "ₐ", ["e"] = "ₑ", ["o"] = "ₒ", ["x"] = "ₓ", ["ə"] = "ₔ", ["h"] = "ₕ", ["k"] = "ₖ", ["l"] = "ₗ", ["m"] = "ₘ", ["n"] = "ₙ", ["p"] = "ₚ", ["s"] = "ₛ", ["t"] = "ₜ", ["i"] = "ᵢ", ["j"] = "ⱼ", ["r"] = "ᵣ", ["u"] = "ᵤ", ["v"] = "ᵥ",
+	["0"] = "₀", ["1"] = "₁", ["2"] = "₂", ["3"] = "₃", ["4"] = "₄", ["5"] = "₅", ["6"] = "₆", ["7"] = "₇", ["8"] = "₈", ["9"] = "₉",
+}
+
+;; convert subscript
+local pat_start, pat_end = name:find("_{.+}")
+if pat_start and pat_end then
+	local pat = name:sub(pat_start+2,pat_end-1)
+	local good = true
+	; check that all letters are subscriptable
+	if good then
+		local pat_sub = ""
+		; create pat sub 
+		name = name:sub(1,pat_start-1) .. pat_sub ..  name:sub(pat_end+1)
+	end
+end
+
+pat_start, pat_end = name:find("_.+")
+if pat_start and pat_end then
+	local pat = name:sub(pat_start+1,pat_end)
+	local good = true
+	; check that all letters are subscriptable
+	if good then
+		local pat_sub = ""
+		; create pat sub 
+		name = name:sub(1,pat_start-1) .. pat_sub ..  name:sub(pat_end+1)
+	end
+end
+
+;; check that all letters are subscriptable
+for i=1,#pat do
+	if not sub_letters[pat:sub(i,i)] then
+		good = false
+		break
+	end
+end
+
+;; create pat sub 
+for i=1,#pat do
+	pat_sub = pat_sub .. sub_letters[pat:sub(i,i)]
+end

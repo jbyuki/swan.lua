@@ -16,6 +16,11 @@ swan = require"swan"
 
 ;; test stats
 ; reload
-m, s = swan.symbols "\\mu \\sigma"
+m, s = swan.symbols "\\mu_1 \\sigma"
 n1 = swan.normal(m,s)
 io.write(tostring(n1))
+
+;; test stats
+; reload
+local name = "\\mudasd_{123456}"
+print(name:find("_{?(.+)}?"))

@@ -105,6 +105,12 @@ local dist_methods = {}
 local dist_mt = {}
 dist_mt.__index = dist_methods
 
+local sub_letters = { 
+	["+"] = "₊", ["-"] = "₋", ["="] = "₌", ["("] = "₍", [")"] = "₎",
+	["a"] = "ₐ", ["e"] = "ₑ", ["o"] = "ₒ", ["x"] = "ₓ", ["ə"] = "ₔ", ["h"] = "ₕ", ["k"] = "ₖ", ["l"] = "ₗ", ["m"] = "ₘ", ["n"] = "ₙ", ["p"] = "ₚ", ["s"] = "ₛ", ["t"] = "ₜ", ["i"] = "ᵢ", ["j"] = "ⱼ", ["r"] = "ᵣ", ["u"] = "ᵤ", ["v"] = "ᵥ",
+	["0"] = "₀", ["1"] = "₁", ["2"] = "₂", ["3"] = "₃", ["4"] = "₄", ["5"] = "₅", ["6"] = "₆", ["7"] = "₇", ["8"] = "₈", ["9"] = "₉",
+}
+
 local imag_i = {}
 imag_i.type = EXP_TYPE.IMAGINARY_i
 setmetatable(imag_i, imag_mt)
@@ -585,10 +591,51 @@ function M.symbols(str)
 		else
 			local name = vim.trim(elem)
 			if name:sub(1,1) == "\\" then
-			  if greek_etc[name:sub(2)] then
-			    name = greek_etc[name:sub(2)]
+			  local pat = name:sub(2):match("^%a+")
+			  if pat and greek_etc[pat] then
+			    name = greek_etc[pat] .. name:sub(2 + #pat)
 			  end
 			end
+			local pat_start, pat_end = name:find("_{.+}")
+			if pat_start and pat_end then
+				local pat = name:sub(pat_start+2,pat_end-1)
+				local good = true
+				for i=1,#pat do
+					if not sub_letters[pat:sub(i,i)] then
+						good = false
+						break
+					end
+				end
+
+				if good then
+					local pat_sub = ""
+					for i=1,#pat do
+						pat_sub = pat_sub .. sub_letters[pat:sub(i,i)]
+					end
+					name = name:sub(1,pat_start-1) .. pat_sub ..  name:sub(pat_end+1)
+				end
+			end
+
+			pat_start, pat_end = name:find("_.+")
+			if pat_start and pat_end then
+				local pat = name:sub(pat_start+1,pat_end)
+				local good = true
+				for i=1,#pat do
+					if not sub_letters[pat:sub(i,i)] then
+						good = false
+						break
+					end
+				end
+
+				if good then
+					local pat_sub = ""
+					for i=1,#pat do
+						pat_sub = pat_sub .. sub_letters[pat:sub(i,i)]
+					end
+					name = name:sub(1,pat_start-1) .. pat_sub ..  name:sub(pat_end+1)
+				end
+			end
+
 			sym.name = name
 			sym.type = EXP_TYPE.SCALAR
 

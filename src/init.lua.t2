@@ -37,6 +37,7 @@ if elem:match(".+%d+:%d+$") then
 else
 	local name = vim.trim(elem)
 	; convert name to greek if necessary
+	; convert subscript
 	sym.name = name
 	; set type sym
 	; register scalar sym metamethods

@@ -10,7 +10,8 @@ local greek_etc = {
 
 ;; convert name to greek if necessary
 if name:sub(1,1) == "\\" then
-  if greek_etc[name:sub(2)] then
-    name = greek_etc[name:sub(2)]
+  local pat = name:sub(2):match("^%a+")
+  if pat and greek_etc[pat] then
+    name = greek_etc[pat] .. name:sub(2 + #pat)
   end
 end
