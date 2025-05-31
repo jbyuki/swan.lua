@@ -20,7 +20,7 @@ m1, s1 = swan.symbols "\\mu_1 \\sigma_1"
 m2, s2 = swan.symbols "\\mu_2 \\sigma_2"
 n1 = swan.normal(m1,s1)
 n2 = swan.normal(m2,s2)
-io.write(tostring(m1+n1))
+io.write(tostring(n1 * n2))
 
 ;; test stats
 ; reload

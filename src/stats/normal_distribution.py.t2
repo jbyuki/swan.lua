@@ -1,6 +1,6 @@
 ;;; ../swan
 ;; exp types
-DISTRIBUTION = 11,
+DIST = 11,
 
 ;; variables
 local DIST_TYPE = {
@@ -20,7 +20,7 @@ dist_mt.__index = dist_methods
 ;; implement
 function create_dist_exp(dist_type)
   local exp = {}
-  exp.type = EXP_TYPE.DISTRIBUTION
+  exp.type = EXP_TYPE.DIST
   exp.args = {}
   exp.dist_type = dist_type or DIST_TYPE.UNDEFINED
   setmetatable(exp, dist_mt)
@@ -48,8 +48,128 @@ end
 elseif self.dist_type == DIST_TYPE.NORMAL then
   return "N(" .. tostring(self.mu) .. "," .. tostring(self.sigma) .. ")"
 
+;; exp types
+ADD_DIST = 12,
+MUL_DIST = 12,
+
+;; lookups
+local addable_with_dist = {
+  [EXP_TYPE.DIST] = true,
+  [EXP_TYPE.ADD_DIST] = true,
+  [EXP_TYPE.MUL_DIST] = true,
+  ; addable with dist
+}
+
+;; variables
+local create_add_disp_exp
+local create_mul_disp_exp
+local add_disp_mt = {}
+local mul_disp_mt = {}
+
+;; implement
+function create_add_disp_exp()
+  local exp = {}
+  exp.type = EXP_TYPE.ADD_DIST
+  setmetatable(exp, add_disp_mt)
+  return exp
+end
+
+function create_mul_disp_exp()
+  local exp = {}
+  exp.type = EXP_TYPE.MUL_DIST
+  setmetatable(exp, mul_disp_mt)
+  return exp
+end
+
+;; implement
+function dist_mt:__add(other)
+  assert(addable_with_dist[other.type])
+  assert(addable_with_dist[self.type])
+
+  local exp = create_add_disp_exp()
+  exp.children = {}
+
+  if self.type == EXP_TYPE.ADD_DIST then
+    for _, child in self.children do
+      table.insert(exp, child)
+    end
+  else
+    table.insert(exp.children, self)
+  end
+
+  if other.type == EXP_TYPE.ADD_DIST then
+    for _, child in other.children do
+      table.insert(exp, child)
+    end
+  else
+    table.insert(exp.children, other)
+  end
+
+  return exp
+end
+
 ;; copy metamethods
-dist_mt.__unm = sym_mt.__unm
-dist_mt.__add = sym_mt.__add
-dist_mt.__sub = sym_mt.__sub
-dist_mt.__mul = sym_mt.__mul
+add_disp_mt.__add = dist_mt.__add
+mul_disp_mt.__add = dist_mt.__add
+
+;; lookups
+local mulable_with_dist = {
+  [EXP_TYPE.CONSTANT] = true,
+  [EXP_TYPE.SCALAR] = true,
+  [EXP_TYPE.DIST] = true,
+  [EXP_TYPE.ADD_DIST] = true,
+  [EXP_TYPE.MUL_DIST] = true,
+  ; addable with dist
+}
+
+;; implement
+function dist_mt:__mul(other)
+  local lhs = self
+  local rhs = other
+  if type(lhs) == "number" then
+    lhs = create_constant(lhs)
+  end
+
+  if type(rhs) == "number" then
+    rhs = create_constant(rhs)
+  end
+
+  assert(mulable_with_dist[lhs.type])
+  assert(mulable_with_dist[rhs.type])
+
+  local exp = create_mul_disp_exp()
+  exp.children = {}
+
+  for _, fac in ipairs({lhs, rhs}) do
+    if fac.type == EXP_TYPE.MUL_DIST then
+      for _, child in fac.children do
+        table.insert(exp, child)
+      end
+    else
+      table.insert(exp.children, fac)
+    end
+  end
+
+  return exp
+end
+
+;; copy metamethods
+add_disp_mt.__mul = dist_mt.__mul
+mul_disp_mt.__mul = dist_mt.__mul
+
+;; implement
+function add_disp_mt:__tostring()
+  local elems = {}
+  for _, child in ipairs(self.children) do
+    table.insert(elems, tostring(child))
+  end
+  return table.concat(elems, " + ")
+end
+
+function mul_disp_mt:__tostring()
+  local elems = {}
+  for _, child in ipairs(self.children) do
+    table.insert(elems, tostring(child))
+  end
+  return table.concat(elems, "")
+end

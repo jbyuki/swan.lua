@@ -82,7 +82,10 @@ local EXP_TYPE = {
 
 	MUL = 2,
 
-	DISTRIBUTION = 11,
+	DIST = 11,
+
+	ADD_DIST = 12,
+	MUL_DIST = 12,
 
 }
 
@@ -104,6 +107,11 @@ local create_dist_exp
 local dist_methods = {}
 local dist_mt = {}
 dist_mt.__index = dist_methods
+
+local create_add_disp_exp
+local create_mul_disp_exp
+local add_disp_mt = {}
+local mul_disp_mt = {}
 
 local sub_letters = { 
 	["+"] = "₊", ["-"] = "₋", ["="] = "₌", ["("] = "₍", [")"] = "₎",
@@ -181,6 +189,33 @@ local addable_with_sym = {
 	[EXP_TYPE.RATIONAL] = true,
 	[EXP_TYPE.CONSTANT] = true,
 	[EXP_TYPE.MUL] = true,
+}
+
+local mulable_with_sym = {
+	[EXP_TYPE.ADD] = true,
+	[EXP_TYPE.SCALAR] = true,
+	[EXP_TYPE.ARRAY] = true,
+	[EXP_TYPE.IMAGINARY_i] = true,
+	[EXP_TYPE.IMAGINARY_j] = true,
+	[EXP_TYPE.IMAGINARY_k] = true,
+	[EXP_TYPE.FUNCTION] = true,
+	[EXP_TYPE.RATIONAL] = true,
+	[EXP_TYPE.CONSTANT] = true,
+	[EXP_TYPE.MUL] = true,
+}
+
+local addable_with_dist = {
+  [EXP_TYPE.DIST] = true,
+  [EXP_TYPE.ADD_DIST] = true,
+  [EXP_TYPE.MUL_DIST] = true,
+}
+
+local mulable_with_dist = {
+  [EXP_TYPE.CONSTANT] = true,
+  [EXP_TYPE.SCALAR] = true,
+  [EXP_TYPE.DIST] = true,
+  [EXP_TYPE.ADD_DIST] = true,
+  [EXP_TYPE.MUL_DIST] = true,
 }
 
 function M.buchberger(...)
@@ -1449,10 +1484,9 @@ function sym_mt:__add(other)
 		for _, child in ipairs(self.children) do
 			table.insert(exp.children, child)
 		end
-	elseif addable_with_sym[other.type] then
-		table.insert(exp.children, self)
 	else
-		assert(false, "not addable with sym")
+		assert(addable_with_sym[self.type])
+		table.insert(exp.children, self)
 	end
 
 	if type(other) == "number" then
@@ -1463,10 +1497,9 @@ function sym_mt:__add(other)
 		for _, child in ipairs(other.children) do
 			table.insert(exp.children, child)
 		end
-	elseif addable_with_sym[other.type] then
-		table.insert(exp.children, other)
 	else
-		assert(false, "not addable with sym")
+		assert(addable_with_sym[other.type])
+		table.insert(exp.children, other)
 	end
 
 	return exp
@@ -1491,6 +1524,7 @@ function sym_mt:__mul(other)
 			table.insert(exp.children, child)
 		end
 	else
+		assert(mulable_with_sym[self.type])
 		table.insert(exp.children, self)
 	end
 
@@ -1499,6 +1533,7 @@ function sym_mt:__mul(other)
 			table.insert(exp.children, child)
 		end
 	else
+		assert(mulable_with_sym[other.type])
 		table.insert(exp.children, other)
 	end
 
@@ -1520,10 +1555,9 @@ function sym_mt:__sub(other)
 		for _, child in ipairs(self.children) do
 			table.insert(exp.children, child)
 		end
-	elseif addable_with_sym[other.type] then
-		table.insert(exp.children, self)
 	else
-		assert(false, "not addable with sym")
+		assert(addable_with_sym[self.type])
+		table.insert(exp.children, self)
 	end
 
 	if type(other) == "number" then
@@ -1850,7 +1884,7 @@ end
 
 function create_dist_exp(dist_type)
   local exp = {}
-  exp.type = EXP_TYPE.DISTRIBUTION
+  exp.type = EXP_TYPE.DIST
   exp.args = {}
   exp.dist_type = dist_type or DIST_TYPE.UNDEFINED
   setmetatable(exp, dist_mt)
@@ -1874,6 +1908,91 @@ function M.normal(mu, sigma)
   return exp
 end
 
+function create_add_disp_exp()
+  local exp = {}
+  exp.type = EXP_TYPE.ADD_DIST
+  setmetatable(exp, add_disp_mt)
+  return exp
+end
+
+function create_mul_disp_exp()
+  local exp = {}
+  exp.type = EXP_TYPE.MUL_DIST
+  setmetatable(exp, mul_disp_mt)
+  return exp
+end
+
+function dist_mt:__add(other)
+  assert(addable_with_dist[other.type])
+  assert(addable_with_dist[self.type])
+
+  local exp = create_add_disp_exp()
+  exp.children = {}
+
+  if self.type == EXP_TYPE.ADD_DIST then
+    for _, child in self.children do
+      table.insert(exp, child)
+    end
+  else
+    table.insert(exp.children, self)
+  end
+
+  if other.type == EXP_TYPE.ADD_DIST then
+    for _, child in other.children do
+      table.insert(exp, child)
+    end
+  else
+    table.insert(exp.children, other)
+  end
+
+  return exp
+end
+
+function dist_mt:__mul(other)
+  local lhs = self
+  local rhs = other
+  if type(lhs) == "number" then
+    lhs = create_constant(lhs)
+  end
+
+  if type(rhs) == "number" then
+    rhs = create_constant(rhs)
+  end
+
+  assert(mulable_with_dist[lhs.type])
+  assert(mulable_with_dist[rhs.type])
+
+  local exp = create_mul_disp_exp()
+  exp.children = {}
+
+  for _, fac in ipairs({lhs, rhs}) do
+    if fac.type == EXP_TYPE.MUL_DIST then
+      for _, child in fac.children do
+        table.insert(exp, child)
+      end
+    else
+      table.insert(exp.children, fac)
+    end
+  end
+
+  return exp
+end
+
+function add_disp_mt:__tostring()
+  local elems = {}
+  for _, child in ipairs(self.children) do
+    table.insert(elems, tostring(child))
+  end
+  return table.concat(elems, " + ")
+end
+
+function mul_disp_mt:__tostring()
+  local elems = {}
+  for _, child in ipairs(self.children) do
+    table.insert(elems, tostring(child))
+  end
+  return table.concat(elems, "")
+end
 function M.sin(x)
   local fn_exp = create_fun_exp(FUNCTION_TYPE.SIN)
   table.insert(fn_exp.args, x)
@@ -1943,9 +2062,11 @@ add_exp_mt.__mul = mul_exp_mt.__mul
 sym_methods.simplify = exp_methods.simplify
 constant_methods.simplify = exp_methods.simplify
 
-dist_mt.__unm = sym_mt.__unm
-dist_mt.__add = sym_mt.__add
-dist_mt.__sub = sym_mt.__sub
-dist_mt.__mul = sym_mt.__mul
+add_disp_mt.__add = dist_mt.__add
+mul_disp_mt.__add = dist_mt.__add
+
+add_disp_mt.__mul = dist_mt.__mul
+mul_disp_mt.__mul = dist_mt.__mul
+
 return M
 

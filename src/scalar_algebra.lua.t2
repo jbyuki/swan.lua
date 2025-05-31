@@ -37,10 +37,9 @@ elseif self.type and self.type == EXP_TYPE.ADD then
 	for _, child in ipairs(self.children) do
 		table.insert(exp.children, child)
 	end
-elseif addable_with_sym[other.type] then
-	table.insert(exp.children, self)
 else
-	assert(false, "not addable with sym")
+	assert(addable_with_sym[self.type])
+	table.insert(exp.children, self)
 end
 
 ;; collect other add expression
@@ -52,10 +51,9 @@ elseif other.type and other.type == EXP_TYPE.ADD then
 	for _, child in ipairs(other.children) do
 		table.insert(exp.children, child)
 	end
-elseif addable_with_sym[other.type] then
-	table.insert(exp.children, other)
 else
-	assert(false, "not addable with sym")
+	assert(addable_with_sym[other.type])
+	table.insert(exp.children, other)
 end
 
 ;; lookups
@@ -81,6 +79,21 @@ add_exp_mt.__add = sym_mt.__add
 
 ;; register add expression metamethods
 exp = setmetatable(exp, add_exp_mt)
+
+;; lookups
+local mulable_with_sym = {
+	[EXP_TYPE.ADD] = true,
+	[EXP_TYPE.SCALAR] = true,
+	[EXP_TYPE.ARRAY] = true,
+	[EXP_TYPE.IMAGINARY_i] = true,
+	[EXP_TYPE.IMAGINARY_j] = true,
+	[EXP_TYPE.IMAGINARY_k] = true,
+	[EXP_TYPE.FUNCTION] = true,
+	[EXP_TYPE.RATIONAL] = true,
+	[EXP_TYPE.CONSTANT] = true,
+	[EXP_TYPE.MUL] = true,
+	; mulable with sym
+}
 
 ;; implement
 function sym_mt:__mul(other)
@@ -111,6 +124,7 @@ elseif self.type and self.type == EXP_TYPE.MUL then
 		table.insert(exp.children, child)
 	end
 else
+	assert(mulable_with_sym[self.type])
 	table.insert(exp.children, self)
 end
 
@@ -120,6 +134,7 @@ if other.type and other.type == EXP_TYPE.MUL then
 		table.insert(exp.children, child)
 	end
 else
+	assert(mulable_with_sym[other.type])
 	table.insert(exp.children, other)
 end
 
