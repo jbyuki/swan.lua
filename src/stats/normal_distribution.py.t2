@@ -47,3 +47,9 @@ end
 ;; print out distribution
 elseif self.dist_type == DIST_TYPE.NORMAL then
   return "N(" .. tostring(self.mu) .. "," .. tostring(self.sigma) .. ")"
+
+;; copy metamethods
+dist_mt.__unm = sym_mt.__unm
+dist_mt.__add = sym_mt.__add
+dist_mt.__sub = sym_mt.__sub
+dist_mt.__mul = sym_mt.__mul

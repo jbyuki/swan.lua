@@ -37,8 +37,10 @@ elseif self.type and self.type == EXP_TYPE.ADD then
 	for _, child in ipairs(self.children) do
 		table.insert(exp.children, child)
 	end
-else
+elseif addable_with_sym[other.type] then
 	table.insert(exp.children, self)
+else
+	assert(false, "not addable with sym")
 end
 
 ;; collect other add expression
@@ -50,9 +52,26 @@ elseif other.type and other.type == EXP_TYPE.ADD then
 	for _, child in ipairs(other.children) do
 		table.insert(exp.children, child)
 	end
-else
+elseif addable_with_sym[other.type] then
 	table.insert(exp.children, other)
+else
+	assert(false, "not addable with sym")
 end
+
+;; lookups
+local addable_with_sym = {
+	[EXP_TYPE.ADD] = true,
+	[EXP_TYPE.SCALAR] = true,
+	[EXP_TYPE.ARRAY] = true,
+	[EXP_TYPE.IMAGINARY_i] = true,
+	[EXP_TYPE.IMAGINARY_j] = true,
+	[EXP_TYPE.IMAGINARY_k] = true,
+	[EXP_TYPE.FUNCTION] = true,
+	[EXP_TYPE.RATIONAL] = true,
+	[EXP_TYPE.CONSTANT] = true,
+	[EXP_TYPE.MUL] = true,
+	; addable with sym
+}
 
 ;; variables
 local add_exp_mt = {}

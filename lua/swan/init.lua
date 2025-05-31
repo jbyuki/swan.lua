@@ -170,6 +170,19 @@ is_imag[EXP_TYPE.IMAGINARY_i] = true
 is_imag[EXP_TYPE.IMAGINARY_j] = true
 is_imag[EXP_TYPE.IMAGINARY_k] = true
 
+local addable_with_sym = {
+	[EXP_TYPE.ADD] = true,
+	[EXP_TYPE.SCALAR] = true,
+	[EXP_TYPE.ARRAY] = true,
+	[EXP_TYPE.IMAGINARY_i] = true,
+	[EXP_TYPE.IMAGINARY_j] = true,
+	[EXP_TYPE.IMAGINARY_k] = true,
+	[EXP_TYPE.FUNCTION] = true,
+	[EXP_TYPE.RATIONAL] = true,
+	[EXP_TYPE.CONSTANT] = true,
+	[EXP_TYPE.MUL] = true,
+}
+
 function M.buchberger(...)
   local G = { ... }
   local first_i = 1
@@ -1436,8 +1449,10 @@ function sym_mt:__add(other)
 		for _, child in ipairs(self.children) do
 			table.insert(exp.children, child)
 		end
-	else
+	elseif addable_with_sym[other.type] then
 		table.insert(exp.children, self)
+	else
+		assert(false, "not addable with sym")
 	end
 
 	if type(other) == "number" then
@@ -1448,8 +1463,10 @@ function sym_mt:__add(other)
 		for _, child in ipairs(other.children) do
 			table.insert(exp.children, child)
 		end
-	else
+	elseif addable_with_sym[other.type] then
 		table.insert(exp.children, other)
+	else
+		assert(false, "not addable with sym")
 	end
 
 	return exp
@@ -1503,8 +1520,10 @@ function sym_mt:__sub(other)
 		for _, child in ipairs(self.children) do
 			table.insert(exp.children, child)
 		end
-	else
+	elseif addable_with_sym[other.type] then
 		table.insert(exp.children, self)
+	else
+		assert(false, "not addable with sym")
 	end
 
 	if type(other) == "number" then
@@ -1843,6 +1862,7 @@ function dist_mt:__tostring()
     return "undefined"
   elseif self.dist_type == DIST_TYPE.NORMAL then
     return "N(" .. tostring(self.mu) .. "," .. tostring(self.sigma) .. ")"
+
   end
   return "undefined"
 end
@@ -1923,5 +1943,9 @@ add_exp_mt.__mul = mul_exp_mt.__mul
 sym_methods.simplify = exp_methods.simplify
 constant_methods.simplify = exp_methods.simplify
 
+dist_mt.__unm = sym_mt.__unm
+dist_mt.__add = sym_mt.__add
+dist_mt.__sub = sym_mt.__sub
+dist_mt.__mul = sym_mt.__mul
 return M
 
