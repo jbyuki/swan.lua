@@ -74,6 +74,8 @@ local EXP_TYPE = {
 
 	MUL = 2,
 
+	DISTRIBUTION = 11,
+
 }
 
 local add_exp_mt = {}
@@ -83,6 +85,17 @@ local mul_exp_mt = {}
 local create_constant
 
 local gcd
+
+local DIST_TYPE = {
+  UNDEFINED = 0,
+  NORMAL = 1,
+
+}
+
+local create_dist_exp
+local dist_methods = {}
+local dist_mt = {}
+dist_mt.__index = dist_methods
 
 local imag_i = {}
 imag_i.type = EXP_TYPE.IMAGINARY_i
@@ -1754,6 +1767,31 @@ function gcd(a,b)
     a = t
   end
 	return a
+end
+
+function create_dist_exp(dist_type)
+  local exp = {}
+  exp.type = EXP_TYPE.DISTRIBUTION
+  exp.args = {}
+  exp.dist_type = dist_type or DIST_TYPE.UNDEFINED
+  setmetatable(exp, dist_mt)
+  return exp
+end
+
+function dist_mt:__tostring()
+  if self.dist_type == DIST_TYPE.UNDEFINED then
+    return "undefined"
+  elseif self.dist_type == DIST_TYPE.NORMAL then
+    return "N(" .. tostring(self.mu) .. "," .. tostring(self.sigma) .. ")"
+  end
+  return "undefined"
+end
+
+function M.normal(mu, sigma)
+  local exp = create_dist_exp(DIST_TYPE.NORMAL)
+  exp.mu = mu
+  exp.sigma = sigma
+  return exp
 end
 
 function M.sin(x)

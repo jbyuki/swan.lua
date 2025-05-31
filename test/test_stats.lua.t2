@@ -1,0 +1,21 @@
+:: test_stats.lua
+; reload
+; start debugger
+; stop debugger
+; test stats
+
+;; start debugger
+require"osv".launch { port = 8086 }
+
+;; stop debugger
+require"osv".stop()
+
+;; reload
+package.loaded["swan"] = nil
+swan = require"swan"
+
+;; test stats
+; reload
+m, s = swan.symbols "m s"
+n1 = swan.normal(m,s)
+io.write(tostring(n1))
