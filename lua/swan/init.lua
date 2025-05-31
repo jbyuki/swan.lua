@@ -2022,6 +2022,20 @@ end
 function dist_methods:E()
   if self.dist_type == DIST_TYPE.NORMAL then
     return self.mu
+  elseif self.dist_type == DIST_TYPE.ADD then
+    local sum_e = {}
+    for _, child in ipairs(self.children) do
+      table.insert(sum_e, child:E())
+    end
+
+    assert(#sum_e > 0)
+    if #sum_e == 1 then
+      return sum_e[1]
+    else
+      local exp = create_add_disp_exp()
+      exp.children = sum_e
+      return exp
+    end
   elseif self.dist_type == DIST_TYPE.MUL then
     if #self.children == 2 and self.children[1] == self.children[2] then
       local child = self.children[1]
@@ -2254,6 +2268,7 @@ mul_disp_mt.__index = mul_disp_methods
 
 add_disp_methods.E = dist_methods.E
 mul_disp_methods.E = dist_methods.E
+
 add_disp_mt.__add = dist_mt.__add
 mul_disp_mt.__add = dist_mt.__add
 

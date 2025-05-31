@@ -3,6 +3,8 @@
 function dist_methods:E()
   if self.dist_type == DIST_TYPE.NORMAL then
     return self.mu
+  elseif self.dist_type == DIST_TYPE.ADD then
+    ; return sum of expected values
   elseif self.dist_type == DIST_TYPE.MUL then
     if #self.children == 2 and self.children[1] == self.children[2] then
       local child = self.children[1]
@@ -29,3 +31,18 @@ end
 ;; copy metamethods
 add_disp_methods.E = dist_methods.E
 mul_disp_methods.E = dist_methods.E
+
+;; return sum of expected values
+local sum_e = {}
+for _, child in ipairs(self.children) do
+  table.insert(sum_e, child:E())
+end
+
+assert(#sum_e > 0)
+if #sum_e == 1 then
+  return sum_e[1]
+else
+  local exp = create_add_disp_exp()
+  exp.children = sum_e
+  return exp
+end
