@@ -55,13 +55,14 @@ pow_exp_mt.__index = pow_exp_methods
 function create_pow_exp()
 	local exp = {}
 	exp.type = EXP_TYPE.POW
-	return setmetatable(exp, pow_exp_mt)
+	setmetatable(exp, pow_exp_mt)
+	return exp
 end
 
 ;; pow negative or zero integer
 local exp = create_pow_exp()
 exp.base = self
-exp.sup = sup
+exp.sup = M.constant(sup)
 return exp
 
 ;; copy metamethods
@@ -101,3 +102,20 @@ end
 
 ;; addable with sym
 [EXP_TYPE.POW] = true,
+
+;; copy metamethods
+pow_exp_methods.simplify = exp_methods.simplify
+
+;; if pow exp simplify base and sup
+elseif self.type == EXP_TYPE.POW then
+	local exp = create_pow_exp()
+	exp.base = self.base:simplify()
+	exp.sup = self.sup:simplify()
+
+	if exp.sup.type == EXP_TYPE.CONSTANT and exp.sup.value == 0 then
+		return M.constant(1)
+	elseif exp.sup.type == EXP_TYPE.CONSTANT and exp.sup.value == 1 then
+		return exp.base
+	else
+		return exp
+	end

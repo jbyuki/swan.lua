@@ -206,6 +206,7 @@ local addable_with_sym = {
 	[EXP_TYPE.CONSTANT] = true,
 	[EXP_TYPE.MUL] = true,
 	[EXP_TYPE.POW] = true,
+
 }
 
 local mulable_with_sym = {
@@ -1302,7 +1303,7 @@ function sym_mt:__pow(sup)
 		else
 			local exp = create_pow_exp()
 			exp.base = self
-			exp.sup = sup
+			exp.sup = M.constant(sup)
 			return exp
 
 		end
@@ -1322,7 +1323,8 @@ end
 function create_pow_exp()
 	local exp = {}
 	exp.type = EXP_TYPE.POW
-	return setmetatable(exp, pow_exp_mt)
+	setmetatable(exp, pow_exp_mt)
+	return exp
 end
 
 function pow_exp_mt:__tostring()
@@ -1722,6 +1724,18 @@ function exp_methods:simplify()
 	elseif is_imag[self.type] then
 	    return self
 
+	elseif self.type == EXP_TYPE.POW then
+		local exp = create_pow_exp()
+		exp.base = self.base:simplify()
+		exp.sup = self.sup:simplify()
+
+		if exp.sup.type == EXP_TYPE.CONSTANT and exp.sup.value == 0 then
+			return M.constant(1)
+		elseif exp.sup.type == EXP_TYPE.CONSTANT and exp.sup.value == 1 then
+			return exp.base
+		else
+			return exp
+		end
 	elseif self.type == EXP_TYPE.ADD or self.type == EXP_TYPE.MUL then
 		local children_simplified = {}
 
@@ -2338,6 +2352,8 @@ pow_exp_mt.__unm = sym_mt.__unm
 pow_exp_mt.__add = sym_mt.__add
 pow_exp_mt.__sub = sym_mt.__sub
 pow_exp_mt.__mul = sym_mt.__mul
+
+pow_exp_methods.simplify = exp_methods.simplify
 
 imag_mt.__pow = sym_mt.__pow
 imag_mt.__add = sym_mt.__add

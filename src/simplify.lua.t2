@@ -9,6 +9,7 @@ function exp_methods:simplify()
 	; if rational return gcd of it
 	; if symbol return as is
 	; if imaginary return as is
+	; if pow exp simplify base and sup
 	; if exp simplify each children
 end
 
