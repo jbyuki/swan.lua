@@ -70,6 +70,7 @@ pow_exp_mt.__unm = sym_mt.__unm
 pow_exp_mt.__add = sym_mt.__add
 pow_exp_mt.__sub = sym_mt.__sub
 pow_exp_mt.__mul = sym_mt.__mul
+pow_exp_mt.__div = sym_mt.__div
 
 ;; implement
 function pow_exp_mt:__tostring()

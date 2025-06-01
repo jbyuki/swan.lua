@@ -2250,6 +2250,10 @@ function constant_methods:E()
 end
 function dist_methods:kl_div(other)
   if self.dist_type == DIST_TYPE.NORMAL and other.type == EXP_TYPE.DIST and other.dist_type == DIST_TYPE.NORMAL then
+    local e1 = M.log((M.sqrt(other.var)/M.sqrt(self.var)):simplify())
+    local e2 = (self.var + (self.mu - other.mu)^2)/(2*other.var)
+    local e3 = M.constant(1)/M.constant(2)
+    return e1 + e2 - e3
   end
 end
 
@@ -2419,6 +2423,7 @@ pow_exp_mt.__unm = sym_mt.__unm
 pow_exp_mt.__add = sym_mt.__add
 pow_exp_mt.__sub = sym_mt.__sub
 pow_exp_mt.__mul = sym_mt.__mul
+pow_exp_mt.__div = sym_mt.__div
 
 pow_exp_methods.simplify = exp_methods.simplify
 

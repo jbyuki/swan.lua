@@ -7,3 +7,7 @@ function dist_methods:kl_div(other)
 end
 
 ;; compute kl divergence for two normal variables
+local e1 = M.log((M.sqrt(other.var)/M.sqrt(self.var)):simplify())
+local e2 = (self.var + (self.mu - other.mu)^2)/(2*other.var)
+local e3 = M.constant(1)/M.constant(2)
+return e1 + e2 - e3
