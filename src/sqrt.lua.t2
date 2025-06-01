@@ -1,0 +1,5 @@
+;;; swan
+;; implement
+function M.sqrt(exp)
+  return exp ^ (M.constant(1)/M.constant(2))
+end

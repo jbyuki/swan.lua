@@ -1,8 +1,7 @@
 ;;; swan
 ;; implement
 function sym_mt:__pow(sup)
-	assert(type(sup) == "number", "exponent must be a constant number")
-	if is_integer(sup) then
+	if type(sup) == "number" and is_integer(sup) then
 		if sup >= 1 then
 			; pow positive integer
 		else
@@ -36,6 +35,7 @@ return exp
 ;; copy metamethods
 mul_exp_mt.__pow = sym_mt.__pow
 add_exp_mt.__pow = sym_mt.__pow
+pow_exp_mt.__pow = sym_mt.__pow
 
 ;; implement
 function constant_mt:__pow(sup)
@@ -79,11 +79,13 @@ function pow_exp_mt:__tostring()
 	end
 
 	local sup_str = tostring(self.sup)
+	; remove parens around sup_str if any
 	local new_sup_str = ""
 	local ok = true
 	for i=1,#sup_str do
 		if not superscript[sup_str:sub(i,i)] then
 			ok = false
+			break
 		end
 		new_sup_str = new_sup_str .. superscript[sup_str:sub(i,i)]
 	end
@@ -91,10 +93,15 @@ function pow_exp_mt:__tostring()
 	if ok then
 		sup_str = new_sup_str
 	else
-		sup_str = "^(" .. new_sup_str .. ")"
+		sup_str = "^(" .. sup_str .. ")"
 	end
 
 	return base_str .. sup_str
+end
+
+;; remove parens around sup_str if any
+if #sup_str >= 2 and sup_str:sub(1,1) == "(" and sup_str:sub(#sup_str,#sup_str) == ")" then
+	sup_str = sup_str:sub(2,#sup_str-1)
 end
 
 ;; mulable with sym
@@ -108,14 +115,83 @@ pow_exp_methods.simplify = exp_methods.simplify
 
 ;; if pow exp simplify base and sup
 elseif self.type == EXP_TYPE.POW then
-	local exp = create_pow_exp()
-	exp.base = self.base:simplify()
-	exp.sup = self.sup:simplify()
+	local base = self.base:simplify()
+	local sup = self.sup:simplify()
 
-	if exp.sup.type == EXP_TYPE.CONSTANT and exp.sup.value == 0 then
+
+	if sup.type == EXP_TYPE.CONSTANT and sup.value == 0 then
 		return M.constant(1)
-	elseif exp.sup.type == EXP_TYPE.CONSTANT and exp.sup.value == 1 then
-		return exp.base
+	elseif sup.type == EXP_TYPE.CONSTANT and sup.value == 1 then
+		return base
 	else
+		; if base is mul distribute sup
+		; if base is pow multiply sup
+		local exp = create_pow_exp()
+		exp.base = base
+		exp.sup = sup
 		return exp
 	end
+
+;; if base is mul distribute sup
+if base.type == EXP_TYPE.MUL then
+	base = base:normal_form()
+	local children = base.children
+	; collect children with power
+	; distribute power over children
+
+;; collect children with power
+local power = {}
+local factors = {}
+local last_child
+
+for i=1,#children do
+	local child = children[i] 
+	local child_sup = M.constant(1)
+	if child.type == EXP_TYPE.POW then
+		child = child.base
+		child_sup = child.sup
+	end
+
+	if last_child == child then
+		power[#power] = power[#power] + child_sup
+	else
+		table.insert(power, M.constant(1))
+		table.insert(factors, child)
+	end
+	last_child = factors[#factors]
+end
+
+;; distribute power over children
+local exp = create_mul_exp()
+for i=1,#factors do
+	local new_sup = (power[i] * sup):simplify()
+	if new_sup.type == EXP_TYPE.CONSTANT and new_sup.value == 1 then
+		table.insert(exp.children, factors[i])
+	else
+		local factor_exp = create_pow_exp()
+		factor_exp.base = factors[i]
+		factor_exp.sup = new_sup
+		table.insert(exp.children, factor_exp)
+	end
+end
+return exp
+
+;; pow non integer
+local exp = create_pow_exp()
+exp.base = self
+exp.sup = sup
+return exp
+
+;; if base is pow multiply sup
+elseif base.type == EXP_TYPE.POW then
+	local new_sup = (base.sub * sup):simplify()
+	if new_sup.type == EXP_TYPE.CONSTANT and new_sup.value == 1 then
+		return base.base
+	else
+		local exp = create_pow_exp()
+		exp.base = base.base
+		exp.sup = new_sup
+		return exp
+	end
+end
+

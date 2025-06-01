@@ -7,4 +7,3 @@ function dist_methods:kl_div(other)
 end
 
 ;; compute kl divergence for two normal variables
-
