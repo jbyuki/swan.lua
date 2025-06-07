@@ -1,0 +1,22 @@
+:: test_mat.lua
+; reload
+; start debugger
+; stop debugger
+; playground
+
+;; start debugger
+require"osv".launch { port = 8086 }
+
+;; stop debugger
+require"osv".stop()
+
+;; reload
+package.loaded["swan"] = nil
+swan = require"swan"
+p = function(s) io.write(tostring(s)) end
+c = swan.constant
+
+;; playground
+; reload
+r1 = swan.mat_sym("R", 3,3)
+p(r1)

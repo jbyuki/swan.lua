@@ -1,20 +1,104 @@
 ;;; swan
 ;; implement
-function M.matrix(arr)
-	; check arr table and shape
-
-	local mat = {}
-	mat.elems = arr
-	; register matrix metamethods
-	return mat
+function M.mat_sym(name, m,n,flags)
+	local exp = {}
+	exp.type = EXP_TYPE.MAT
+	exp.name = name
+	exp.mat_types = {}
+	if flags then
+		for _, flag in ipairs(flags) do
+			exp.mat_types[flag] = true
+		end
+	end
+	exp.m = m
+	exp.n = n
+	; create matrix elements
+	; register matrix metatable
+	return exp
 end
 
-;; check arr table and shape
-assert(type(arr) == "table")
-local N = #arr
-assert(N > 0)
+;; exp types
+MAT = 15,
 
-local M = #arr[1]
-for i=2,N do
-	assert(#arr[i] == M)
+;; variables
+local MAT_TYPES = {
+	; mat types
+}
+
+;; create matrix elements
+exp.elems = {}
+for i=1,m do
+	exp.elems[i] = {}
+	for j=1,n do
+		; create matrix element
+		exp.elems[i][j] = mat_elem
+	end
 end
+
+;; exp types
+MAT_ELEM = 16,
+
+;; create matrix element
+local mat_elem = {}
+mat_elem.type = EXP_TYPE.MAT_ELEM
+mat_elem.i = i
+mat_elem.j = j
+mat_elem.mat = exp
+
+; register matrix element metamethods
+
+;; variables
+local mat_mt = {}
+local mat_methods = {}
+mat_mt.__index = mat_methods
+
+;; implement
+function mat_mt:__tostring()
+	local result = ""
+	; determine smallest matrix group set
+	; print each elements if there are values
+	; otherwise just print matrix name
+	; format output mat tostring
+	return result
+end
+
+;; variables
+local to_sup
+
+;; implement
+function to_sup(s)
+	local r = ""
+	for i=1,#s do
+		r = r .. superscript[s:sub(i,i)]
+	end
+	return r
+end
+
+;; variables
+local real_bb = "ℝ"
+local latex_symbols = {
+	["in"] = "∈"
+	; latex symbols
+}
+
+;; determine smallest matrix group set
+local matrix_set = ""
+if vim.tbl_count(self.mat_types) == 0 then
+	matrix_set = real_bb .. to_sup(tostring(self.m)) .. to_sup("x") .. to_sup(tostring(self.n))
+; display matrix set
+end
+
+;; print each elements if there are values
+if self.elems[1] and self.elems[1][1] and self.elems[1][1].value then
+	; print matrix elems explicit
+
+;; otherwise just print matrix name
+else
+	result = result .. self.name
+end
+
+;; format output mat tostring
+result = result .. " " .. latex_symbols["in"] .. " " .. matrix_set
+
+;; register matrix metatable
+setmetatable(exp, mat_mt)

@@ -18,6 +18,20 @@ local greek_etc = {
 
 local sym_array_mt = {}
 
+local MAT_TYPES = {
+}
+
+local mat_mt = {}
+local mat_methods = {}
+mat_mt.__index = mat_methods
+
+local to_sup
+
+local real_bb = "ℝ"
+local latex_symbols = {
+	["in"] = "∈"
+}
+
 local create_add_exp
 
 local create_mul_exp
@@ -42,6 +56,7 @@ local superscript = {
 	["+"] = "⁺", ["-"] = "⁻", ["="] = "⁼", ["("] = "⁽", [")"] = "⁾",
 	["n"] = "ⁿ",
 	["0"] = "⁰", ["1"] = "¹", ["2"] = "²", ["3"] = "³", ["4"] = "⁴", ["5"] = "⁵", ["6"] = "⁶", ["7"] = "⁷", ["8"] = "⁸", ["9"] = "⁹",
+	["x"] = "ˣ",
 	["i"] = "ⁱ", ["j"] = "ʲ", ["w"] = "ʷ",
   ["T"] = "ᵀ", ["A"] = "ᴬ", ["B"] = "ᴮ", ["D"] = "ᴰ", ["E"] = "ᴱ", ["G"] = "ᴳ", ["H"] = "ᴴ", ["I"] = "ᴵ", ["J"] = "ᴶ", ["K"] = "ᴷ", ["L"] = "ᴸ", ["M"] = "ᴹ", ["N"] = "ᴺ", ["O"] = "ᴼ", ["P"] = "ᴾ", ["R"] = "ᴿ", ["U"] = "ᵁ", ["V"] = "ⱽ", ["W"] = "ᵂ",
 }
@@ -80,6 +95,10 @@ local EXP_TYPE = {
 	ADD = 1,
 	SCALAR = 3,
 	ARRAY = 4,
+
+	MAT = 15,
+
+	MAT_ELEM = 16,
 
 	POW = 14,
 
@@ -729,19 +748,61 @@ function M.log(x)
   return fn_exp
 end
 
-function M.matrix(arr)
-	assert(type(arr) == "table")
-	local N = #arr
-	assert(N > 0)
+function M.mat_sym(name, m,n,flags)
+	local exp = {}
+	exp.type = EXP_TYPE.MAT
+	exp.name = name
+	exp.mat_types = {}
+	if flags then
+		for _, flag in ipairs(flags) do
+			exp.mat_types[flag] = true
+		end
+	end
+	exp.m = m
+	exp.n = n
+	exp.elems = {}
+	for i=1,m do
+		exp.elems[i] = {}
+		for j=1,n do
+			local mat_elem = {}
+			mat_elem.type = EXP_TYPE.MAT_ELEM
+			mat_elem.i = i
+			mat_elem.j = j
+			mat_elem.mat = exp
 
-	local M = #arr[1]
-	for i=2,N do
-		assert(#arr[i] == M)
+
+			exp.elems[i][j] = mat_elem
+		end
 	end
 
-	local mat = {}
-	mat.elems = arr
-	return mat
+	setmetatable(exp, mat_mt)
+	return exp
+end
+
+function mat_mt:__tostring()
+	local result = ""
+	local matrix_set = ""
+	if vim.tbl_count(self.mat_types) == 0 then
+		matrix_set = real_bb .. to_sup(tostring(self.m)) .. to_sup("x") .. to_sup(tostring(self.n))
+	end
+
+	if self.elems[1] and self.elems[1][1] and self.elems[1][1].value then
+
+	else
+		result = result .. self.name
+	end
+
+	result = result .. " " .. latex_symbols["in"] .. " " .. matrix_set
+
+	return result
+end
+
+function to_sup(s)
+	local r = ""
+	for i=1,#s do
+		r = r .. superscript[s:sub(i,i)]
+	end
+	return r
 end
 
 function constant_methods:normal_form()
