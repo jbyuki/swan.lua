@@ -18,7 +18,16 @@ local greek_etc = {
 
 local sym_array_mt = {}
 
-local MAT_TYPES = {
+local MAT_TYPE = {
+	INVERTIBLE = 1,
+	ORTHOGONAL = 2,
+	SPECIAL_ORTHOGONAL = 3,
+	SYMMETRIC = 4,
+	POSITIVE_DEFINITE = 5,
+	POSITIVE_SEMIDEFINITE = 6,
+	NEGATIVE_SEMIDEFINITE = 7,
+	NEGATIVE_DEFINITE = 8,
+
 }
 
 local mat_mt = {}
@@ -748,13 +757,38 @@ function M.log(x)
   return fn_exp
 end
 
-function M.mat_sym(name, m,n,flags)
+function M.mat_sym(name, dims,flags)
+	local m,n
+	if type(dims) == "number" then
+		m = dims
+		n = dims
+	elseif #dims == 2 then
+		m = dims[1]
+		n = dims[2]
+	elseif #dims == 1 then
+		m = dims[1]
+		n = dims[1]
+	else
+		assert(false)
+	end
+
 	local exp = {}
 	exp.type = EXP_TYPE.MAT
 	exp.name = name
 	exp.mat_types = {}
 	if flags then
+		if type(flags) ~= "table" then
+			flags = { flags }
+		end
 		for _, flag in ipairs(flags) do
+			if flag == MAT_TYPE.ORTHOGONAL or flag == MAT_TYPE.SPECIAL_ORTHOGONAL or flags == MAT_TYPE.POSITIVE_DEFINITE or flags == MAT_TYPE.NEGATIVE_DEFINITE then
+				exp.mat_types[MAT_TYPE.INVERTIBLE] = true
+			end
+
+			if flag == MAT_TYPE.SPECIAL_ORTHOGONAL then
+				exp.mat_types[MAT_TYPE.ORTHOGONAL] = true
+			end
+
 			exp.mat_types[flag] = true
 		end
 	end
@@ -776,14 +810,35 @@ function M.mat_sym(name, m,n,flags)
 	end
 
 	setmetatable(exp, mat_mt)
+
 	return exp
 end
 
 function mat_mt:__tostring()
 	local result = ""
+	local get_dim = function()
+		if self.m == self.n then
+			return "(" .. tostring(self.m) .. ")"
+		else
+			return "(" .. tostring(self.m) .. "," .. tostring(self.n) .. ")"
+		end
+	end
+
 	local matrix_set = ""
 	if vim.tbl_count(self.mat_types) == 0 then
 		matrix_set = real_bb .. to_sup(tostring(self.m)) .. to_sup("x") .. to_sup(tostring(self.n))
+	end
+
+	if vim.tbl_count(self.mat_types) == 1 and self.mat_types[MAT_TYPE.INVERTIBLE] then
+		matrix_set = "GL" .. get_dim()
+	end
+
+	if self.mat_types[MAT_TYPE.ORTHOGONAL] then
+		if self.mat_types[MAT_TYPE.SPECIAL_ORTHOGONAL] then
+			matrix_set = "SO" .. get_dim()
+		else
+			matrix_set = "O" .. get_dim()
+		end
 	end
 
 	if self.elems[1] and self.elems[1][1] and self.elems[1][1].value then
@@ -805,6 +860,23 @@ function to_sup(s)
 	return r
 end
 
+function M.mat_sym_o(...)
+	local args = { ... }
+	table.insert(args, MAT_TYPE.ORTHOGONAL)
+	return M.mat_sym(unpack(args))
+end
+
+function M.mat_sym_so(...)
+	local args = { ... }
+	table.insert(args, MAT_TYPE.SPECIAL_ORTHOGONAL)
+	return M.mat_sym(unpack(args))
+end
+
+function M.mat_sym_gl(...)
+	local args = { ... }
+	table.insert(args, MAT_TYPE.INVERTIBLE)
+	return M.mat_sym(unpack(args))
+end
 function constant_methods:normal_form()
 	return self:clone()
 end
