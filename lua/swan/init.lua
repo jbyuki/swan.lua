@@ -54,8 +54,8 @@ local mat_mul_mt = {}
 
 local mat_add_methods = {}
 local mat_mul_methods = {}
-mat_add_methods.__index = mat_add_mt
-mat_mul_methods.__index = mat_mul_mt
+mat_add_mt.__index = mat_add_methods
+mat_mul_mt.__index = mat_mul_methods
 
 local create_add_exp
 
@@ -1278,6 +1278,82 @@ function mat_mt:__mul(other)
   exp.m = self.m
   exp.n = other.n
   return exp
+end
+
+function mat_methods:expand()
+  if self.type == EXP_TYPE.ADD_MAT then
+    local result = create_mat_add()
+    for i=1,#self.children do
+      table.insert(result.children, self.children[i]:expand())
+    end
+    return result
+  elseif self.type == EXP_TYPE.MUL_MAT then
+    local expanded_children = {}
+    for _, child in ipairs(self.children) do
+      table.insert(expanded_children, child:expand())
+    end
+    local new_children = {}
+
+    local idx = {}
+    for i=1,#expanded_children do
+    	idx[i] = 1
+    end
+
+    while true do
+    	local exp = create_mat_mul()
+
+    	for i=1,#expanded_children do
+    		local child = nil
+    		if expanded_children[i].type == EXP_TYPE.ADD_MAT then
+    			child = expanded_children[i].children[idx[i]]
+    		else
+    			child = expanded_children[i]
+    		end
+
+    		if child.type == EXP_TYPE.MUL_MAT then
+    			for _,grandchild in ipairs(child.children) do
+    				table.insert(exp.children, grandchild)
+    			end
+
+    		else
+    			table.insert(exp.children, child)
+    		end
+
+    	end
+
+    	table.insert(new_children, exp)
+
+    	local good = false
+    	for i=1,#idx do
+    		if expanded_children[i].type == EXP_TYPE.ADD_MAT then
+    			if idx[i] + 1 <= #expanded_children[i].children then
+    				idx[i] = idx[i] + 1
+    				good = true
+    				break
+    			else
+    				idx[i] = 1
+    			end
+    		end
+    	end
+
+    	if not good then
+    		break
+    	end
+    end
+
+
+    local exp
+    if #new_children > 1 then
+      exp = create_mat_add()
+      exp.children = new_children
+    else
+      exp = new_children[1]
+    end
+    return exp
+  else
+
+    return self
+  end
 end
 
 function constant_methods:normal_form()
@@ -3029,6 +3105,10 @@ mat_mul_mt.__add = mat_mt.__add
 
 mat_add_mt.__mul = mat_mt.__mul
 mat_mul_mt.__mul = mat_mt.__mul
+
+mat_add_methods.expand = mat_methods.expand
+mat_mul_methods.expand = mat_methods.expand
+
 poly_ring_mt.__index = poly_ring_methods
 
 mul_exp_mt.__pow = sym_mt.__pow

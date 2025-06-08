@@ -26,5 +26,5 @@ p(m)
 ; reload
 i,j,k = swan.i(), swan.j(), swan.k()
 local q = (1+2*k+i-2*j)*(10+3*k+i+j)
-q = q:expand():simplify()
-p((q:as_real_mat() + q:as_real_mat()) * q:as_real_mat())
+local r = (q:as_real_mat() + q:as_real_mat()) * q:as_real_mat()
+p(r:expand())

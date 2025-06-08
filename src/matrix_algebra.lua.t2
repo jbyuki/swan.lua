@@ -11,8 +11,8 @@ local mat_mul_mt = {}
 
 local mat_add_methods = {}
 local mat_mul_methods = {}
-mat_add_methods.__index = mat_add_mt
-mat_mul_methods.__index = mat_mul_mt
+mat_add_mt.__index = mat_add_methods
+mat_mul_mt.__index = mat_mul_methods
 
 ;; implement
 function create_mat_add()
@@ -70,7 +70,7 @@ function mat_mul_mt:__tostring()
   local tbl = {}
   for i=1,#self.children do
     local g = grid_new(tostring(self.children[i]))
-    if self.children[i] == EXP_TYPE.ADD_MAT then
+    if self.children[i].type == EXP_TYPE.ADD_MAT then
       g:enclose_paren()
     end
     table.insert(tbl, g)
@@ -103,3 +103,90 @@ end
 ;; copy metamethods
 mat_add_mt.__mul = mat_mt.__mul
 mat_mul_mt.__mul = mat_mt.__mul
+
+;; implement
+function mat_methods:expand()
+  if self.type == EXP_TYPE.ADD_MAT then
+    local result = create_mat_add()
+    for i=1,#self.children do
+      table.insert(result.children, self.children[i]:expand())
+    end
+    return result
+  elseif self.type == EXP_TYPE.MUL_MAT then
+    local expanded_children = {}
+    for _, child in ipairs(self.children) do
+      table.insert(expanded_children, child:expand())
+    end
+    ; distribute matrices
+
+    local exp
+    if #new_children > 1 then
+      exp = create_mat_add()
+      exp.children = new_children
+    else
+      exp = new_children[1]
+    end
+    return exp
+  else
+
+    return self
+  end
+end
+
+;; copy metamethods
+mat_add_methods.expand = mat_methods.expand
+mat_mul_methods.expand = mat_methods.expand
+
+;; distribute matrices
+local new_children = {}
+
+local idx = {}
+for i=1,#expanded_children do
+	idx[i] = 1
+end
+
+while true do
+	; create mul expression from idx matrix
+	; increment idx matrix
+end
+
+;; create mul expression from idx matrix
+local exp = create_mat_mul()
+
+for i=1,#expanded_children do
+	local child = nil
+	if expanded_children[i].type == EXP_TYPE.ADD_MAT then
+		child = expanded_children[i].children[idx[i]]
+	else
+		child = expanded_children[i]
+	end
+
+	; if child is multiplication flatten structure matrix
+	; otherwise just add child
+end
+
+table.insert(new_children, exp)
+
+;; if child is multiplication flatten structure matrix
+if child.type == EXP_TYPE.MUL_MAT then
+	for _,grandchild in ipairs(child.children) do
+		table.insert(exp.children, grandchild)
+	end
+
+;; increment idx matrix
+local good = false
+for i=1,#idx do
+	if expanded_children[i].type == EXP_TYPE.ADD_MAT then
+		if idx[i] + 1 <= #expanded_children[i].children then
+			idx[i] = idx[i] + 1
+			good = true
+			break
+		else
+			idx[i] = 1
+		end
+	end
+end
+
+if not good then
+	break
+end
