@@ -1,0 +1,145 @@
+;;; swan
+;; variables
+local grid_to_str
+local grid_mt = {}
+local grid_methods = {}
+local new_grid
+grid_mt.__index = grid_methods
+
+;; implement
+function grid_new(s)
+  local lines 
+  if type(s) == "string" then
+    lines = vim.split(s, "\n")
+  elseif type(s) == "table" then
+    lines = s
+  else
+    lines = {}
+  end
+  ; normalize line lengths
+  local g = {}
+  g.lines = lines
+  if #lines > 0 then
+    g.w = vim.api.nvim_strwidth(lines[1])
+  else
+    g.w = 0
+  end
+  g.h = #lines
+  return setmetatable(g, grid_mt)
+end
+
+function grid_mt:__tostring()
+  return table.concat(self.lines, "\n")
+end
+
+function grid_methods:join_hori(other)
+  ; pad height if not same
+  ; join horizontally each lines
+end
+
+function grid_methods:join_vert(other)
+  ; pad width if not same
+  ; join vertically
+end
+
+;; normalize line lengths
+local max_length = 0
+for i=1,#lines do
+  max_length = math.max(max_length, vim.api.nvim_strwidth(lines[i]))
+end
+
+for i=1,#lines do
+  while vim.api.nvim_strwidth(lines[i]) < max_length do
+    lines[i] = lines[i] .. " "
+  end
+end
+
+;; implement
+function grid_methods:grow_down(num)
+  for i=1,num do
+    ; create empty line
+    self.h = self.h + 1
+    table.insert(self.lines, empty_line)
+  end
+end
+
+;; create empty line
+local empty_line = ""
+for j=1,self.w do
+  empty_line = empty_line .. " "
+end
+
+;; implement
+function grid_methods:grow_up(num)
+  for i=1,num do
+    ; create empty line
+    self.h = self.h + 1
+    table.insert(self.lines, 1, empty_line)
+  end
+end
+
+;; implement
+function grid_methods:grow_right(num)
+  for i=1,self.h do
+    ; append num to all lines right
+  end
+  self.w = self.w + num
+end
+
+;; append num to all lines right
+for j=1,num do
+  self.lines[i] = self.lines[i] .. " "
+end
+
+;; implement
+function grid_methods:grow_left(num)
+  for i=1,self.h do
+    ; append num to all lines left
+  end
+  self.w = self.w + num
+end
+
+;; append num to all lines left
+for j=1,num do
+  self.lines[i] = " " .. self.lines[i]
+end
+
+;; pad height if not same
+if self.h < other.h then
+  self:grow_down(other.h - self.h)
+elseif other.h < self.h then
+  other:grow_down(self.h - other.h)
+end
+
+;; join horizontally each lines
+for i=1,self.h do
+  self.lines[i] = self.lines[i] .. other.lines[i]
+end
+self.w = self.w + other.w
+
+;; pad width if not same
+if self.w < other.w then
+  self:grow_right(other.w - self.w)
+elseif other.w < self.w then
+  other:grow_right(self.w - other.w)
+end
+
+;; join vertically
+for i=1,other.h do
+  table.insert(self.lines, other.lines[i])
+end
+self.h = self.h + other.h
+
+;; implement
+function grid_methods:has_minus_prefix()
+  if self.w == 0 then
+    return false
+  end
+
+  for i=1,self.h do
+    if self.lines[i]:sub(i,i) == "-" then
+      return true
+    end
+  end
+  return false
+end

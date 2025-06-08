@@ -16,6 +16,12 @@ local greek_etc = {
   ["nabla"] = "∇",
 }
 
+local grid_to_str
+local grid_mt = {}
+local grid_methods = {}
+local new_grid
+grid_mt.__index = grid_methods
+
 local sym_array_mt = {}
 
 local MAT_TYPE = {
@@ -660,6 +666,125 @@ function constant_methods:clone()
 	constant.value = self.value
 	return constant
 end
+function grid_new(s)
+  local lines 
+  if type(s) == "string" then
+    lines = vim.split(s, "\n")
+  elseif type(s) == "table" then
+    lines = s
+  else
+    lines = {}
+  end
+  local max_length = 0
+  for i=1,#lines do
+    max_length = math.max(max_length, vim.api.nvim_strwidth(lines[i]))
+  end
+
+  for i=1,#lines do
+    while vim.api.nvim_strwidth(lines[i]) < max_length do
+      lines[i] = lines[i] .. " "
+    end
+  end
+
+  local g = {}
+  g.lines = lines
+  if #lines > 0 then
+    g.w = vim.api.nvim_strwidth(lines[1])
+  else
+    g.w = 0
+  end
+  g.h = #lines
+  return setmetatable(g, grid_mt)
+end
+
+function grid_mt:__tostring()
+  return table.concat(self.lines, "\n")
+end
+
+function grid_methods:join_hori(other)
+  if self.h < other.h then
+    self:grow_down(other.h - self.h)
+  elseif other.h < self.h then
+    other:grow_down(self.h - other.h)
+  end
+
+  for i=1,self.h do
+    self.lines[i] = self.lines[i] .. other.lines[i]
+  end
+  self.w = self.w + other.w
+
+end
+
+function grid_methods:join_vert(other)
+  if self.w < other.w then
+    self:grow_right(other.w - self.w)
+  elseif other.w < self.w then
+    other:grow_right(self.w - other.w)
+  end
+
+  for i=1,other.h do
+    table.insert(self.lines, other.lines[i])
+  end
+  self.h = self.h + other.h
+
+end
+
+function grid_methods:grow_down(num)
+  for i=1,num do
+    local empty_line = ""
+    for j=1,self.w do
+      empty_line = empty_line .. " "
+    end
+
+    self.h = self.h + 1
+    table.insert(self.lines, empty_line)
+  end
+end
+
+function grid_methods:grow_up(num)
+  for i=1,num do
+    local empty_line = ""
+    for j=1,self.w do
+      empty_line = empty_line .. " "
+    end
+
+    self.h = self.h + 1
+    table.insert(self.lines, 1, empty_line)
+  end
+end
+
+function grid_methods:grow_right(num)
+  for i=1,self.h do
+    for j=1,num do
+      self.lines[i] = self.lines[i] .. " "
+    end
+
+  end
+  self.w = self.w + num
+end
+
+function grid_methods:grow_left(num)
+  for i=1,self.h do
+    for j=1,num do
+      self.lines[i] = " " .. self.lines[i]
+    end
+
+  end
+  self.w = self.w + num
+end
+
+function grid_methods:has_minus_prefix()
+  if self.w == 0 then
+    return false
+  end
+
+  for i=1,self.h do
+    if self.lines[i]:sub(i,i) == "-" then
+      return true
+    end
+  end
+  return false
+end
 function M.symbols(str)
 	local elems = vim.split(str, "%s+", { trimempty = true })
 
@@ -816,7 +941,7 @@ function M.mat_sym(name, dims,flags)
 end
 
 function mat_mt:__tostring()
-	local result = ""
+	local result = grid_new()
 	local get_dim = function()
 		if self.m == self.n then
 			return "(" .. tostring(self.m) .. ")"
@@ -843,12 +968,25 @@ function mat_mt:__tostring()
 	end
 
 	if self.elems[1] and self.elems[1][1] and self.elems[1][1].value then
-		local rows = {}
-		for i=1,self.m do
-			local row = {}
-			for j=1,self.n do
-				table.insert(row, tostring(self.elems[i][j].value))
+		local left_grid = {}
+		local right_grid = {}
+		local block = grid_new()
+		for j=1,self.n do
+			local col = grid_new()
+			for i=1,self.m do
+				local cell = grid_new(tostring(self.elems[i][j].value))
+				if not cell:has_minus_prefix() then
+					cell:grow_left(1)
+				end
+				col:join_vert(cell)
 			end
+			if block.h > 0 then
+				block:join_hori(grid_new(" "))
+			end
+			block:join_hori(col)
+		end
+
+		for i=1,self.m do
 			local border_right, border_left
 			if self.m == 1 then
 				border_left = "⟮"
@@ -864,50 +1002,26 @@ function mat_mt:__tostring()
 				border_right = "⎥"
 			end
 
-			table.insert(row, 1, border_left)
-			table.insert(row, border_right)
-			table.insert(rows, row)
+			table.insert(left_grid, border_left)
+			table.insert(right_grid, border_right)
 		end
 
-		for j=1,#rows[1] do
-			local max_width = 0
-			for i=1,#rows do
-				local cell_width = vim.api.nvim_strwidth(rows[i][j])
-				if #rows[i][j] == 0 or rows[i][j]:sub(1,1) ~= "-" then
-					cell_width = cell_width + 1
-				end
-				max_width = math.max(max_width, cell_width)
-			end
-			for i=1,self.m do
-				if #rows[i][j] == 0 or rows[i][j]:sub(1,1) ~= "-" then
-					rows[i][j] = " " .. rows[i][j]
-				end
-				while vim.api.nvim_strwidth(rows[i][j]) < max_width do
-					rows[i][j] = rows[i][j] .. " "
-				end
-			end
-		end
+		left_grid = grid_new(left_grid)
+		right_grid = grid_new(right_grid)
+		left_grid:join_hori(block)
+		left_grid:join_hori(right_grid)
+		block = left_grid
 
-		local matrix_str = ""
-		local all_rows = {}
-		for i=1,#rows do
-			local row
-			row = table.concat(rows[i], " ")
-			table.insert(all_rows, row)
-		end
-		matrix_str = table.concat(all_rows, "\n")
-
-
-		result = result .. matrix_str
+		result:join_hori(block)
 
 
 	else
-		result = result .. self.name
+		result:join_hori(grid_new(self.name))
 	end
 
-	result = result .. " " .. latex_symbols["in"] .. " " .. matrix_set
+	result:join_hori(grid_new(" " .. latex_symbols["in"] .. " " .. matrix_set))
 
-	return result
+	return tostring(result)
 end
 
 function to_sup(s)
