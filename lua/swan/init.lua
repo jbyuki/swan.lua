@@ -792,6 +792,7 @@ function M.mat_sym(name, dims,flags)
 			exp.mat_types[flag] = true
 		end
 	end
+
 	exp.m = m
 	exp.n = n
 	exp.elems = {}
@@ -842,6 +843,55 @@ function mat_mt:__tostring()
 	end
 
 	if self.elems[1] and self.elems[1][1] and self.elems[1][1].value then
+		local rows = {}
+		for i=1,self.m do
+			local row = {}
+			for j=1,self.n do
+				table.insert(row, tostring(self.elems[i][j].value))
+			end
+			local border_right, border_left
+			if self.m == 1 then
+				border_left = "⟮"
+				border_right = "⟯"
+			elseif i == 1 then
+				border_left = "⎡"
+				border_right = "⎤"
+			elseif i == self.m then
+				border_left = "⎣"
+				border_right = "⎦"
+			else
+				border_left = "⎢"
+				border_right = "⎥"
+			end
+
+			table.insert(row, 1, border_left)
+			table.insert(row, border_right)
+			table.insert(rows, row)
+		end
+
+		for j=1,#rows[1] do
+			local max_width = 0
+			for i=1,#rows do
+				max_width = math.max(max_width, vim.api.nvim_strwidth(rows[i][j]))
+			end
+			for i=1,self.m do
+				while vim.api.nvim_strwidth(rows[i][j]) < max_width do
+					rows[i][j] = rows[i][j] .. " "
+				end
+			end
+		end
+
+		local matrix_str = ""
+		local all_rows = {}
+		for i=1,#rows do
+			local row
+			row = table.concat(rows[i], " ")
+			table.insert(all_rows, row)
+		end
+		matrix_str = table.concat(all_rows, "\n")
+
+		result = result .. matrix_str
+
 
 	else
 		result = result .. self.name
@@ -877,6 +927,72 @@ function M.mat_sym_gl(...)
 	table.insert(args, MAT_TYPE.INVERTIBLE)
 	return M.mat_sym(unpack(args))
 end
+
+function M.mat(arr, flags)
+	local exp = {}
+	exp.type = EXP_TYPE.MAT
+	exp.mat_types = {}
+	if flags then
+		if type(flags) ~= "table" then
+			flags = { flags }
+		end
+		for _, flag in ipairs(flags) do
+			if flag == MAT_TYPE.ORTHOGONAL or flag == MAT_TYPE.SPECIAL_ORTHOGONAL or flags == MAT_TYPE.POSITIVE_DEFINITE or flags == MAT_TYPE.NEGATIVE_DEFINITE then
+				exp.mat_types[MAT_TYPE.INVERTIBLE] = true
+			end
+
+			if flag == MAT_TYPE.SPECIAL_ORTHOGONAL then
+				exp.mat_types[MAT_TYPE.ORTHOGONAL] = true
+			end
+
+			exp.mat_types[flag] = true
+		end
+	end
+
+	local m = #arr
+	local n = #arr[1]
+	exp.m = m
+	exp.n = n
+	exp.elems = {}
+	for i=1,m do
+		exp.elems[i] = {}
+		for j=1,n do
+			local mat_elem = {}
+			mat_elem.type = EXP_TYPE.MAT_ELEM
+			mat_elem.i = i
+			mat_elem.j = j
+			mat_elem.mat = exp
+
+
+			mat_elem.value = arr[i][j]
+
+			exp.elems[i][j] = mat_elem
+		end
+	end
+
+	setmetatable(exp, mat_mt)
+
+	return exp
+end
+
+function M.mat_o(...)
+	local args = { ... }
+	table.insert(args, MAT_TYPE.ORTHOGONAL)
+	return M.mat(unpack(args))
+end
+
+function M.mat_so(...)
+	local args = { ... }
+	table.insert(args, MAT_TYPE.SPECIAL_ORTHOGONAL)
+	return M.mat(unpack(args))
+end
+
+function M.mat_gl(...)
+	local args = { ... }
+	table.insert(args, MAT_TYPE.INVERTIBLE)
+	return M.mat(unpack(args))
+end
+
 function constant_methods:normal_form()
 	return self:clone()
 end

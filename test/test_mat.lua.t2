@@ -18,5 +18,6 @@ c = swan.constant
 
 ;; playground
 ; reload
-r1 = swan.mat_sym_so("R", 3)
-p(r1)
+local a,b,c,d = swan.symbols "a_1 b c d"
+local m = swan.mat {{a,b}, {c,d}}
+p(m)
