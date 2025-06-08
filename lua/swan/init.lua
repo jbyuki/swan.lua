@@ -47,6 +47,16 @@ local latex_symbols = {
 	["in"] = "∈"
 }
 
+local create_mat_add
+local create_mat_mul
+local mat_add_mt = {}
+local mat_mul_mt = {}
+
+local mat_add_methods = {}
+local mat_mul_methods = {}
+mat_add_methods.__index = mat_add_mt
+mat_mul_methods.__index = mat_mul_mt
+
 local create_add_exp
 
 local create_mul_exp
@@ -114,6 +124,9 @@ local EXP_TYPE = {
 	MAT = 15,
 
 	MAT_ELEM = 16,
+
+	ADD_MAT = 17,
+	MUL_MAT = 18,
 
 	POW = 14,
 
@@ -703,9 +716,15 @@ end
 
 function grid_methods:join_hori(other)
   if self.h < other.h then
-    self:grow_down(other.h - self.h)
+    local down = math.floor((other.h - self.h)/2)
+    local up = (other.h - self.h) - down
+    self:grow_down(down)
+    self:grow_up(up)
   elseif other.h < self.h then
-    other:grow_down(self.h - other.h)
+    local down = math.floor((self.h - other.h)/2)
+    local up = (self.h - other.h) - down
+    other:grow_up(up)
+    other:grow_down(down)
   end
 
   for i=1,self.h do
@@ -784,6 +803,28 @@ function grid_methods:has_minus_prefix()
     end
   end
   return false
+end
+
+function grid_hori_concat(tbl, sep)
+  local res = grid_new()
+  for i=1,#tbl do
+    if i > 1 then
+      res:join_hori(sep)
+    end
+    res:join_hori(tbl[i])
+  end
+  return res
+end
+
+function grid_vert_concat(tbl, sep)
+  local res = grid_new()
+  for i=1,#tbl do
+    if i > 1 then
+      res:join_vert(sep)
+    end
+    res:join_vert(tbl[i])
+  end
+  return res
 end
 function M.symbols(str)
 	local elems = vim.split(str, "%s+", { trimempty = true })
@@ -952,7 +993,7 @@ function mat_mt:__tostring()
 
 	local matrix_set = ""
 	if vim.tbl_count(self.mat_types) == 0 then
-		matrix_set = real_bb .. to_sup(tostring(self.m)) .. to_sup("x") .. to_sup(tostring(self.n))
+		matrix_set = ""
 	end
 
 	if vim.tbl_count(self.mat_types) == 1 and self.mat_types[MAT_TYPE.INVERTIBLE] then
@@ -1019,7 +1060,9 @@ function mat_mt:__tostring()
 		result:join_hori(grid_new(self.name))
 	end
 
-	result:join_hori(grid_new(" " .. latex_symbols["in"] .. " " .. matrix_set))
+	if #matrix_set ~= 0 then
+		result:join_hori(grid_new(" " .. latex_symbols["in"] .. " " .. matrix_set))
+	end
 
 	return tostring(result)
 end
@@ -1115,6 +1158,48 @@ function M.mat_gl(...)
 	return M.mat(unpack(args))
 end
 
+function create_mat_add()
+  local exp = {}
+  exp.type = EXP_TYPE.ADD_MAT
+  exp.children = {}
+  return setmetatable(exp, mat_add_mt)
+end
+
+function create_mat_mul()
+  local exp = {}
+  exp.type = EXP_TYPE.MUL_MAT
+  exp.children = {}
+  return setmetatable(exp, mat_mul_mt)
+end
+
+function mat_mt:__add(other)
+  assert(self.m == other.m)
+  assert(self.n == other.n)
+  local add_children = {}
+  for _, elem in ipairs({self, other}) do
+    if elem.type == EXP_TYPE.ADD_MAT then
+      for _, child in ipairs(elem.children) do
+        table.insert(add_children, child)
+      end
+    else
+      table.insert(add_children, elem)
+    end
+  end
+
+  local exp = create_mat_add()
+  exp.children = add_children
+  exp.m = self.m
+  exp.n = self.n
+  return exp
+end
+
+function mat_add_mt:__tostring()
+  local tbl = {}
+  for i=1,#self.children do
+    table.insert(tbl, grid_new(tostring(self.children[i])))
+  end
+  return tostring(grid_hori_concat(tbl, grid_new(" + ")))
+end
 function constant_methods:normal_form()
 	return self:clone()
 end
@@ -2858,6 +2943,9 @@ sym_methods.expand = exp_methods.expand
 
 constant_mt.__index = constant_methods
 constant_methods.expand = exp_methods.expand
+
+mat_add_mt.__add = mat_mt.__add
+mat_mul_mt.__add = mat_mt.__add
 
 poly_ring_mt.__index = poly_ring_methods
 

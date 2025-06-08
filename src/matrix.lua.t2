@@ -108,8 +108,7 @@ local latex_symbols = {
 ;; determine smallest matrix group set
 local matrix_set = ""
 if vim.tbl_count(self.mat_types) == 0 then
-	matrix_set = real_bb .. to_sup(tostring(self.m)) .. to_sup("x") .. to_sup(tostring(self.n))
-; display matrix set
+	matrix_set = ""
 end
 
 ;; print each elements if there are values
@@ -122,7 +121,9 @@ else
 end
 
 ;; format output mat tostring
-result:join_hori(grid_new(" " .. latex_symbols["in"] .. " " .. matrix_set))
+if #matrix_set ~= 0 then
+	result:join_hori(grid_new(" " .. latex_symbols["in"] .. " " .. matrix_set))
+end
 
 ;; register matrix metatable
 setmetatable(exp, mat_mt)

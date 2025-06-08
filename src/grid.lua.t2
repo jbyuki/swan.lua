@@ -106,9 +106,15 @@ end
 
 ;; pad height if not same
 if self.h < other.h then
-  self:grow_down(other.h - self.h)
+  local down = math.floor((other.h - self.h)/2)
+  local up = (other.h - self.h) - down
+  self:grow_down(down)
+  self:grow_up(up)
 elseif other.h < self.h then
-  other:grow_down(self.h - other.h)
+  local down = math.floor((self.h - other.h)/2)
+  local up = (self.h - other.h) - down
+  other:grow_up(up)
+  other:grow_down(down)
 end
 
 ;; join horizontally each lines
@@ -142,4 +148,28 @@ function grid_methods:has_minus_prefix()
     end
   end
   return false
+end
+
+;; implement
+function grid_hori_concat(tbl, sep)
+  local res = grid_new()
+  for i=1,#tbl do
+    if i > 1 then
+      res:join_hori(sep)
+    end
+    res:join_hori(tbl[i])
+  end
+  return res
+end
+
+;; implement
+function grid_vert_concat(tbl, sep)
+  local res = grid_new()
+  for i=1,#tbl do
+    if i > 1 then
+      res:join_vert(sep)
+    end
+    res:join_vert(tbl[i])
+  end
+  return res
 end

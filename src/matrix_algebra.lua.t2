@@ -1,0 +1,65 @@
+;;; swan
+;; exp types
+ADD_MAT = 17,
+MUL_MAT = 18,
+
+;; variables
+local create_mat_add
+local create_mat_mul
+local mat_add_mt = {}
+local mat_mul_mt = {}
+
+local mat_add_methods = {}
+local mat_mul_methods = {}
+mat_add_methods.__index = mat_add_mt
+mat_mul_methods.__index = mat_mul_mt
+
+;; implement
+function create_mat_add()
+  local exp = {}
+  exp.type = EXP_TYPE.ADD_MAT
+  exp.children = {}
+  return setmetatable(exp, mat_add_mt)
+end
+
+function create_mat_mul()
+  local exp = {}
+  exp.type = EXP_TYPE.MUL_MAT
+  exp.children = {}
+  return setmetatable(exp, mat_mul_mt)
+end
+
+;; implement
+function mat_mt:__add(other)
+  assert(self.m == other.m)
+  assert(self.n == other.n)
+  local add_children = {}
+  for _, elem in ipairs({self, other}) do
+    if elem.type == EXP_TYPE.ADD_MAT then
+      for _, child in ipairs(elem.children) do
+        table.insert(add_children, child)
+      end
+    else
+      table.insert(add_children, elem)
+    end
+  end
+
+  local exp = create_mat_add()
+  exp.children = add_children
+  exp.m = self.m
+  exp.n = self.n
+  return exp
+end
+
+;; copy metamethods
+mat_add_mt.__add = mat_mt.__add
+mat_mul_mt.__add = mat_mt.__add
+
+;; implement
+function mat_add_mt:__tostring()
+  local tbl = {}
+  for i=1,#self.children do
+    table.insert(tbl, grid_new(tostring(self.children[i])))
+  end
+  return tostring(grid_hori_concat(tbl, grid_new(" + ")))
+end
