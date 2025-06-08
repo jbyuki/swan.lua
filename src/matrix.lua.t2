@@ -274,9 +274,12 @@ end
 for j=1,#rows[1] do
 	local max_width = 0
 	for i=1,#rows do
-		max_width = math.max(max_width, vim.api.nvim_strwidth(rows[i][j]))
+		local cell_width = vim.api.nvim_strwidth(rows[i][j])
+		; add one width if no minus sign
+		max_width = math.max(max_width, cell_width)
 	end
 	for i=1,self.m do
+		; prepend space if no minus sign
 		while vim.api.nvim_strwidth(rows[i][j]) < max_width do
 			rows[i][j] = rows[i][j] .. " "
 		end
@@ -291,3 +294,12 @@ for i=1,#rows do
 	table.insert(all_rows, row)
 end
 matrix_str = table.concat(all_rows, "\n")
+
+;; add one width if no minus sign
+if #rows[i][j] == 0 or rows[i][j]:sub(1,1) ~= "-" then
+	cell_width = cell_width + 1
+end
+;; prepend space if no minus sign
+if #rows[i][j] == 0 or rows[i][j]:sub(1,1) ~= "-" then
+	rows[i][j] = " " .. rows[i][j]
+end

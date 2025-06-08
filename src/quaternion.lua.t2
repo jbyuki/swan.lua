@@ -208,9 +208,7 @@ end
 
 ;; implement
 function exp_methods:as_real_mat()
-  local r = self:expand():simplify()
   ; collect all quaternion terms
-  ; fill unfilled quaternion terms
   ; create real matrix from collected terms
   return mat
 end
@@ -219,28 +217,40 @@ end
 imag_methods.as_real_mat = exp_methods.as_real_mat
 sym_methods.as_real_mat = exp_methods.as_real_mat
 
-;; collect all quaternion terms
-local quat_coeffs = {}
-local add_exp
-if r.type ~= EXP_TYPE.ADD then
-  add_exp = create_add_exp()
-  add_exp.children = { r }
-else
-  add_exp = r
-end
+imag_methods.collect_quat = exp_methods.collect_quat
+sym_methods.collect_quat = exp_methods.collect_quat
 
-for _, term in ipairs(add_exp.children) do
-  local mul_term
-  if term.type == EXP_TYPE.MUL then
-    mul_term = term
+;; implement
+function exp_methods:collect_quat()
+  local r = self:expand():simplify()
+
+  local quat_coeffs = {}
+  local add_exp
+  if r.type ~= EXP_TYPE.ADD then
+    add_exp = create_add_exp()
+    add_exp.children = { r }
   else
-    mul_term = create_mul_exp()
-    mul_term.children = { term }
+    add_exp = r
   end
 
-  ; split mul term
-  ; fill quat coeffs
+  for _, term in ipairs(add_exp.children) do
+    local mul_term
+    if term.type == EXP_TYPE.MUL then
+      mul_term = term
+    else
+      mul_term = create_mul_exp()
+      mul_term.children = { term }
+    end
+
+    ; split mul term
+    ; fill quat coeffs
+  end
+  ; fill unfilled quaternion terms
+  return quat_coeffs
 end
+
+;; collect all quaternion terms
+local quat_coeffs = self:collect_quat()
 
 ;; split mul term
 local idx = 1

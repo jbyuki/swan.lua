@@ -872,9 +872,16 @@ function mat_mt:__tostring()
 		for j=1,#rows[1] do
 			local max_width = 0
 			for i=1,#rows do
-				max_width = math.max(max_width, vim.api.nvim_strwidth(rows[i][j]))
+				local cell_width = vim.api.nvim_strwidth(rows[i][j])
+				if #rows[i][j] == 0 or rows[i][j]:sub(1,1) ~= "-" then
+					cell_width = cell_width + 1
+				end
+				max_width = math.max(max_width, cell_width)
 			end
 			for i=1,self.m do
+				if #rows[i][j] == 0 or rows[i][j]:sub(1,1) ~= "-" then
+					rows[i][j] = " " .. rows[i][j]
+				end
 				while vim.api.nvim_strwidth(rows[i][j]) < max_width do
 					rows[i][j] = rows[i][j] .. " "
 				end
@@ -889,6 +896,7 @@ function mat_mt:__tostring()
 			table.insert(all_rows, row)
 		end
 		matrix_str = table.concat(all_rows, "\n")
+
 
 		result = result .. matrix_str
 
@@ -1740,7 +1748,23 @@ function M.exp(x)
 end
 
 function exp_methods:as_real_mat()
+  local quat_coeffs = self:collect_quat()
+
+  local a,b,c,d = unpack(quat_coeffs)
+  -- One of 48 possibilities to represent a quaternion as a 4x4 matrix
+  -- https://en.wikipedia.org/wiki/Quaternion#Representation_as_real_4_%C3%97_4_matrices
+  local mat = M.mat {
+    { a, -b, -c, -d },
+    { b, a, -d, c },
+    { c, d, a, -b },
+    { d, -c, b, a },
+  }
+  return mat
+end
+
+function exp_methods:collect_quat()
   local r = self:expand():simplify()
+
   local quat_coeffs = {}
   local add_exp
   if r.type ~= EXP_TYPE.ADD then
@@ -1789,23 +1813,13 @@ function exp_methods:as_real_mat()
     end
 
   end
-
   for idx=1,4 do
     if not quat_coeffs[idx] then
       quat_coeffs[idx] = M.constant(0)
     end
   end
 
-  local a,b,c,d = unpack(quat_coeffs)
-  -- One of 48 possibilities to represent a quaternion as a 4x4 matrix
-  -- https://en.wikipedia.org/wiki/Quaternion#Representation_as_real_4_%C3%97_4_matrices
-  local mat = M.mat {
-    { a, -b, -c, -d },
-    { b, a, -d, c },
-    { c, d, a, -b },
-    { d, -c, b, a },
-  }
-  return mat
+  return quat_coeffs
 end
 
 function create_rational(num, den)
@@ -2758,6 +2772,9 @@ imag_methods.expand = exp_methods.expand
 
 imag_methods.as_real_mat = exp_methods.as_real_mat
 sym_methods.as_real_mat = exp_methods.as_real_mat
+
+imag_methods.collect_quat = exp_methods.collect_quat
+sym_methods.collect_quat = exp_methods.collect_quat
 
 rational_mt.__index = rational_methods
 
