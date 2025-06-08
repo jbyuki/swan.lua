@@ -28,4 +28,19 @@ i,j,k = swan.i(), swan.j(), swan.k()
 local q = (1+2*k+i-2*j)*(10+3*k+i+j)
 local r = (q:as_real_mat() + q:as_real_mat()) * q:as_real_mat()
 p(r:expand():simplify())
-p(q:as_real_mat())
+
+;; playground
+; reload
+local qw,qx,qy,qz = swan.symbols "q_w q_x q_y q_z"
+c0 = qw/c(2)
+c1 = qz/c(2)
+c2 = -c1
+c3 = qy/c(2)
+c4 = qx/c(2)
+c5 = -c4
+c6 = -c3
+
+J = swan.mat {{c0,c2,c3},{c1,c0,c5},{c6,c4,c0},{c5,c6,c2}}
+J2 = swan.mat {{qw, qz, -qy, -qx},{-qz,qw,qx,-qy},{qy,-qx,qw,-qz}}
+
+p((J2 * J):simplify())

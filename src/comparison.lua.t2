@@ -39,3 +39,19 @@ end
 function imag_mt:__eq(other)
 	return is_imag[self.type] and is_imag[other.type] and self.type == other.type
 end
+
+;; implement
+function rational_mt:__lt(other)
+	assert(self.type == other.type)
+	if self.den < other.den then
+		return true
+	elseif other.den < den.den then
+		return true
+	else
+		return self.num < other.num
+	end
+end
+
+function rational_mt:__eq(other)
+	return self.type == other.type and self.den == other.den and self.num == other.num
+end

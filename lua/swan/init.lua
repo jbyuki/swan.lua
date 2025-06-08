@@ -545,6 +545,21 @@ end
 function imag_mt:__eq(other)
 	return is_imag[self.type] and is_imag[other.type] and self.type == other.type
 end
+
+function rational_mt:__lt(other)
+	assert(self.type == other.type)
+	if self.den < other.den then
+		return true
+	elseif other.den < den.den then
+		return true
+	else
+		return self.num < other.num
+	end
+end
+
+function rational_mt:__eq(other)
+	return self.type == other.type and self.den == other.den and self.num == other.num
+end
 function constant_mt:__eq(other)
 	return other.type == EXP_TYPE.CONSTANT and self.value == other.value
 end
