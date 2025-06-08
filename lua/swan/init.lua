@@ -808,7 +808,7 @@ end
 function grid_hori_concat(tbl, sep)
   local res = grid_new()
   for i=1,#tbl do
-    if i > 1 then
+    if i > 1 and sep then
       res:join_hori(sep)
     end
     res:join_hori(tbl[i])
@@ -819,13 +819,58 @@ end
 function grid_vert_concat(tbl, sep)
   local res = grid_new()
   for i=1,#tbl do
-    if i > 1 then
+    if i > 1 and sep then
       res:join_vert(sep)
     end
     res:join_vert(tbl[i])
   end
   return res
 end
+
+function grid_methods:enclose_paren()
+  local paren_left = grid_new()
+  local paren_right = grid_new()
+  if self.h == 1 then
+    paren_left = grid_new("(")
+    paren_right = grid_new(")")
+  elseif self.h > 1 then
+    for i=1,self.h do
+      if i == 1 then
+        paren_left:join_vert(grid_new("⎛"))
+        paren_right:join_vert(grid_new("⎞"))
+      elseif i == self.h then
+        paren_left:join_vert(grid_new("⎝"))
+        paren_right:join_vert(grid_new("⎠"))
+      else
+        paren_left:join_vert(grid_new("⎜"))
+        paren_right:join_vert(grid_new("⎟"))
+      end
+    end
+  end
+
+  self:join_hori_left(paren_left)
+  self:join_hori(paren_right)
+end
+
+function grid_methods:join_hori_left(other)
+  if self.h < other.h then
+    local down = math.floor((other.h - self.h)/2)
+    local up = (other.h - self.h) - down
+    self:grow_down(down)
+    self:grow_up(up)
+  elseif other.h < self.h then
+    local down = math.floor((self.h - other.h)/2)
+    local up = (self.h - other.h) - down
+    other:grow_up(up)
+    other:grow_down(down)
+  end
+
+  for i=1,self.h do
+    self.lines[i] =  other.lines[i] .. self.lines[i]
+  end
+  self.w = self.w + other.w
+end
+
 function M.symbols(str)
 	local elems = vim.split(str, "%s+", { trimempty = true })
 
@@ -1198,8 +1243,43 @@ function mat_add_mt:__tostring()
   for i=1,#self.children do
     table.insert(tbl, grid_new(tostring(self.children[i])))
   end
-  return tostring(grid_hori_concat(tbl, grid_new(" + ")))
+  local result = grid_hori_concat(tbl, grid_new(" + "))
+  return tostring(result)
 end
+
+function mat_mul_mt:__tostring()
+  local tbl = {}
+  for i=1,#self.children do
+    local g = grid_new(tostring(self.children[i]))
+    if self.children[i].type == EXP_TYPE.ADD_MAT then
+      g:enclose_paren()
+    end
+    table.insert(tbl, g)
+  end
+  local result = grid_hori_concat(tbl)
+  return tostring(result)
+end
+
+function mat_mt:__mul(other)
+  assert(self.n == other.m)
+  local mul_children = {}
+  for _, elem in ipairs({self, other}) do
+    if elem.type == EXP_TYPE.MUL_MAT then
+      for _, child in ipairs(elem.children) do
+        table.insert(mul_children, child)
+      end
+    else
+      table.insert(mul_children, elem)
+    end
+  end
+
+  local exp = create_mat_mul()
+  exp.children = mul_children
+  exp.m = self.m
+  exp.n = other.n
+  return exp
+end
+
 function constant_methods:normal_form()
 	return self:clone()
 end
@@ -2947,6 +3027,8 @@ constant_methods.expand = exp_methods.expand
 mat_add_mt.__add = mat_mt.__add
 mat_mul_mt.__add = mat_mt.__add
 
+mat_add_mt.__mul = mat_mt.__mul
+mat_mul_mt.__mul = mat_mt.__mul
 poly_ring_mt.__index = poly_ring_methods
 
 mul_exp_mt.__pow = sym_mt.__pow

@@ -61,5 +61,45 @@ function mat_add_mt:__tostring()
   for i=1,#self.children do
     table.insert(tbl, grid_new(tostring(self.children[i])))
   end
-  return tostring(grid_hori_concat(tbl, grid_new(" + ")))
+  local result = grid_hori_concat(tbl, grid_new(" + "))
+  return tostring(result)
 end
+
+;; implement
+function mat_mul_mt:__tostring()
+  local tbl = {}
+  for i=1,#self.children do
+    local g = grid_new(tostring(self.children[i]))
+    if self.children[i] == EXP_TYPE.ADD_MAT then
+      g:enclose_paren()
+    end
+    table.insert(tbl, g)
+  end
+  local result = grid_hori_concat(tbl)
+  return tostring(result)
+end
+
+;; implement
+function mat_mt:__mul(other)
+  assert(self.n == other.m)
+  local mul_children = {}
+  for _, elem in ipairs({self, other}) do
+    if elem.type == EXP_TYPE.MUL_MAT then
+      for _, child in ipairs(elem.children) do
+        table.insert(mul_children, child)
+      end
+    else
+      table.insert(mul_children, elem)
+    end
+  end
+
+  local exp = create_mat_mul()
+  exp.children = mul_children
+  exp.m = self.m
+  exp.n = other.n
+  return exp
+end
+
+;; copy metamethods
+mat_add_mt.__mul = mat_mt.__mul
+mat_mul_mt.__mul = mat_mt.__mul
