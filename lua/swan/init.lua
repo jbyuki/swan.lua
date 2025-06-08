@@ -1356,6 +1356,156 @@ function mat_methods:expand()
   end
 end
 
+function mat_methods:simplify()
+  if self.type == EXP_TYPE.MAT then
+    if not self.name then
+      local result = self
+      local arr = nil
+      if result.type == EXP_TYPE.MAT and not result.name then
+        arr = {}
+        for i=1,result.m do
+          local row = {}
+          for j=1,result.n do
+            table.insert(row, result.elems[i][j].value:expand():simplify():normal_form())
+          end
+          table.insert(arr, row)
+        end
+      end
+
+      local simplified
+      if arr then
+        simplified = M.mat(arr)
+        simplified.mat_types = result.mat_types
+      else
+        simplified = result
+      end
+
+      return simplified
+    else
+      return self
+    end
+  elseif self.type == EXP_TYPE.ADD_MAT or self.type == EXP_TYPE.MUL_MAT then
+    local children_simplified = {}
+    local rest_children = {}
+
+    for i=1,#self.children do
+      local child = self.children[i]:simplify()
+      if child.type == EXP_TYPE.MAT and not child.name then
+        table.insert(children_simplified, child)
+      else
+        table.insert(rest_children, child)
+      end
+    end
+
+    local result
+    if self.type == EXP_TYPE.ADD_MAT then
+      if #children_simplified > 0 then
+        local arr = {}
+        for i=1,children_simplified[1].m do
+          local row = {}
+          for j=1,children_simplified[1].n do
+            local val = nil
+            for k=1,#children_simplified do
+              if not val then
+                val = children_simplified[1].elems[i][j].value
+              else
+                val = val + children_simplified[1].elems[i][j].value
+              end
+            end
+            table.insert(row, val)
+          end
+          table.insert(arr, row)
+        end
+
+        result = M.mat(arr)
+        if #children_simplified == 1 then
+          result.mat_types = children_simplified[1].mat_types
+        end
+      end
+
+      if #rest_children > 0 then
+        local new_result = create_mat_add()
+        if result then
+          table.insert(new_result.children, result)
+        end
+        for _, child in ipairs(rest_children) do
+          table.insert(new_result.children, child)
+        end
+        result = new_result
+      end
+
+    elseif self.type == EXP_TYPE.MUL_MAT then
+      if #children_simplified > 0 then
+        local lhs = children_simplified[1]
+
+        for j=2,#children_simplified do
+          local rhs = children_simplified[j]
+          local arr = {}
+          for i=1,lhs.m do
+            local row = {}
+            for j=1,rhs.n do
+              local val
+              for k=1,lhs.n do
+                local elem = lhs.elems[i][k].value * rhs.elems[k][j].value
+                if not val then
+                  val = elem
+                else
+                  val = elem + val
+                end
+              end
+              table.insert(row, val)
+            end
+            table.insert(arr, row)
+          end
+
+          lhs = M.mat(arr)
+        end
+
+        result = lhs
+        if #children_simplified == 1 then
+          result.mat_types = children_simplified[1].mat_types
+        end
+      end
+
+      if #rest_children > 0 then
+        local new_result = create_mat_mul()
+        if result then
+          table.insert(new_result.children, result)
+        end
+        for _, child in ipairs(rest_children) do
+          table.insert(new_result.children, child)
+        end
+        result = new_result
+      end
+
+    end
+
+    local arr = nil
+    if result.type == EXP_TYPE.MAT and not result.name then
+      arr = {}
+      for i=1,result.m do
+        local row = {}
+        for j=1,result.n do
+          table.insert(row, result.elems[i][j].value:expand():simplify():normal_form())
+        end
+        table.insert(arr, row)
+      end
+    end
+
+    local simplified
+    if arr then
+      simplified = M.mat(arr)
+      simplified.mat_types = result.mat_types
+    else
+      simplified = result
+    end
+
+    return simplified
+  else
+    return self
+  end
+end
+
 function constant_methods:normal_form()
 	return self:clone()
 end
@@ -3108,6 +3258,9 @@ mat_mul_mt.__mul = mat_mt.__mul
 
 mat_add_methods.expand = mat_methods.expand
 mat_mul_methods.expand = mat_methods.expand
+
+mat_add_methods.simplify = mat_methods.simplify
+mat_mul_methods.simplify = mat_methods.simplify
 
 poly_ring_mt.__index = poly_ring_methods
 
