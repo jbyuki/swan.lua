@@ -18,6 +18,13 @@ c = swan.constant
 
 ;; playground
 ; reload
-local a,b,c,d = swan.symbols "a_1 b c d"
+local a,b,c,d = swan.symbols "a_1 b c d_4"
 local m = swan.mat {{a,b}, {c,d}}
 p(m)
+
+;; playground
+; reload
+i,j,k = swan.i(), swan.j(), swan.k()
+local q = (1+2*k+i-2*j)*(10+3*k+i+j)
+q = q:expand():simplify()
+p(q:as_real_mat())
