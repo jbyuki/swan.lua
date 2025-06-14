@@ -1,0 +1,8 @@
+;;; swan
+:: ../lua/swan/init.lua
+local M = {}
+; declare
+; variables
+; lookups
+; implement
+return M
