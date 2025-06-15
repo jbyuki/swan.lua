@@ -1,60 +1,81 @@
--- Generated using ntangle.nvim
-local M = {}
+;;; swan
+;; declare
 local sym_methods = {}
 local sym_mt = {}
 
+;; implement
+function M.syms(names, set)
+  local syms = {}
+  ; parse names
+  ; create symbols
+  ; if no domain set to reals
+  ; attach domain to symbols
+  return unpack(syms)
+end
+
+;; parse names
+for name in vim.gsplit(names, " ") do
+  ; replace greek
+  ; replace subscripts
+  ; create symbol and add to tables
+end
+
+;; variables
 local greek_etc = {
   ["Alpha"] = "Α", ["Beta"] = "Β", ["Gamma"] = "Γ", ["Delta"] = "Δ", ["Epsilon"] = "Ε", ["Zeta"] = "Ζ", ["Eta"] = "Η", ["Theta"] = "Θ", ["Iota"] = "Ι", ["Kappa"] = "Κ", ["Lambda"] = "Λ", ["Mu"] = "Μ", ["Nu"] = "Ν", ["Xi"] = "Ξ", ["Omicron"] = "Ο", ["Pi"] = "Π", ["Rho"] = "Ρ", ["Sigma"] = "Σ", ["Tau"] = "Τ", ["Upsilon"] = "Υ", ["Phi"] = "Φ", ["Chi"] = "Χ", ["Psi"] = "Ψ", ["Omega"] = "Ω",
   ["alpha"] = "α", ["beta"] = "β", ["gamma"] = "γ", ["delta"] = "δ", ["epsilon"] = "ε", ["zeta"] = "ζ", ["eta"] = "η", ["theta"] = "θ", ["iota"] = "ι", ["kappa"] = "κ", ["lambda"] = "λ", ["mu"] = "μ", ["nu"] = "ν", ["xi"] = "ξ", ["omicron"] = "ο", ["pi"] = "π", ["rho"] = "ρ", ["final"] = "ς", ["sigma"] = "σ", ["tau"] = "τ", ["upsilon"] = "υ", ["phi"] = "φ", ["chi"] = "χ", ["psi"] = "ψ", ["omega"] = "ω",
   ["nabla"] = "∇",
 }
 
+;; replace greek
+; find backward slash
+; if found capture following string
+
+;; find backward slash
+local s, _ = name:find("^\\")
+
+;; if found capture following string
+local capture
+if s then
+  capture = name:sub(s+1):match("^%a+")
+  ; if string is greek replace
+end
+
+;; if string is greek replace
+if capture and greek_etc[capture] then
+  name = name:sub(1,s-1) .. greek_etc[capture] .. name:sub(s+1+#capture)
+end
+
+;; replace subscripts
+local s, _ = name:find("_")
+if s then
+  capture = name:sub(s+1):match("^%w+")
+  ; if string is subscript replace
+end
+
+;; lookup
 local sub_letters = { 
 	["+"] = "₊", ["-"] = "₋", ["="] = "₌", ["("] = "₍", [")"] = "₎",
 	["a"] = "ₐ", ["e"] = "ₑ", ["o"] = "ₒ", ["x"] = "ₓ", ["ə"] = "ₔ", ["h"] = "ₕ", ["k"] = "ₖ", ["l"] = "ₗ", ["m"] = "ₘ", ["n"] = "ₙ", ["p"] = "ₚ", ["s"] = "ₛ", ["t"] = "ₜ", ["i"] = "ᵢ", ["j"] = "ⱼ", ["r"] = "ᵣ", ["u"] = "ᵤ", ["v"] = "ᵥ",
 	["0"] = "₀", ["1"] = "₁", ["2"] = "₂", ["3"] = "₃", ["4"] = "₄", ["5"] = "₅", ["6"] = "₆", ["7"] = "₇", ["8"] = "₈", ["9"] = "₉",
 }
 
-function M.syms(names, set)
-  local syms = {}
-  for name in vim.gsplit(names, " ") do
-    local s, _ = name:find("^\\")
-
-    local capture
-    if s then
-      capture = name:sub(s+1):match("^%a+")
-      if capture and greek_etc[capture] then
-        name = name:sub(1,s-1) .. greek_etc[capture] .. name:sub(s+1+#capture)
-      end
-
+;; if string is subscript replace
+if capture then 
+  local subs = ""
+  for i=1,#capture do
+    if sub_letters[capture:sub(i,i)] then
+      subs = subs .. sub_letters[capture:sub(i,i)]
+    else
+      subs = nil
+      break
     end
-
-
-    local s, _ = name:find("_")
-    if s then
-      capture = name:sub(s+1):match("^%w+")
-      if capture then 
-        local subs = ""
-        for i=1,#capture do
-          if sub_letters[capture:sub(i,i)] then
-            subs = subs .. sub_letters[capture:sub(i,i)]
-          else
-            subs = nil
-            break
-          end
-        end
-
-        if subs then
-          name = name:sub(1,s-1) .. subs .. name:sub(s+1+#capture)
-        end
-      end
-
-    end
-
-    table.insert(syms, name)
   end
 
-  return unpack(syms)
+  if subs then
+    name = name:sub(1,s-1) .. subs .. name:sub(s+1+#capture)
+  end
 end
 
-return M
+;; create symbol and add to tables
+table.insert(syms, name)

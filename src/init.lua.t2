@@ -5,4 +5,5 @@ local M = {}
 ; variables
 ; lookup
 ; implement
+; copy metamethods
 return M

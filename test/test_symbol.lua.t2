@@ -1,0 +1,27 @@
+:: test_symbol.lua
+; reload
+; start debugger
+; stop debugger
+; playground
+
+;; reload
+package.loaded["swan"] = nil
+swan = require"swan"
+p = function(s) io.write(tostring(s)) end
+c = swan.constant
+
+;; start debugger
+require"osv".launch { port = 8086 }
+
+;; stop debugger
+require"osv".stop()
+
+;; playground
+; reload
+local r1 = swan.syms("\\beta_23")
+p(r1)
+
+;; playground
+; reload
+local str = "f_c f_s \\alpha_c"
+print(str:find("s"))
