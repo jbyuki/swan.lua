@@ -4,7 +4,7 @@ local sym_methods = {}
 local sym_mt = {}
 sym_mt.__index = sym_methods
 
-local real_domain = {}
+local real_set = {}
 
 local greek_etc = {
   ["Alpha"] = "Α", ["Beta"] = "Β", ["Gamma"] = "Γ", ["Delta"] = "Δ", ["Epsilon"] = "Ε", ["Zeta"] = "Ζ", ["Eta"] = "Η", ["Theta"] = "Θ", ["Iota"] = "Ι", ["Kappa"] = "Κ", ["Lambda"] = "Λ", ["Mu"] = "Μ", ["Nu"] = "Ν", ["Xi"] = "Ξ", ["Omicron"] = "Ο", ["Pi"] = "Π", ["Rho"] = "Ρ", ["Sigma"] = "Σ", ["Tau"] = "Τ", ["Upsilon"] = "Υ", ["Phi"] = "Φ", ["Chi"] = "Χ", ["Psi"] = "Ψ", ["Omega"] = "Ω",
@@ -18,7 +18,7 @@ local sub_letters = {
 	["0"] = "₀", ["1"] = "₁", ["2"] = "₂", ["3"] = "₃", ["4"] = "₄", ["5"] = "₅", ["6"] = "₆", ["7"] = "₇", ["8"] = "₈", ["9"] = "₉",
 }
 
-function real_domain.tostring(sym)
+function real_set.tostring(sym)
   return sym.name
 end
 
@@ -71,18 +71,18 @@ function M.syms(names, set)
     table.insert(syms, sym)
   end
 
-  if not domain then
-    domain = real_domain
+  if not set then
+    set = real_set
   end
 
   for _, sym in ipairs(syms) do
-    sym.domain = real_domain
+    sym.set = real_set
   end
 
   return unpack(syms)
 end
 
 function sym_mt:__tostring()
-  return self.domain.tostring(self)
+  return self.set.tostring(self)
 end
 return M

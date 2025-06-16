@@ -4,8 +4,8 @@ function M.syms(names, set)
   local syms = {}
   ; parse names
   ; create symbols
-  ; if no domain set to reals
-  ; attach domain to symbols
+  ; if no set set to reals
+  ; attach set to symbols
   return unpack(syms)
 end
 
@@ -92,24 +92,24 @@ local sym_mt = {}
 sym_mt.__index = sym_methods
 
 ;; declare
-local real_domain = {}
+local real_set = {}
 
-;; if no domain set to reals
-if not domain then
-  domain = real_domain
+;; if no set set to reals
+if not set then
+  set = real_set
 end
 
-;; define domains
-function real_domain.tostring(sym)
+;; define sets
+function real_set.tostring(sym)
   return sym.name
 end
 
-;; attach domain to symbols
+;; attach set to symbols
 for _, sym in ipairs(syms) do
-  sym.domain = real_domain
+  sym.set = real_set
 end
 
 ;; implement
 function sym_mt:__tostring()
-  return self.domain.tostring(self)
+  return self.set.tostring(self)
 end

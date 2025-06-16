@@ -5,7 +5,7 @@ local M = {}
 ; variables
 ; enums
 ; lookup
-; define domains
+; define sets
 ; implement
 ; copy metamethods
 return M
