@@ -2,6 +2,9 @@
 local M = {}
 local sym_methods = {}
 local sym_mt = {}
+sym_mt.__index = sym_methods
+
+local real_domain = {}
 
 local greek_etc = {
   ["Alpha"] = "Α", ["Beta"] = "Β", ["Gamma"] = "Γ", ["Delta"] = "Δ", ["Epsilon"] = "Ε", ["Zeta"] = "Ζ", ["Eta"] = "Η", ["Theta"] = "Θ", ["Iota"] = "Ι", ["Kappa"] = "Κ", ["Lambda"] = "Λ", ["Mu"] = "Μ", ["Nu"] = "Ν", ["Xi"] = "Ξ", ["Omicron"] = "Ο", ["Pi"] = "Π", ["Rho"] = "Ρ", ["Sigma"] = "Σ", ["Tau"] = "Τ", ["Upsilon"] = "Υ", ["Phi"] = "Φ", ["Chi"] = "Χ", ["Psi"] = "Ψ", ["Omega"] = "Ω",
@@ -15,8 +18,13 @@ local sub_letters = {
 	["0"] = "₀", ["1"] = "₁", ["2"] = "₂", ["3"] = "₃", ["4"] = "₄", ["5"] = "₅", ["6"] = "₆", ["7"] = "₇", ["8"] = "₈", ["9"] = "₉",
 }
 
+function real_domain.tostring(sym)
+  return sym.name
+end
+
 function M.syms(names, set)
   local syms = {}
+  local names_list = {}
   for name in vim.gsplit(names, " ") do
     local s, _ = name:find("^\\")
 
@@ -51,10 +59,30 @@ function M.syms(names, set)
 
     end
 
-    table.insert(syms, name)
+    table.insert(names_list, name)
+
+  end
+
+  local syms = {}
+  for _, name in ipairs(names_list) do
+    local sym = {}
+    sym.name = name
+    setmetatable(sym, sym_mt)
+    table.insert(syms, sym)
+  end
+
+  if not domain then
+    domain = real_domain
+  end
+
+  for _, sym in ipairs(syms) do
+    sym.domain = real_domain
   end
 
   return unpack(syms)
 end
 
+function sym_mt:__tostring()
+  return self.domain.tostring(self)
+end
 return M

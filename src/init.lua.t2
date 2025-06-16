@@ -3,7 +3,9 @@
 local M = {}
 ; declare
 ; variables
+; enums
 ; lookup
+; define domains
 ; implement
 ; copy metamethods
 return M

@@ -1,8 +1,4 @@
 ;;; swan
-;; declare
-local sym_methods = {}
-local sym_mt = {}
-
 ;; implement
 function M.syms(names, set)
   local syms = {}
@@ -14,10 +10,11 @@ function M.syms(names, set)
 end
 
 ;; parse names
+local names_list = {}
 for name in vim.gsplit(names, " ") do
   ; replace greek
   ; replace subscripts
-  ; create symbol and add to tables
+  ; add name to list
 end
 
 ;; variables
@@ -77,5 +74,42 @@ if capture then
   end
 end
 
-;; create symbol and add to tables
-table.insert(syms, name)
+;; add name to list
+table.insert(names_list, name)
+
+;; create symbols
+local syms = {}
+for _, name in ipairs(names_list) do
+  local sym = {}
+  sym.name = name
+  setmetatable(sym, sym_mt)
+  table.insert(syms, sym)
+end
+
+;; declare
+local sym_methods = {}
+local sym_mt = {}
+sym_mt.__index = sym_methods
+
+;; declare
+local real_domain = {}
+
+;; if no domain set to reals
+if not domain then
+  domain = real_domain
+end
+
+;; define domains
+function real_domain.tostring(sym)
+  return sym.name
+end
+
+;; attach domain to symbols
+for _, sym in ipairs(syms) do
+  sym.domain = real_domain
+end
+
+;; implement
+function sym_mt:__tostring()
+  return self.domain.tostring(self)
+end

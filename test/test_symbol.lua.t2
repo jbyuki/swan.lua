@@ -18,10 +18,5 @@ require"osv".stop()
 
 ;; playground
 ; reload
-local r1 = swan.syms("\\beta_23")
+local r1 = swan.syms("\\beta_1")
 p(r1)
-
-;; playground
-; reload
-local str = "f_c f_s \\alpha_c"
-print(str:find("s"))
