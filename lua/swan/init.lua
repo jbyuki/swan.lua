@@ -1,10 +1,13 @@
 -- Generated using ntangle.nvim
 local M = {}
+local matrix_set = {}
+M.matrix_set = matrix_set
+
 local sym_methods = {}
 local sym_mt = {}
-sym_mt.__index = sym_methods
 
 local real_set = {}
+M.real_set = real_set
 
 local greek_etc = {
   ["Alpha"] = "Α", ["Beta"] = "Β", ["Gamma"] = "Γ", ["Delta"] = "Δ", ["Epsilon"] = "Ε", ["Zeta"] = "Ζ", ["Eta"] = "Η", ["Theta"] = "Θ", ["Iota"] = "Ι", ["Kappa"] = "Κ", ["Lambda"] = "Λ", ["Mu"] = "Μ", ["Nu"] = "Ν", ["Xi"] = "Ξ", ["Omicron"] = "Ο", ["Pi"] = "Π", ["Rho"] = "Ρ", ["Sigma"] = "Σ", ["Tau"] = "Τ", ["Upsilon"] = "Υ", ["Phi"] = "Φ", ["Chi"] = "Χ", ["Psi"] = "Ψ", ["Omega"] = "Ω",
@@ -18,10 +21,25 @@ local sub_letters = {
 	["0"] = "₀", ["1"] = "₁", ["2"] = "₂", ["3"] = "₃", ["4"] = "₄", ["5"] = "₅", ["6"] = "₆", ["7"] = "₇", ["8"] = "₈", ["9"] = "₉",
 }
 
+function matrix_set:new(n,m,elem_set)
+  local set = {}
+  set.m = m
+  set.n = n
+  set.elem_set = elem_set or real_set
+  return setmetatable(set, { __index = self })
+end
+
 function real_set.tostring(sym)
   return sym.name
 end
 
+function matrix_set.tostring(sym)
+  return sym.name
+end
+
+function matrix_set:size()
+  return { self.set.m, self.set.n }
+end
 function M.syms(names, set)
   local syms = {}
   local names_list = {}
@@ -76,10 +94,14 @@ function M.syms(names, set)
   end
 
   for _, sym in ipairs(syms) do
-    sym.set = real_set
+    sym.set = set
   end
 
   return unpack(syms)
+end
+
+function sym_mt:__index(key)
+  return sym_methods[key] or self.set[key]
 end
 
 function sym_mt:__tostring()

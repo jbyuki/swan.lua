@@ -1,0 +1,23 @@
+;;; swan
+;; declare
+local matrix_set = {}
+M.matrix_set = matrix_set
+
+;; define sets
+function matrix_set:new(n,m,elem_set)
+  local set = {}
+  set.m = m
+  set.n = n
+  set.elem_set = elem_set or real_set
+  return setmetatable(set, { __index = self })
+end
+
+;; implement
+function matrix_set.tostring(sym)
+  return sym.name
+end
+
+;; implement
+function matrix_set:size()
+  return { self.set.m, self.set.n }
+end

@@ -86,13 +86,18 @@ for _, name in ipairs(names_list) do
   table.insert(syms, sym)
 end
 
+;; implement
+function sym_mt:__index(key)
+  return sym_methods[key] or self.set[key]
+end
+
 ;; declare
 local sym_methods = {}
 local sym_mt = {}
-sym_mt.__index = sym_methods
 
 ;; declare
 local real_set = {}
+M.real_set = real_set
 
 ;; if no set set to reals
 if not set then
@@ -106,7 +111,7 @@ end
 
 ;; attach set to symbols
 for _, sym in ipairs(syms) do
-  sym.set = real_set
+  sym.set = set
 end
 
 ;; implement
