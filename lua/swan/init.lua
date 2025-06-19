@@ -1,5 +1,14 @@
 -- Generated using ntangle.nvim
 local M = {}
+local exp_methods = {}
+local exp_mt = {}
+local exp = {}
+exp_mt.__index = exp_methods
+
+local extendable = {}
+
+local create_left_paren, create_right_paren
+
 local grid_methods = {}
 local grid_mt = {}
 grid_mt.__index = grid_methods
@@ -19,6 +28,12 @@ local greek_etc = {
   ["Alpha"] = "Α", ["Beta"] = "Β", ["Gamma"] = "Γ", ["Delta"] = "Δ", ["Epsilon"] = "Ε", ["Zeta"] = "Ζ", ["Eta"] = "Η", ["Theta"] = "Θ", ["Iota"] = "Ι", ["Kappa"] = "Κ", ["Lambda"] = "Λ", ["Mu"] = "Μ", ["Nu"] = "Ν", ["Xi"] = "Ξ", ["Omicron"] = "Ο", ["Pi"] = "Π", ["Rho"] = "Ρ", ["Sigma"] = "Σ", ["Tau"] = "Τ", ["Upsilon"] = "Υ", ["Phi"] = "Φ", ["Chi"] = "Χ", ["Psi"] = "Ψ", ["Omega"] = "Ω",
   ["alpha"] = "α", ["beta"] = "β", ["gamma"] = "γ", ["delta"] = "δ", ["epsilon"] = "ε", ["zeta"] = "ζ", ["eta"] = "η", ["theta"] = "θ", ["iota"] = "ι", ["kappa"] = "κ", ["lambda"] = "λ", ["mu"] = "μ", ["nu"] = "ν", ["xi"] = "ξ", ["omicron"] = "ο", ["pi"] = "π", ["rho"] = "ρ", ["final"] = "ς", ["sigma"] = "σ", ["tau"] = "τ", ["upsilon"] = "υ", ["phi"] = "φ", ["chi"] = "χ", ["psi"] = "ψ", ["omega"] = "ω",
   ["nabla"] = "∇",
+}
+
+local EXP_TYPE = {
+  ADD = 1,
+  MUL = 2,
+
 }
 
 local sub_letters = { 
@@ -44,6 +59,107 @@ function real_set:__tostring(sym)
   return self.name
 end
 
+function exp.new(children, type)
+  local e = {}
+  e.type = type
+  e.children = children
+  return setmetatable(e, exp_mt)
+end
+
+function exp_mt:__add(other)
+  local new_children = {}
+  for _, elem in ipairs({self, other}) do
+    if elem.type and elem.type == EXP_TYPE.ADD then
+      for _, child in ipairs(elem.children) do
+        table.insert(new_children, child)
+      end
+    else
+      table.insert(new_children, elem)
+    end
+  end
+
+  return exp.new(new_children, EXP_TYPE.ADD)
+end
+
+function exp_mt:__mul(other)
+  local new_children = {}
+  for _, elem in ipairs({self, other}) do
+    if elem.type and elem.type == EXP_TYPE.MUL then
+      for _, child in ipairs(elem.children) do
+        table.insert(new_children, child)
+      end
+    else
+      table.insert(new_children, elem)
+    end
+  end
+
+  return exp.new(new_children, EXP_TYPE.MUL)
+end
+
+function exp_mt:__tostring()
+  local result = grid.new()
+  for i=1,#self.children do
+    local child = grid.new(tostring(self.children[i]))
+    if self.type == EXP_TYPE.MUL and self.children[i].type and self.children[i].type == EXP_TYPE.ADD then
+      child:enclose_paren()
+    end
+    result:right(child)
+
+    if i <= #self.children-1 then
+      if self.type == EXP_TYPE.ADD then
+        result:right(grid.new(" + "))
+      end
+    end
+  end
+  return tostring(result)
+end
+
+function extendable.new(n, single, top, middle, bot)
+  if n <= 0 then
+    return grid.new()
+  elseif n == 1 then
+    return grid.new(single)
+  else
+    local lines = {}
+    for i=1,n do
+      if i == 1 then
+        table.insert(lines, top)
+      elseif i == n then
+        table.insert(lines, bot)
+      else
+        table.insert(lines, middle)
+      end
+    end
+
+    return grid.new(lines)
+  end
+end
+
+function create_left_paren(n)
+  return extendable.new(n, "(", "⎛", "⎜", "⎝")
+end
+
+function create_right_paren(n)
+  return extendable.new(n, ")", "⎞", "⎟", "⎠")
+end
+
+function create_left_bracket(n)
+  return extendable.new(n, "[", "⎡", "⎢", "⎣")
+end
+
+function create_right_bracket(n)
+  return extendable.new(n, "]", "⎤", "⎥", "⎦")
+end
+
+function grid_methods:enclose_bracket()
+  self:left(create_left_bracket(self.m))
+  self:right(create_right_bracket(self.m))
+end
+
+function grid_methods:enclose_paren()
+  self:left(create_left_paren(self.m))
+  self:right(create_right_paren(self.m))
+end
 grid.new = function(arg)
   arg = arg or {}
   local lines = {}
@@ -91,6 +207,8 @@ function grid_methods:top(arg)
       table.insert(self.lines, 1, (" "):rep(self.n))
     end
 
+    self.m = self.m + count
+
   else
     local other = arg
     if other.n > self.n then
@@ -121,6 +239,7 @@ function grid_methods:down(arg)
     for i=1,count do
       table.insert(self.lines, (" "):rep(self.n))
     end
+    self.m = self.m + count
 
   else
     local other = arg
@@ -152,18 +271,21 @@ function grid_methods:left(arg)
     for i=1,self.m do
       self.lines[i] = (" "):rep(count) .. self.lines[i]
     end
+    if self.m > 0 then
+      self.n = self.n + count
+    end
 
   else
     local other = arg
     if other.m > self.m then
-      local t_margin = math.floor((other.m - self.m)/2)
-      local d_margin = (other.m - self.m) - t_margin
+      local d_margin = math.floor((other.m - self.m)/2)
+      local t_margin = (other.m - self.m) - d_margin
       self:top(t_margin)
       self:down(d_margin)
     elseif other.m < self.m then
       other = other:clone()
-      local t_margin = math.floor((self.m - other.m)/2)
-      local d_margin = (self.m - other.m) - t_margin
+      local d_margin = math.floor((self.m - other.m)/2)
+      local t_margin = (self.m - other.m) - d_margin
       other:top(t_margin)
       other:down(d_margin)
     end
@@ -184,17 +306,21 @@ function grid_methods:right(arg)
       self.lines[i] = self.lines[i] .. (" "):rep(count)
     end
 
+    if self.m > 0 then
+      self.n = self.n + count
+    end
+
   else
     local other = arg
     if other.m > self.m then
-      local t_margin = math.floor((other.m - self.m)/2)
-      local d_margin = (other.m - self.m) - t_margin
+      local d_margin = math.floor((other.m - self.m)/2)
+      local t_margin = (other.m - self.m) - d_margin
       self:top(t_margin)
       self:down(d_margin)
     elseif other.m < self.m then
       other = other:clone()
-      local t_margin = math.floor((self.m - other.m)/2)
-      local d_margin = (self.m - other.m) - t_margin
+      local d_margin = math.floor((self.m - other.m)/2)
+      local t_margin = (self.m - other.m) - d_margin
       other:top(t_margin)
       other:down(d_margin)
     end
@@ -241,8 +367,8 @@ function grid.concat_grid(elems)
     for j=1,n do
       local l_margin = (max_width[j] - elems[i][j].n)/2
       local r_margin = (max_width[j] - elems[i][j].n) - l_margin
-      local t_margin = (max_height[i] - elems[i][j].m)/2
-      local d_margin = (max_height[i] - elems[i][j].m) - t_margin
+      local d_margin = (max_height[i] - elems[i][j].m)/2
+      local t_margin = (max_height[i] - elems[i][j].m) - d_margin
       elems[i][j]:left(l_margin)
       elems[i][j]:right(r_margin)
       elems[i][j]:top(t_margin)
@@ -267,34 +393,7 @@ function matrix_set:__tostring()
 
     local matrix_grid = grid.concat_grid(grid_elems)
 
-    local left_bracket
-    local right_bracket
-
-    if matrix_grid.m == 1 then
-      left_bracket = "["
-      right_bracket = "]"
-    elseif matrix_grid.m > 1 then
-      left_bracket = {}
-      right_bracket = {}
-      for i=1,matrix_grid.m do
-        if i == 1 then
-          table.insert(left_bracket, "⎡")
-          table.insert(right_bracket, "⎤")
-
-        elseif i == matrix_grid.m then
-          table.insert(left_bracket, "⎣")
-          table.insert(right_bracket, "⎦")
-
-        else
-          table.insert(left_bracket, "⎢")
-          table.insert(right_bracket, "⎥")
-
-        end
-      end
-    end
-
-    matrix_grid:left(grid.new(left_bracket))
-    matrix_grid:right(grid.new(right_bracket))
+    matrix_grid:enclose_bracket()
 
     return tostring(matrix_grid)
 
@@ -373,6 +472,8 @@ function M.syms(names, set)
       __tostring = set.__tostring,
       __call = set.__call,
 
+      __add = sym_mt.__add,
+      __mul = sym_mt.__mul,
     })
     table.insert(syms, sym)
   end
@@ -385,6 +486,36 @@ end
 
 function sym_mt:__index(key)
   return sym_methods[key] or self.set[key]
+end
+
+function sym_mt:__add(other)
+  local new_children = {}
+  for _, elem in ipairs({self, other}) do
+    if elem.type and elem.type == EXP_TYPE.ADD then
+      for _, child in ipairs(elem.children) do
+        table.insert(new_children, child)
+      end
+    else
+      table.insert(new_children, elem)
+    end
+  end
+
+  return exp.new(new_children, EXP_TYPE.ADD)
+end
+
+function sym_mt:__mul(other)
+  local new_children = {}
+  for _, elem in ipairs({self, other}) do
+    if elem.type and elem.type == EXP_TYPE.MUL then
+      for _, child in ipairs(elem.children) do
+        table.insert(new_children, child)
+      end
+    else
+      table.insert(new_children, elem)
+    end
+  end
+
+  return exp.new(new_children, EXP_TYPE.MUL)
 end
 
 return M

@@ -39,40 +39,7 @@ end
 local matrix_grid = grid.concat_grid(grid_elems)
 
 ;; create left and right bracket and concat
-local left_bracket
-local right_bracket
-
-if matrix_grid.m == 1 then
-  left_bracket = "["
-  right_bracket = "]"
-elseif matrix_grid.m > 1 then
-  left_bracket = {}
-  right_bracket = {}
-  for i=1,matrix_grid.m do
-    if i == 1 then
-      ; append bracket top
-    elseif i == matrix_grid.m then
-      ; append bracket bot
-    else
-      ; append bracket middle
-    end
-  end
-end
-
-matrix_grid:left(grid.new(left_bracket))
-matrix_grid:right(grid.new(right_bracket))
-
-;; append bracket top
-table.insert(left_bracket, "⎡")
-table.insert(right_bracket, "⎤")
-
-;; append bracket bot
-table.insert(left_bracket, "⎣")
-table.insert(right_bracket, "⎦")
-
-;; append bracket middle
-table.insert(left_bracket, "⎢")
-table.insert(right_bracket, "⎥")
+matrix_grid:enclose_bracket()
 
 ;; return matrix grid string representation
 return tostring(matrix_grid)

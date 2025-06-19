@@ -1,0 +1,81 @@
+;;; swan
+;; declare
+local exp_methods = {}
+local exp_mt = {}
+local exp = {}
+exp_mt.__index = exp_methods
+
+;; enums
+local EXP_TYPE = {
+  ; exp types
+}
+
+;; exp types
+ADD = 1,
+MUL = 2,
+
+;; implement
+function exp.new(children, type)
+  local e = {}
+  e.type = type
+  e.children = children
+  return setmetatable(e, exp_mt)
+end
+
+;; implement
+function exp_mt:__add(other)
+  local new_children = {}
+  ; add new children while flattening add expressions
+  return exp.new(new_children, EXP_TYPE.ADD)
+end
+
+;; add new children while flattening add expressions
+for _, elem in ipairs({self, other}) do
+  if elem.type and elem.type == EXP_TYPE.ADD then
+    for _, child in ipairs(elem.children) do
+      table.insert(new_children, child)
+    end
+  else
+    table.insert(new_children, elem)
+  end
+end
+
+;; implement
+function exp_mt:__mul(other)
+  local new_children = {}
+  ; add new children while flattening mul expressions
+  return exp.new(new_children, EXP_TYPE.MUL)
+end
+
+;; add new children while flattening mul expressions
+for _, elem in ipairs({self, other}) do
+  if elem.type and elem.type == EXP_TYPE.MUL then
+    for _, child in ipairs(elem.children) do
+      table.insert(new_children, child)
+    end
+  else
+    table.insert(new_children, elem)
+  end
+end
+
+;; implement
+function exp_mt:__tostring()
+  local result = grid.new()
+  for i=1,#self.children do
+    local child = grid.new(tostring(self.children[i]))
+    ; if mul expression and child is add enclose paren
+    result:right(child)
+
+    if i <= #self.children-1 then
+      if self.type == EXP_TYPE.ADD then
+        result:right(grid.new(" + "))
+      end
+    end
+  end
+  return tostring(result)
+end
+
+;; if mul expression and child is add enclose paren
+if self.type == EXP_TYPE.MUL and self.children[i].type and self.children[i].type == EXP_TYPE.ADD then
+  child:enclose_paren()
+end

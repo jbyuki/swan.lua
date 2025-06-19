@@ -18,10 +18,10 @@ require"osv".stop()
 
 ;; playground
 ; reload
-local r1 = swan.syms("A", swan.matrix_set:new(2,2))
-local a = swan.syms("a")
-r1:assign({{a,a},{a,a}})
-p(r1)
+local r1 = swan.syms("A", swan.matrix_set:new(2,3))
+local qw,qx,qy,qz = swan.syms("q_w q_x q_y q_z")
+r1:assign({{qw,qx,qy},{qz,qx,qz}})
+p(r1 * (r1 + r1))
 
 ;; playground
 ; reload

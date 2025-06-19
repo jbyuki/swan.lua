@@ -103,19 +103,29 @@ for i=1,count do
   table.insert(self.lines, 1, (" "):rep(self.n))
 end
 
+self.m = self.m + count
+
 ;; put emtpy lines in down
 for i=1,count do
   table.insert(self.lines, (" "):rep(self.n))
 end
+self.m = self.m + count
 
 ;; put emtpy lines in left
 for i=1,self.m do
   self.lines[i] = (" "):rep(count) .. self.lines[i]
 end
+if self.m > 0 then
+  self.n = self.n + count
+end
 
 ;; put emtpy lines in right
 for i=1,self.m do
   self.lines[i] = self.lines[i] .. (" "):rep(count)
+end
+
+if self.m > 0 then
+  self.n = self.n + count
 end
 
 ;; implement
@@ -139,14 +149,14 @@ end
 
 ;; normalize height with other
 if other.m > self.m then
-  local t_margin = math.floor((other.m - self.m)/2)
-  local d_margin = (other.m - self.m) - t_margin
+  local d_margin = math.floor((other.m - self.m)/2)
+  local t_margin = (other.m - self.m) - d_margin
   self:top(t_margin)
   self:down(d_margin)
 elseif other.m < self.m then
   other = other:clone()
-  local t_margin = math.floor((self.m - other.m)/2)
-  local d_margin = (self.m - other.m) - t_margin
+  local d_margin = math.floor((self.m - other.m)/2)
+  local t_margin = (self.m - other.m) - d_margin
   other:top(t_margin)
   other:down(d_margin)
 end
@@ -217,8 +227,8 @@ for i=1,m do
   for j=1,n do
     local l_margin = (max_width[j] - elems[i][j].n)/2
     local r_margin = (max_width[j] - elems[i][j].n) - l_margin
-    local t_margin = (max_height[i] - elems[i][j].m)/2
-    local d_margin = (max_height[i] - elems[i][j].m) - t_margin
+    local d_margin = (max_height[i] - elems[i][j].m)/2
+    local t_margin = (max_height[i] - elems[i][j].m) - d_margin
     elems[i][j]:left(l_margin)
     elems[i][j]:right(r_margin)
     elems[i][j]:top(t_margin)

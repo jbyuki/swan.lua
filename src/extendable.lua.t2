@@ -1,0 +1,58 @@
+;;; swan
+;; declare
+local extendable = {}
+
+;; implement
+function extendable.new(n, single, top, middle, bot)
+  if n <= 0 then
+    return grid.new()
+  elseif n == 1 then
+    return grid.new(single)
+  else
+    local lines = {}
+    ; create extendable
+    return grid.new(lines)
+  end
+end
+
+;; create extendable
+for i=1,n do
+  if i == 1 then
+    table.insert(lines, top)
+  elseif i == n then
+    table.insert(lines, bot)
+  else
+    table.insert(lines, middle)
+  end
+end
+
+;; declare
+local create_left_paren, create_right_paren
+
+;; implement
+function create_left_paren(n)
+  return extendable.new(n, "(", "⎛", "⎜", "⎝")
+end
+
+function create_right_paren(n)
+  return extendable.new(n, ")", "⎞", "⎟", "⎠")
+end
+
+function create_left_bracket(n)
+  return extendable.new(n, "[", "⎡", "⎢", "⎣")
+end
+
+function create_right_bracket(n)
+  return extendable.new(n, "]", "⎤", "⎥", "⎦")
+end
+
+;; implement
+function grid_methods:enclose_bracket()
+  self:left(create_left_bracket(self.m))
+  self:right(create_right_bracket(self.m))
+end
+
+function grid_methods:enclose_paren()
+  self:left(create_left_paren(self.m))
+  self:right(create_right_paren(self.m))
+end

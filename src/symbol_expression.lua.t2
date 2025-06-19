@@ -1,0 +1,17 @@
+;;; swan
+;; implement
+function sym_mt:__add(other)
+  local new_children = {}
+  ; add new children while flattening add expressions
+  return exp.new(new_children, EXP_TYPE.ADD)
+end
+
+function sym_mt:__mul(other)
+  local new_children = {}
+  ; add new children while flattening mul expressions
+  return exp.new(new_children, EXP_TYPE.MUL)
+end
+
+;; define sym metamethods
+__add = sym_mt.__add,
+__mul = sym_mt.__mul,
