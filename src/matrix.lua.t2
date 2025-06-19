@@ -5,11 +5,10 @@ M.matrix_set = matrix_set
 
 
 ;; define sets
-function matrix_set:new(m,n,elem_set)
+function matrix_set:new(m,n)
   local set = {}
   set.m = m
   set.n = n
-  set.elem_set = elem_set or real_set
   ; init matrix elements
   return setmetatable(set, { __index = self })
 end
@@ -63,7 +62,6 @@ function matrix_set:assign(arr)
     assert(#arr[i] == self.n)
     for j=1,self.n do
       self.elems[i][j] = arr[i][j]
-      assert(arr[i][j].set == self.elem_set)
     end
   end
 end

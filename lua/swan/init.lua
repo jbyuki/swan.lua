@@ -1,5 +1,8 @@
 -- Generated using ntangle.nvim
 local M = {}
+local constant_set = {}
+M.constant_set = constant_set
+
 local exp_methods = {}
 local exp_mt = {}
 local exp = {}
@@ -42,11 +45,16 @@ local sub_letters = {
 	["0"] = "₀", ["1"] = "₁", ["2"] = "₂", ["3"] = "₃", ["4"] = "₄", ["5"] = "₅", ["6"] = "₆", ["7"] = "₇", ["8"] = "₈", ["9"] = "₉",
 }
 
-function matrix_set:new(m,n,elem_set)
+function constant_set:new(value)
+  local set = {}
+  set.value = value
+  return setmetatable(set, { __index = self })
+end
+
+function matrix_set:new(m,n)
   local set = {}
   set.m = m
   set.n = n
-  set.elem_set = elem_set or real_set
   set.elems = {}
   for i=1,m do
     set.elems[i] = {}
@@ -58,6 +66,27 @@ end
 function real_set:__tostring(sym)
   return self.name
 end
+
+function constant_set:__tostring()
+  return self.value
+end
+
+function M.constant(value)
+  local set = constant_set:new(value)
+  local sym = {}
+  sym.name = name
+  sym.set = set
+  setmetatable(sym, {
+    __index = sym_mt.__index,
+    __tostring = set.__tostring,
+    __call = set.__call,
+
+    __add = sym_mt.__add,
+    __mul = sym_mt.__mul,
+  })
+  return sym
+end
+M.c = M.constant
 
 function exp.new(children, type)
   local e = {}
@@ -413,7 +442,6 @@ function matrix_set:assign(arr)
     assert(#arr[i] == self.n)
     for j=1,self.n do
       self.elems[i][j] = arr[i][j]
-      assert(arr[i][j].set == self.elem_set)
     end
   end
 end

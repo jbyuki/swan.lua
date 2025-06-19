@@ -1,0 +1,30 @@
+;;; swan
+;; declare
+local constant_set = {}
+M.constant_set = constant_set
+
+;; define sets
+function constant_set:new(value)
+  local set = {}
+  set.value = value
+  return setmetatable(set, { __index = self })
+end
+
+;; implement
+function constant_set:__tostring()
+  return self.value
+end
+
+;; implement
+function M.constant(value)
+  local set = constant_set:new(value)
+  local sym = {}
+  sym.name = name
+  sym.set = set
+  setmetatable(sym, {
+    ; define sym metamethods
+  })
+  return sym
+end
+M.c = M.constant
+

@@ -25,4 +25,7 @@ p(r1 * (r1 + r1))
 
 ;; playground
 ; reload
-local g = swan.grid(
+local I = swan.syms("I", swan.matrix_set:new(2,2))
+I:assign({{swan.c(1), swan.c(0)},{swan.c(0), swan.c(1)}})
+
+p(I)
