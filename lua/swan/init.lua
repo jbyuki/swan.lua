@@ -21,6 +21,9 @@ local matrix_set = {}
 M.matrix_set = matrix_set
 
 
+local mat = {}
+M.mat = mat
+
 local sym_methods = {}
 local sym_mt = {}
 
@@ -445,7 +448,22 @@ function matrix_set:assign(arr)
     end
   end
 end
+function mat.identity(m,n)
+  local z = M.c(0)
+  local o = M.c(1)
+  n = n or m
 
+  local I = swan.syms("I", swan.matrix_set:new(m,n))
+  local arr = {}
+  for i=1,m do
+    arr[i] = {}
+    for j=1,n do
+      arr[i][j] = i == j and o or z
+    end
+  end
+  I:assign(arr)
+  return I
+end
 function M.syms(names, set)
   local syms = {}
   local names_list = {}
