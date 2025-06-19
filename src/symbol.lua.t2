@@ -3,8 +3,8 @@
 function M.syms(names, set)
   local syms = {}
   ; parse names
-  ; create symbols
   ; if no set set to reals
+  ; create symbols
   ; attach set to symbols
   return unpack(syms)
 end
@@ -82,9 +82,16 @@ local syms = {}
 for _, name in ipairs(names_list) do
   local sym = {}
   sym.name = name
-  setmetatable(sym, sym_mt)
+  setmetatable(sym, {
+    ; define sym metamethods
+  })
   table.insert(syms, sym)
 end
+
+;; define sym metamethods
+__index = sym_mt.__index,
+__tostring = set.__tostring,
+__call = set.__call,
 
 ;; implement
 function sym_mt:__index(key)
@@ -105,16 +112,11 @@ if not set then
 end
 
 ;; define sets
-function real_set.tostring(sym)
-  return sym.name
+function real_set:__tostring(sym)
+  return self.name
 end
 
 ;; attach set to symbols
 for _, sym in ipairs(syms) do
   sym.set = set
-end
-
-;; implement
-function sym_mt:__tostring()
-  return self.set.tostring(self)
 end

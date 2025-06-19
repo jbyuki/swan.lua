@@ -18,5 +18,11 @@ require"osv".stop()
 
 ;; playground
 ; reload
-local r1 = swan.syms("A", swan.matrix_set:new(3,3))
-p(r1:size())
+local r1 = swan.syms("A", swan.matrix_set:new(2,2))
+local a = swan.syms("a")
+r1:assign({{a,a},{a,a}})
+p(r1)
+
+;; playground
+; reload
+local g = swan.grid(

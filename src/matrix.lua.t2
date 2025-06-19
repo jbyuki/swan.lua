@@ -3,21 +3,101 @@
 local matrix_set = {}
 M.matrix_set = matrix_set
 
+
 ;; define sets
-function matrix_set:new(n,m,elem_set)
+function matrix_set:new(m,n,elem_set)
   local set = {}
   set.m = m
   set.n = n
   set.elem_set = elem_set or real_set
+  ; init matrix elements
   return setmetatable(set, { __index = self })
 end
 
 ;; implement
-function matrix_set.tostring(sym)
-  return sym.name
+function matrix_set:__tostring()
+  if self.assigned then
+    ; transform all elements to grid
+    ; grid concat all elements
+    ; create left and right bracket and concat
+    ; return matrix grid string representation
+  else
+    return self.name
+  end
 end
+
+;; transform all elements to grid
+local grid_elems = {}
+for i=1,#self.elems do
+  grid_elems[i] = {}
+  for j=1,#self.elems[i] do
+    grid_elems[i][j] = grid.new(tostring(self.elems[i][j]) .. " ")
+  end
+end
+
+;; grid concat all elements
+local matrix_grid = grid.concat_grid(grid_elems)
+
+;; create left and right bracket and concat
+local left_bracket
+local right_bracket
+
+if matrix_grid.m == 1 then
+  left_bracket = "["
+  right_bracket = "]"
+elseif matrix_grid.m > 1 then
+  left_bracket = {}
+  right_bracket = {}
+  for i=1,matrix_grid.m do
+    if i == 1 then
+      ; append bracket top
+    elseif i == matrix_grid.m then
+      ; append bracket bot
+    else
+      ; append bracket middle
+    end
+  end
+end
+
+matrix_grid:left(grid.new(left_bracket))
+matrix_grid:right(grid.new(right_bracket))
+
+;; append bracket top
+table.insert(left_bracket, "⎡")
+table.insert(right_bracket, "⎤")
+
+;; append bracket bot
+table.insert(left_bracket, "⎣")
+table.insert(right_bracket, "⎦")
+
+;; append bracket middle
+table.insert(left_bracket, "⎢")
+table.insert(right_bracket, "⎥")
+
+;; return matrix grid string representation
+return tostring(matrix_grid)
 
 ;; implement
 function matrix_set:size()
   return { self.set.m, self.set.n }
 end
+
+;; init matrix elements
+set.elems = {}
+for i=1,m do
+  set.elems[i] = {}
+end
+
+;; implement
+function matrix_set:assign(arr)
+  self.assigned = true
+  assert(#arr == self.m)
+  for i=1,self.m do
+    assert(#arr[i] == self.n)
+    for j=1,self.n do
+      self.elems[i][j] = arr[i][j]
+      assert(arr[i][j].set == self.elem_set)
+    end
+  end
+end
+

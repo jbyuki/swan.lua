@@ -1,0 +1,231 @@
+;;; swan
+;; declare
+local grid_methods = {}
+local grid_mt = {}
+grid_mt.__index = grid_methods
+local grid = {}
+
+;; implement
+grid.new = function(arg)
+  arg = arg or {}
+  local lines = {}
+  if type(arg) == "string" then
+    local str = arg
+    ; split str in list of lines
+  elseif type(arg) == "table" then
+    lines = arg
+  end
+  ; compute max width
+  ; pad to max width
+
+  local g = {}
+  g.lines = lines
+  g.m = #lines
+  g.n = 0
+  if #lines > 0 then
+    g.n = #lines[1]
+  end
+
+  return setmetatable(g, grid_mt)
+end
+
+;; split str in list of lines
+if str ~= "" then
+  for line in vim.gsplit(str, "\n") do
+    table.insert(lines, line)
+  end
+end
+
+;; compute max width
+local max_width = 0
+for i=1,#lines do
+  max_width = math.max(max_width, vim.api.nvim_strwidth(lines[i]))
+end
+
+;; pad to max width
+for i=1,#lines do
+  local diff = max_width - vim.api.nvim_strwidth(lines[i])
+  lines[i] = lines[i] .. (" "):rep(diff)
+end
+
+;; implement
+function grid_mt:__tostring()
+  return table.concat(self.lines, "\n")
+end
+
+;; implement
+function grid_methods:top(arg)
+  if type(arg) == "number" then
+    local count = arg
+    ; put emtpy lines on top
+  else
+    local other = arg
+    ; normalize width with other
+    ; put other on top
+  end
+end
+
+function grid_methods:down(arg)
+  if type(arg) == "number" then
+    local count = arg
+    ; put emtpy lines in down
+  else
+    local other = arg
+    ; normalize width with other
+    ; put other in down
+  end
+end
+
+function grid_methods:left(arg)
+  if type(arg) == "number" then
+    local count = arg
+    ; put emtpy lines in left
+  else
+    local other = arg
+    ; normalize height with other
+    ; put other in left
+  end
+end
+
+function grid_methods:right(arg)
+  if type(arg) == "number" then
+    local count = arg
+    ; put emtpy lines in right
+  else
+    local other = arg
+    ; normalize height with other
+    ; put other in right
+  end
+end
+
+;; put emtpy lines on top
+for i=1,count do
+  table.insert(self.lines, 1, (" "):rep(self.n))
+end
+
+;; put emtpy lines in down
+for i=1,count do
+  table.insert(self.lines, (" "):rep(self.n))
+end
+
+;; put emtpy lines in left
+for i=1,self.m do
+  self.lines[i] = (" "):rep(count) .. self.lines[i]
+end
+
+;; put emtpy lines in right
+for i=1,self.m do
+  self.lines[i] = self.lines[i] .. (" "):rep(count)
+end
+
+;; implement
+function grid_methods:clone()
+  return grid.new(tostring(self))
+end
+
+;; normalize width with other
+if other.n > self.n then
+  local l_margin = math.floor((other.n - self.n)/2)
+  local r_margin = (other.n - self.n) - l_margin
+  self:left(l_margin)
+  self:right(r_margin)
+elseif other.n < self.n then
+  local l_margin = math.floor((self.n - other.n)/2)
+  local r_margin = (self.n - other.n) - l_margin
+  other = other:clone()
+  other:left(l_margin)
+  other:right(r_margin)
+end
+
+;; normalize height with other
+if other.m > self.m then
+  local t_margin = math.floor((other.m - self.m)/2)
+  local d_margin = (other.m - self.m) - t_margin
+  self:top(t_margin)
+  self:down(d_margin)
+elseif other.m < self.m then
+  other = other:clone()
+  local t_margin = math.floor((self.m - other.m)/2)
+  local d_margin = (self.m - other.m) - t_margin
+  other:top(t_margin)
+  other:down(d_margin)
+end
+
+;; put other on top
+for i=1,other.m do
+  table.insert(self.lines, i, other.lines[i])
+end
+self.m = self.m + other.m
+self.n = math.max(self.n, other.n)
+
+;; put other in down
+for i=1,other.m do
+  table.insert(self.lines, other.lines[i])
+end
+self.m = self.m + other.m
+self.n = math.max(self.n, other.n)
+
+;; put other in left
+for i=1,other.m do
+  self.lines[i] = other.lines[i] .. self.lines[i]
+end
+self.n = self.n + other.n
+self.m = math.max(self.m, other.m)
+
+;; put other in right
+for i=1,other.m do
+  self.lines[i] =  self.lines[i] .. other.lines[i]
+end
+self.n = self.n + other.n
+self.m = math.max(self.m, other.m)
+
+;; implement
+function grid.concat_grid(elems)
+  local m = #elems
+  local n = 0
+  if #elems > 0 then
+    n = #elems[1]
+  end
+
+  ; compute rowwise max height
+  ; compute columnwise max width
+  ; resize and concat all elements
+end
+
+;; compute rowwise max height
+local max_height = {}
+for i=1,m do
+  max_height[i] = 0
+  for j=1,n do
+    max_height[i] = math.max(elems[i][j].m, max_height[i])
+  end
+end
+
+;; compute columnwise max width
+local max_width = {}
+for j=1,n do
+  max_width[j] = 0
+  for i=1,m do
+    max_width[j] = math.max(elems[i][j].n, max_width[j])
+  end
+end
+
+;; resize and concat all elements
+local matrix = grid.new()
+for i=1,m do
+  local row = grid.new()
+  for j=1,n do
+    local l_margin = (max_width[j] - elems[i][j].n)/2
+    local r_margin = (max_width[j] - elems[i][j].n) - l_margin
+    local t_margin = (max_height[i] - elems[i][j].m)/2
+    local d_margin = (max_height[i] - elems[i][j].m) - t_margin
+    elems[i][j]:left(l_margin)
+    elems[i][j]:right(r_margin)
+    elems[i][j]:top(t_margin)
+    elems[i][j]:down(d_margin)
+
+    row:right(elems[i][j])
+  end
+  matrix:down(row)
+end
+return matrix
