@@ -91,6 +91,85 @@ function M.constant(value)
 end
 M.c = M.constant
 
+function exp_methods:expand()
+  local new_children = {}
+  for i=1,#self.children do
+    if self.children[i].expand then
+      table.insert(new_children, self.children[i]:expand())
+    else
+      table.insert(new_children, self.children[i])
+    end
+  end
+
+  if self.type == EXP_TYPE.MUL then
+    local num_terms = {}
+    local idx = {}
+    for i=1,#new_children do
+      if new_children[i].type == EXP_TYPE.ADD then
+        table.insert(num_terms, #new_children[i].children)
+      else
+        table.insert(num_terms, 0)
+      end
+      table.insert(idx, 1)
+    end
+
+    local term_children = {}
+    local idx_idx = 1
+    while true do
+      local mul_children = {}
+      for i=1,#idx do
+        if num_terms[i] == 0 then
+          table.insert(mul_children, new_children[i])
+        else
+          table.insert(mul_children, new_children[i].children[idx[i]])
+        end
+      end
+
+      if #mul_children == 1 then
+        table.insert(term_children, mul_children[1])
+      else
+        table.insert(term_children, exp.new(mul_children, EXP_TYPE.MUL))
+      end
+
+      if idx[idx_idx] >= num_terms[idx_idx] then
+        idx_idx = idx_idx + 1
+        found = false
+        while idx_idx <= #idx do
+          if idx[idx_idx] < num_terms[idx_idx] then
+            found = true
+            break
+          end
+          idx_idx = idx_idx + 1
+        end
+
+        if not found then
+          break
+        end
+
+        idx[idx_idx] = idx[idx_idx] + 1
+
+        for i=1,idx_idx-1 do
+          idx[i] = 1
+        end
+
+        idx_idx = 1
+
+      else
+        idx[idx_idx] = idx[idx_idx] + 1
+      end
+
+    end
+
+    if #term_children == 1 then
+      return term_children[1]
+    else
+      return exp.new(term_children, EXP_TYPE.ADD)
+    end
+
+  end
+  return exp.new(new_children, self.type)
+end
+
 function exp.new(children, type)
   local e = {}
   e.type = type

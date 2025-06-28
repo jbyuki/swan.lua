@@ -26,4 +26,4 @@ p(r1 * (r1 + r1))
 ;; playground
 ; reload
 local I = swan.mat.identity(3)
-p(I)
+p((I * (I + I)):expand())
