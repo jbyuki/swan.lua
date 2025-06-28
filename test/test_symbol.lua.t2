@@ -27,3 +27,7 @@ p(r1 * (r1 + r1))
 ; reload
 local I = swan.mat.identity(3)
 p((I * (I + I)):expand())
+
+;; playground
+local x,y,z = swan.syms("x y z")
+p(((x+y)*(x+y)*(x+y)):expand())
