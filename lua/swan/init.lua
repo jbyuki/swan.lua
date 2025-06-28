@@ -71,7 +71,7 @@ function real_set:__tostring(sym)
 end
 
 function constant_set:__tostring()
-  return self.value
+  return tostring(self.value)
 end
 
 function M.constant(value)
@@ -86,6 +86,8 @@ function M.constant(value)
 
     __add = sym_mt.__add,
     __mul = sym_mt.__mul,
+    __unm = sym_mt.__unm,
+
   })
   return sym
 end
@@ -211,9 +213,13 @@ function exp_mt:__tostring()
   local result = grid.new()
   for i=1,#self.children do
     local child = grid.new(tostring(self.children[i]))
+    if self.type == EXP_TYPE.MUL and i == 1 and self.children[i].value and self.children[i].value == -1 and #self.children > 1 then
+      child = grid.new("-")
+    end
     if self.type == EXP_TYPE.MUL and self.children[i].type and self.children[i].type == EXP_TYPE.ADD then
       child:enclose_paren()
     end
+
     result:right(child)
 
     if i <= #self.children-1 then
@@ -599,6 +605,8 @@ function M.syms(names, set)
 
       __add = sym_mt.__add,
       __mul = sym_mt.__mul,
+      __unm = sym_mt.__unm,
+
     })
     table.insert(syms, sym)
   end
@@ -641,6 +649,10 @@ function sym_mt:__mul(other)
   end
 
   return exp.new(new_children, EXP_TYPE.MUL)
+end
+
+function sym_mt:__unm()
+  return exp.new({swan.constant(-1), self}, EXP_TYPE.MUL)
 end
 
 return M

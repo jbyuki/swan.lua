@@ -12,7 +12,7 @@ end
 
 ;; implement
 function constant_set:__tostring()
-  return self.value
+  return tostring(self.value)
 end
 
 ;; implement

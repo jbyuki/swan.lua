@@ -63,6 +63,7 @@ function exp_mt:__tostring()
   local result = grid.new()
   for i=1,#self.children do
     local child = grid.new(tostring(self.children[i]))
+    ; if mul expression and first child is minus -1
     ; if mul expression and child is add enclose paren
     result:right(child)
 
@@ -78,4 +79,9 @@ end
 ;; if mul expression and child is add enclose paren
 if self.type == EXP_TYPE.MUL and self.children[i].type and self.children[i].type == EXP_TYPE.ADD then
   child:enclose_paren()
+end
+
+;; if mul expression and first child is minus -1
+if self.type == EXP_TYPE.MUL and i == 1 and self.children[i].value and self.children[i].value == -1 and #self.children > 1 then
+  child = grid.new("-")
 end

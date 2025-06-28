@@ -29,5 +29,6 @@ local I = swan.mat.identity(3)
 p((I * (I + I)):expand())
 
 ;; playground
-local x,y,z = swan.syms("x y z")
-p(((x+y)*(x+y)*(x+y)):expand())
+; reload
+local fc, fs = swan.syms("f_c f_s")
+p(-fc)

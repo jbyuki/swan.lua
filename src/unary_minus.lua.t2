@@ -1,0 +1,9 @@
+;;; swan
+;; implement
+function sym_mt:__unm()
+  return exp.new({swan.constant(-1), self}, EXP_TYPE.MUL)
+end
+
+;; define sym metamethods
+__unm = sym_mt.__unm,
+
