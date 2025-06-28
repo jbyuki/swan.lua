@@ -1,0 +1,47 @@
+;;; swan
+;; declare
+local isint
+
+;; implement
+function isint(num)
+    return math.floor(num) == num
+end
+
+;; implement
+function sym_mt:__pow(other)
+  assert(type(other) and isint(other) and other >= 1)
+  if other == 1 then
+    return self
+  end
+
+  local children = {}
+  for i=1,other do
+    table.insert(children, self)
+  end
+  return exp.new(children, EXP_TYPE.MUL)
+end
+
+;; define sym metamethods
+__pow = sym_mt.__pow,
+
+;; implement
+function exp_mt:__pow(other)
+  assert(type(other) and isint(other) and other >= 1)
+  if other == 1 then
+    return self
+  end
+
+  local children = {}
+  if self.type == EXP_TYPE.MUL then
+    for i=1,other do
+      for i=1,#self.children do
+        table.insert(children, self.children[i])
+      end
+    end
+  else
+    for i=1,other do
+      table.insert(children, self)
+    end
+  end
+  return exp.new(children, EXP_TYPE.MUL)
+end

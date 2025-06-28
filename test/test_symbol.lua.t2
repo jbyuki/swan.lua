@@ -40,4 +40,4 @@ p(K)
 ;; playground
 ; reload
 local a, b, c = swan.syms("a b c")
-p(((a-b-c)*(a-b)):expand())
+p(((a+b)^3):expand())

@@ -21,6 +21,8 @@ local matrix_set = {}
 M.matrix_set = matrix_set
 
 
+local isint
+
 local mat = {}
 M.mat = mat
 
@@ -81,6 +83,8 @@ function M.constant(value)
   sym.set = set
   setmetatable(sym, {
     __sub = sym_mt.__sub,
+
+    __pow = sym_mt.__pow,
 
     __index = sym_mt.__index,
     __tostring = set.__tostring,
@@ -574,6 +578,43 @@ function exp_mt:__sub(other)
     return exp.new({self, other}, EXP_TYPE.ADD)
   end
 end
+function isint(num)
+    return math.floor(num) == num
+end
+
+function sym_mt:__pow(other)
+  assert(type(other) and isint(other) and other >= 1)
+  if other == 1 then
+    return self
+  end
+
+  local children = {}
+  for i=1,other do
+    table.insert(children, self)
+  end
+  return exp.new(children, EXP_TYPE.MUL)
+end
+
+function exp_mt:__pow(other)
+  assert(type(other) and isint(other) and other >= 1)
+  if other == 1 then
+    return self
+  end
+
+  local children = {}
+  if self.type == EXP_TYPE.MUL then
+    for i=1,other do
+      for i=1,#self.children do
+        table.insert(children, self.children[i])
+      end
+    end
+  else
+    for i=1,other do
+      table.insert(children, self)
+    end
+  end
+  return exp.new(children, EXP_TYPE.MUL)
+end
 function mat.identity(m,n)
   local z = M.c(0)
   local o = M.c(1)
@@ -641,6 +682,8 @@ function M.syms(names, set)
     sym.name = name
     setmetatable(sym, {
       __sub = sym_mt.__sub,
+
+      __pow = sym_mt.__pow,
 
       __index = sym_mt.__index,
       __tostring = set.__tostring,
