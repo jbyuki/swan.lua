@@ -231,31 +231,36 @@ end
 function exp_mt:__tostring()
   local result = grid.new()
   if self.type == EXP_TYPE.MUL then
-    local factors = {}
-    local add_min = false
-    for i=1,#self.children do
-      if i == 1 and #self.children > 1 and self.children[1].value == -1 then
-        add_min = true
-      else
-        factors[self.children[i]] = (factors[self.children[i]] or 0) + 1
-      end
-    end
-
-    local child
     local result = grid.new()
-    if add_min then
-      result:right(grid.new("-"))
-    end
-    for fac,sup in pairs(factors) do
-      child = grid.new(tostring(fac))
-      if fac.type == EXP_TYPE.ADD then
+    local i = 1
+    while i <= #self.children do
+      local child = grid.new(tostring(self.children[i]))
+      if self.type == EXP_TYPE.MUL and i == 1 and self.children[i].value and self.children[i].value == -1 and #self.children > 1 then
+        child = grid.new("-")
+      end
+
+      if self.type == EXP_TYPE.MUL and self.children[i].type and self.children[i].type == EXP_TYPE.ADD then
         child:enclose_paren()
       end
-      if sup > 1 then
-        sup = grid.new(to_sup(tostring(sup)))
-        sup:down(child.m - 1)
-        child:right(sup)
+
+
+      local sup = 1
+      for j=i+1,#self.children do
+        if self.children[j] ~= self.children[i] then
+          break
+        end
+        sup = sup + 1
       end
+
+
+      if sup > 1 then
+        local sup_grid = grid.new(to_sup(tostring(sup)))
+        sup_grid:down(child.m - 1)
+        child:right(sup_grid)
+      end
+
+
+      i = i + sup 
       result:right(child)
     end
 
@@ -564,7 +569,11 @@ function matrix_set:__tostring()
     for i=1,#self.elems do
       grid_elems[i] = {}
       for j=1,#self.elems[i] do
-        grid_elems[i][j] = grid.new(tostring(self.elems[i][j]) .. " ")
+        local elem = tostring(self.elems[i][j])
+        if elem == "0" then
+          elem = " "
+        end
+        grid_elems[i][j] = grid.new(elem .. " ")
       end
     end
 

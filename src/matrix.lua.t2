@@ -30,7 +30,11 @@ local grid_elems = {}
 for i=1,#self.elems do
   grid_elems[i] = {}
   for j=1,#self.elems[i] do
-    grid_elems[i][j] = grid.new(tostring(self.elems[i][j]) .. " ")
+    local elem = tostring(self.elems[i][j])
+    if elem == "0" then
+      elem = " "
+    end
+    grid_elems[i][j] = grid.new(elem .. " ")
   end
 end
 
