@@ -40,20 +40,23 @@ end
 ; create distributed expression
 
 ;; add term children for current idx
-local mul_children = {}
+local mul_children
 for i=1,#idx do
+  local child
   if num_terms[i] == 0 then
-    table.insert(mul_children, new_children[i])
+    child = new_children[i]
   else
-    table.insert(mul_children, new_children[i].children[idx[i]])
+    child = new_children[i].children[idx[i]]
+  end
+
+  if not mul_children then
+    mul_children = child
+  else
+    mul_children = mul_children * child
   end
 end
 
-if #mul_children == 1 then
-  table.insert(term_children, mul_children[1])
-else
-  table.insert(term_children, exp.new(mul_children, EXP_TYPE.MUL))
-end
+table.insert(term_children, mul_children)
 
 ;; increase index or break
 if idx[idx_idx] >= num_terms[idx_idx] then
