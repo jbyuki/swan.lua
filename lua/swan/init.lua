@@ -80,6 +80,8 @@ function M.constant(value)
   sym.name = name
   sym.set = set
   setmetatable(sym, {
+    __sub = sym_mt.__sub,
+
     __index = sym_mt.__index,
     __tostring = set.__tostring,
     __call = set.__call,
@@ -533,6 +535,42 @@ function matrix_set:assign(arr)
     end
   end
 end
+function sym_mt:__sub(other)
+  if other.type == EXP_TYPE.MUL then
+    local mul_children = {}
+    table.insert(mul_children, M.constant(-1))
+    for i=1,#other.children do
+      table.insert(mul_children, other.children[i])
+    end
+    return exp.new({self, exp.new(mul_children, EXP_TYPE.MUL)}, EXP_TYPE.ADD)
+  else
+    return exp.new({self, exp.new({M.constant(-1), other}, EXP_TYPE.MUL)}, EXP_TYPE.ADD)
+  end
+end
+
+function exp_mt:__sub(other)
+  if other.type == EXP_TYPE.MUL then
+    local mul_children = {}
+    table.insert(mul_children, M.constant(-1))
+    for i=1,#other.children do
+      table.insert(mul_children, other.children[i])
+    end
+    other = exp.new(mul_children, EXP_TYPE.MUL)
+  else
+    other = exp.new({M.constant(-1), other}, EXP_TYPE.MUL)
+  end
+
+  if self.type == EXP_TYPE.ADD then
+    local add_children = {}
+    for i=1,#self.children do
+      table.insert(add_children, self.children[i])
+    end
+    table.insert(add_children, other)
+    return exp.new(add_children, EXP_TYPE.ADD)
+  else
+    return exp.new({self, other}, EXP_TYPE.ADD)
+  end
+end
 function mat.identity(m,n)
   local z = M.c(0)
   local o = M.c(1)
@@ -599,6 +637,8 @@ function M.syms(names, set)
     local sym = {}
     sym.name = name
     setmetatable(sym, {
+      __sub = sym_mt.__sub,
+
       __index = sym_mt.__index,
       __tostring = set.__tostring,
       __call = set.__call,
@@ -655,4 +695,16 @@ function sym_mt:__unm()
   return exp.new({swan.constant(-1), self}, EXP_TYPE.MUL)
 end
 
+function exp_mt:__unm()
+  if self.type == EXP_TYPE.MUL then
+    local mul_children = {}
+    table.insert(mul_children, M.constant(-1))
+    for i=1,#self.children do
+      table.insert(mul_children, self.children[i])
+    end
+    return exp.new(mul_children, EXP_TYPE.MUL)
+  else
+    return exp.new({M.constant(-1), self}, EXP_TYPE.MUL)
+  end
+end
 return M

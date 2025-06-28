@@ -18,10 +18,12 @@ require"osv".stop()
 
 ;; playground
 ; reload
-local r1 = swan.syms("A", swan.matrix_set:new(2,3))
+local Rp = swan.syms("R_p", swan.matrix_set:new(3,3))
 local qw,qx,qy,qz = swan.syms("q_w q_x q_y q_z")
-r1:assign({{qw,qx,qy},{qz,qx,qz}})
-p(r1 * (r1 + r1))
+-- r1:assign({
+--   {c(1)+qx*qx-qy*qy,c(2)*qx*qy,2*qy}, {2*qx*qy, qy*qy-qx*qx+1, -2*}})
+-- p(r1 * (r1 + r1))
+p(Rp)
 
 ;; playground
 ; reload
@@ -34,3 +36,8 @@ local fc, fs = swan.syms("f_c f_s")
 local K = swan.syms("K", swan.matrix_set:new(3,3))
 K:assign({{fc, -fs, c(0)}, {fs, fc, c(0)}, {c(0), c(0), c(1)}})
 p(K)
+
+;; playground
+; reload
+local a, b, c = swan.syms("a b c")
+p(((a-b-c)*a):expand())
