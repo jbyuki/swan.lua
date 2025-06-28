@@ -61,6 +61,7 @@ end
 ;; implement
 function exp_mt:__tostring()
   local result = grid.new()
+  ; if mul expression combine same factors
   for i=1,#self.children do
     local child = grid.new(tostring(self.children[i]))
     ; if mul expression and first child is minus -1
@@ -84,4 +85,61 @@ end
 ;; if mul expression and first child is minus -1
 if self.type == EXP_TYPE.MUL and i == 1 and self.children[i].value and self.children[i].value == -1 and #self.children > 1 then
   child = grid.new("-")
+end
+
+;; lookup
+local sup_letters = { 
+	["+"] = "⁺", ["-"] = "⁻", ["="] = "⁼", ["("] = "⁽", [")"] = "⁾",
+	["n"] = "ⁿ",
+	["0"] = "⁰", ["1"] = "¹", ["2"] = "²", ["3"] = "³", ["4"] = "⁴", ["5"] = "⁵", ["6"] = "⁶", ["7"] = "⁷", ["8"] = "⁸", ["9"] = "⁹",
+	["i"] = "ⁱ", ["j"] = "ʲ", ["w"] = "ʷ",
+  ["T"] = "ᵀ", ["A"] = "ᴬ", ["B"] = "ᴮ", ["D"] = "ᴰ", ["E"] = "ᴱ", ["G"] = "ᴳ", ["H"] = "ᴴ", ["I"] = "ᴵ", ["J"] = "ᴶ", ["K"] = "ᴷ", ["L"] = "ᴸ", ["M"] = "ᴹ", ["N"] = "ᴺ", ["O"] = "ᴼ", ["P"] = "ᴾ", ["R"] = "ᴿ", ["U"] = "ᵁ", ["V"] = "ⱽ", ["W"] = "ᵂ",
+}
+
+;; declare
+local to_sup
+
+;; implement
+function to_sup(other)
+  local result = ""
+  for i=1,#other do
+    result = result .. sup_letters[other:sub(i,i)]
+  end
+  return result
+end
+
+;; if mul expression combine same factors
+if self.type == EXP_TYPE.MUL then
+  local factors = {}
+  local add_min = false
+  for i=1,#self.children do
+    if i == 1 and #self.children > 1 and self.children[1].value == -1 then
+      add_min = true
+    else
+      factors[self.children[i]] = (factors[self.children[i]] or 0) + 1
+    end
+  end
+
+  local child
+  local result = grid.new()
+  if add_min then
+    result:right(grid:new("-"))
+  end
+  for fac,sup in pairs(factors) do
+    child = grid.new(tostring(fac))
+    ; if child is add enclose with paren
+    if sup > 1 then
+      sup = grid.new(to_sup(tostring(sup)))
+      sup:down(child.m - 1)
+      child:right(sup)
+    end
+    result:right(child)
+  end
+
+  return tostring(result)
+end
+
+;; if child is add enclose with paren
+if fac.type == EXP_TYPE.ADD then
+  child:enclose_paren()
 end
