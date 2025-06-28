@@ -20,10 +20,15 @@ require"osv".stop()
 ; reload
 local Rp = swan.syms("R_p", swan.matrix_set:new(3,3))
 local qw,qx,qy,qz = swan.syms("q_w q_x q_y q_z")
--- r1:assign({
---   {c(1)+qx*qx-qy*qy,c(2)*qx*qy,2*qy}, {2*qx*qy, qy*qy-qx*qx+1, -2*}})
+Rp:assign({
+  {c(1)+qx^2-qy^2,c(2)*qx*qy,c(2)*qy}, {c(2)*qx*qy, qy^2-qx^2+c(1), -c(2)*qx}, {c(-2)*qy, c(2)*qx, c(1) - qx^2 - qy^2}})
 -- p(r1 * (r1 + r1))
 p(Rp)
+
+;; playground
+; reload
+local qw,qx,qy,qz = swan.syms("q_w q_x q_y q_z")
+p(-qy^2)
 
 ;; playground
 ; reload
@@ -40,4 +45,4 @@ p(K)
 ;; playground
 ; reload
 local a, b, c = swan.syms("a b c")
-p(((a+b)^3):expand())
+p(((a+b)^7):expand())

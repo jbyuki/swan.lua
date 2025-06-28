@@ -244,7 +244,7 @@ function exp_mt:__tostring()
     local child
     local result = grid.new()
     if add_min then
-      result:right(grid:new("-"))
+      result:right(grid.new("-"))
     end
     for fac,sup in pairs(factors) do
       child = grid.new(tostring(fac))
