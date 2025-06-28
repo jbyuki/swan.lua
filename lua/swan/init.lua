@@ -307,7 +307,7 @@ grid.new = function(arg)
   g.m = #lines
   g.n = 0
   if #lines > 0 then
-    g.n = #lines[1]
+    g.n = vim.api.nvim_strwidth(lines[1])
   end
 
   return setmetatable(g, grid_mt)
