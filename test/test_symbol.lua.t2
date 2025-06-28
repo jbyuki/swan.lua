@@ -30,5 +30,7 @@ p((I * (I + I)):expand())
 
 ;; playground
 ; reload
-local fc, fs = swan.syms("f_c f_s")
-p(-fc)
+local fc, fs = swan.syms("fc fs")
+local K = swan.syms("K", swan.matrix_set:new(2,1))
+K:assign({{-fc}, {fs}})
+p(K)

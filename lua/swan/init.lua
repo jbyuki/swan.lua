@@ -482,9 +482,9 @@ function grid.concat_grid(elems)
   for i=1,m do
     local row = grid.new()
     for j=1,n do
-      local l_margin = (max_width[j] - elems[i][j].n)/2
+      local l_margin = math.floor((max_width[j] - elems[i][j].n)/2)
       local r_margin = (max_width[j] - elems[i][j].n) - l_margin
-      local d_margin = (max_height[i] - elems[i][j].m)/2
+      local d_margin = math.floor((max_height[i] - elems[i][j].m)/2)
       local t_margin = (max_height[i] - elems[i][j].m) - d_margin
       elems[i][j]:left(l_margin)
       elems[i][j]:right(r_margin)
