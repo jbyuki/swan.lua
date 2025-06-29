@@ -70,6 +70,7 @@ function matrix_set:new(m,n)
   local set = {}
   set.m = m
   set.n = n
+  set.is_matrix = true
   set.elems = {}
   for i=1,m do
     set.elems[i] = {}
@@ -82,6 +83,45 @@ function real_set:__tostring(sym)
   return self.name
 end
 
+function matrix_set:__call(idx, elem)
+  if not self.assigned then
+    for i=1,self.m do
+      for j=1,self.n do
+        self.elems[i][j] = M.syms(("%s(%d,%d)"):format(self.name, i, j))
+      end
+    end
+  end
+  self.assigned = true
+
+  assert(idx[1] < self.m)
+  assert(idx[2] < self.n)
+
+  self.elems[idx[1]+1][idx[2]+1] = elem
+end
+
+function matrix_set:block(topleft, mat)
+  assert(mat.set and mat.set.is_matrix)
+
+  if not self.assigned then
+    for i=1,self.m do
+      for j=1,self.n do
+        self.elems[i][j] = M.syms(("%s(%d,%d)"):format(self.name, i, j))
+      end
+    end
+  end
+
+  self.assigned = true
+
+  assert(mat.m + topleft[1] <= self.m)
+  assert(mat.n + topleft[2] <= self.n)
+
+  for i=1,mat.m do
+    for j=1,mat.n do
+      self.elems[i+topleft[1]][j+topleft[2]] = mat.elems[i][j]
+    end
+  end
+end
+
 function constant_set:__tostring()
   return tostring(self.value)
 end
@@ -92,6 +132,8 @@ function M.constant(value)
   sym.name = name
   sym.set = set
   setmetatable(sym, {
+    __call = set.__call,
+
     __sub = sym_mt.__sub,
 
     __pow = sym_mt.__pow,
@@ -296,23 +338,38 @@ function to_sup(other)
   return result
 end
 
-function extendable.new(n, single, top, middle, bot)
+function extendable.new(n, single, top, middle, bot, hori)
   if n <= 0 then
     return grid.new()
   elseif n == 1 then
     return grid.new(single)
   else
     local lines = {}
-    for i=1,n do
-      if i == 1 then
-        table.insert(lines, top)
-      elseif i == n then
-        table.insert(lines, bot)
-      else
-        table.insert(lines, middle)
+    if hori then
+      local single_line = ""
+      for i=1,n do
+        if i == 1 then
+          single_line =  single_line  .. top
+        elseif i == n then
+          single_line =  single_line  .. bot
+        else
+          single_line =  single_line  .. middle
+        end
       end
-    end
+      table.insert(lines, single_line)
 
+    else
+      for i=1,n do
+        if i == 1 then
+          table.insert(lines, top)
+        elseif i == n then
+          table.insert(lines, bot)
+        else
+          table.insert(lines, middle)
+        end
+      end
+
+    end
     return grid.new(lines)
   end
 end
@@ -527,6 +584,25 @@ function grid.concat_grid(elems)
     n = #elems[1]
   end
 
+  local matrix = grid.new()
+  for i=1,m do
+    local row = grid.new()
+    for j=1,n do
+      row:right(elems[i][j])
+    end
+    matrix:down(row)
+  end
+  return matrix
+
+end
+
+function grid.resize_concat_grid(elems)
+  local m = #elems
+  local n = 0
+  if #elems > 0 then
+    n = #elems[1]
+  end
+
   local max_height = {}
   for i=1,m do
     max_height[i] = 0
@@ -543,9 +619,7 @@ function grid.concat_grid(elems)
     end
   end
 
-  local matrix = grid.new()
   for i=1,m do
-    local row = grid.new()
     for j=1,n do
       local l_margin = math.floor((max_width[j] - elems[i][j].n)/2)
       local r_margin = (max_width[j] - elems[i][j].n) - l_margin
@@ -555,14 +629,48 @@ function grid.concat_grid(elems)
       elems[i][j]:right(r_margin)
       elems[i][j]:top(t_margin)
       elems[i][j]:down(d_margin)
-
-      row:right(elems[i][j])
     end
-    matrix:down(row)
   end
-  return matrix
+
 end
 
+function grid.put_separators_grid(elems)
+  local m = #elems
+  local n = 0
+  if #elems > 0 then
+    n = #elems[1]
+  end
+
+  for i=1,m do
+    for j=1,n do
+      local w = elems[i][j].n
+      local h = elems[i][j].m
+      if j > 1 then
+        elems[i][j]:left(create_vert_spacer(h))
+        elems[i][j]:left(create_vert_bar(h))
+      end
+      if i > 1 then
+        elems[i][j]:top(create_hori_bar(w))
+      end
+    end
+  end
+end
+
+function create_vert_bar(n)
+  return extendable.new(n, "│", "│", "│", "│")
+end
+
+function create_hori_bar(n)
+  return extendable.new(n, "─", "─", "─", "─", true)
+end
+
+function create_vert_spacer(n)
+  return extendable.new(n, " ", " ", " ", " ")
+end
+
+function create_hori_spacer(n)
+  return extendable.new(n, " ", " ", " ", " ", true)
+end
 function matrix_set:__tostring()
   if self.assigned then
     local grid_elems = {}
@@ -573,8 +681,26 @@ function matrix_set:__tostring()
         if elem == "0" then
           elem = " "
         end
-        grid_elems[i][j] = grid.new(elem .. " ")
+        if not is_matrix_rec(self.elems[i][j]) then
+          elem = elem .. " "
+        end
+        grid_elems[i][j] = grid.new(elem)
       end
+    end
+
+    grid.resize_concat_grid(grid_elems)
+    local has_matrix_elem = false
+    for i=1,self.m do
+      for j=1,self.n do
+        if is_matrix_rec(self.elems[i][j]) then
+          has_matrix_elem = true
+          break
+        end
+      end
+    end
+
+    if has_matrix_elem then
+      grid.put_separators_grid(grid_elems)
     end
 
     local matrix_grid = grid.concat_grid(grid_elems)
@@ -600,6 +726,18 @@ function matrix_set:assign(arr)
     for j=1,self.n do
       self.elems[i][j] = arr[i][j]
     end
+  end
+end
+
+function is_matrix_rec(exp)
+  if exp.children then
+    for i=1,#exp.children do
+      if is_matrix_rec(exp.children[i]) then
+        return true
+      end
+    end
+  else
+    return exp.is_matrix
   end
 end
 function sym_mt:__sub(other)
@@ -741,6 +879,8 @@ function M.syms(names, set)
     local sym = {}
     sym.name = name
     setmetatable(sym, {
+      __call = set.__call,
+
       __sub = sym_mt.__sub,
 
       __pow = sym_mt.__pow,

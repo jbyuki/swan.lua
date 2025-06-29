@@ -197,9 +197,7 @@ function grid.concat_grid(elems)
     n = #elems[1]
   end
 
-  ; compute rowwise max height
-  ; compute columnwise max width
-  ; resize and concat all elements
+  ; concat all grid elements
 end
 
 ;; compute rowwise max height
@@ -220,10 +218,32 @@ for j=1,n do
   end
 end
 
-;; resize and concat all elements
+;; concat all grid elements
 local matrix = grid.new()
 for i=1,m do
   local row = grid.new()
+  for j=1,n do
+    row:right(elems[i][j])
+  end
+  matrix:down(row)
+end
+return matrix
+
+;; implement
+function grid.resize_concat_grid(elems)
+  local m = #elems
+  local n = 0
+  if #elems > 0 then
+    n = #elems[1]
+  end
+
+  ; compute rowwise max height
+  ; compute columnwise max width
+  ; resize all grid elemens
+end
+
+;; resize all grid elemens
+for i=1,m do
   for j=1,n do
     local l_margin = math.floor((max_width[j] - elems[i][j].n)/2)
     local r_margin = (max_width[j] - elems[i][j].n) - l_margin
@@ -233,9 +253,45 @@ for i=1,m do
     elems[i][j]:right(r_margin)
     elems[i][j]:top(t_margin)
     elems[i][j]:down(d_margin)
-
-    row:right(elems[i][j])
   end
-  matrix:down(row)
 end
-return matrix
+
+;; implement
+function grid.put_separators_grid(elems)
+  local m = #elems
+  local n = 0
+  if #elems > 0 then
+    n = #elems[1]
+  end
+
+  for i=1,m do
+    for j=1,n do
+      local w = elems[i][j].n
+      local h = elems[i][j].m
+      if j > 1 then
+        elems[i][j]:left(create_vert_spacer(h))
+        elems[i][j]:left(create_vert_bar(h))
+      end
+      if i > 1 then
+        elems[i][j]:top(create_hori_bar(w))
+      end
+    end
+  end
+end
+
+;; implement
+function create_vert_bar(n)
+  return extendable.new(n, "│", "│", "│", "│")
+end
+
+function create_hori_bar(n)
+  return extendable.new(n, "─", "─", "─", "─", true)
+end
+
+function create_vert_spacer(n)
+  return extendable.new(n, " ", " ", " ", " ")
+end
+
+function create_hori_spacer(n)
+  return extendable.new(n, " ", " ", " ", " ", true)
+end

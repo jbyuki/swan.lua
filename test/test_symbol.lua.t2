@@ -28,18 +28,16 @@ local fc, fs = swan.syms("f_c f_s")
 local K = swan.syms("K", swan.matrix_set:new(3,3))
 K:assign({{fc, -fs, c(0)}, {fs, fc, c(0)}, {c(0), c(0), c(1)}})
 
-p(K * Rp)
+local P = swan.syms("P", swan.matrix_set:new(1,2))
+P({0,0}, K * Rp)
+p(P)
 
 ;; playground
 ; reload
-local I = swan.mat.identity(3)
-p((I * (I + I)):expand())
-
-;; playground
-; reload
-p(K)
-
-;; playground
-; reload
-local a, b, c = swan.syms("a b c")
-p(((a+b)^4):expand())
+local I = swan.mat.identity(2)
+local I_2 = swan.syms("I_2", swan.matrix_set:new(2,2))
+I_2({0,0}, I)
+I_2({0,1}, I)
+I_2({1,0}, I)
+I_2({1,1}, I)
+p(I_2)

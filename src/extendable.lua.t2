@@ -3,14 +3,18 @@
 local extendable = {}
 
 ;; implement
-function extendable.new(n, single, top, middle, bot)
+function extendable.new(n, single, top, middle, bot, hori)
   if n <= 0 then
     return grid.new()
   elseif n == 1 then
     return grid.new(single)
   else
     local lines = {}
-    ; create extendable
+    if hori then
+      ; create horizontal extendable
+    else
+      ; create extendable
+    end
     return grid.new(lines)
   end
 end
@@ -25,6 +29,19 @@ for i=1,n do
     table.insert(lines, middle)
   end
 end
+
+;; create horizontal extendable
+local single_line = ""
+for i=1,n do
+  if i == 1 then
+    single_line =  single_line  .. top
+  elseif i == n then
+    single_line =  single_line  .. bot
+  else
+    single_line =  single_line  .. middle
+  end
+end
+table.insert(lines, single_line)
 
 ;; declare
 local create_left_paren, create_right_paren

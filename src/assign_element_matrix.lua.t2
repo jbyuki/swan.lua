@@ -1,0 +1,17 @@
+;;; swan
+;; implement
+function matrix_set:__call(idx, elem)
+  if not self.assigned then
+    ; put placeholders syms in matrix
+  end
+  self.assigned = true
+
+  assert(idx[1] < self.m)
+  assert(idx[2] < self.n)
+
+  self.elems[idx[1]+1][idx[2]+1] = elem
+end
+
+;; define sym metamethods
+__call = set.__call,
+

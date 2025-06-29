@@ -1,0 +1,27 @@
+;;; swan
+;; implement
+function matrix_set:block(topleft, mat)
+  assert(mat.set and mat.set.is_matrix)
+
+  if not self.assigned then
+    ; put placeholders syms in matrix
+  end
+
+  self.assigned = true
+
+  assert(mat.m + topleft[1] <= self.m)
+  assert(mat.n + topleft[2] <= self.n)
+
+  for i=1,mat.m do
+    for j=1,mat.n do
+      self.elems[i+topleft[1]][j+topleft[2]] = mat.elems[i][j]
+    end
+  end
+end
+
+;; put placeholders syms in matrix
+for i=1,self.m do
+  for j=1,self.n do
+    self.elems[i][j] = M.syms(("%s(%d,%d)"):format(self.name, i, j))
+  end
+end
