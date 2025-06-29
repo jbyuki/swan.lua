@@ -30,6 +30,8 @@ K:assign({{fc, -fs, c(0)}, {fs, fc, c(0)}, {c(0), c(0), c(1)}})
 
 local P = swan.syms("P", swan.matrix_set:new(1,2))
 P({0,0}, K * Rp)
+local T = swan.syms("T", swan.matrix_set:new(3,1))
+P({0,1}, T)
 p(P)
 
 ;; playground

@@ -737,7 +737,7 @@ function is_matrix_rec(exp)
       end
     end
   else
-    return exp.is_matrix
+    return exp.is_matrix and exp.assigned
   end
 end
 function sym_mt:__sub(other)
